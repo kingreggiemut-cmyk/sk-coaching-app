@@ -59,19 +59,16 @@ input, select, textarea { font-family: inherit; }
    ========================================================================== */
 #bg-video {
   position: fixed; inset: 0; width: 100%; height: 100%; z-index: 0;
-  background: linear-gradient(135deg, #0a1628 0%, #1E54B7 40%, #0d2040 70%, #0a1628 100%);
-  background-size: 400% 400%;
-  animation: bgShift 20s ease infinite;
+  object-fit: cover;
+  filter: blur(3px) brightness(0.28);
+  animation: bgZoom 28s ease-in-out infinite alternate;
 }
-@keyframes bgShift {
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
-}
+@keyframes bgZoom { from { transform: scale(1); } to { transform: scale(1.1); } }
 #bg-tint {
   position: fixed; inset: 0; z-index: 1;
-  background: radial-gradient(ellipse at 30% 20%, rgba(242,181,14,0.06) 0%, transparent 60%),
-              radial-gradient(ellipse at 70% 80%, rgba(30,84,183,0.12) 0%, transparent 60%);
+  background: var(--primary);
+  opacity: 0.14;
+  mix-blend-mode: multiply;
   pointer-events: none;
 }
 
@@ -684,16 +681,10 @@ input, select, textarea { font-family: inherit; }
 /* Game badge logos */
 .game-badge {
   position: fixed; bottom: 60px;
-  width: 72px; height: 72px;
+  width: 90px; height: 90px; object-fit: contain;
   opacity: 0; pointer-events: none;
   transition: opacity .3s ease;
-  display: flex; align-items: center; justify-content: center;
-  font-family: var(--font-display); font-weight: 900; font-size: 15px;
-  line-height: 1.1; text-align: center; text-transform: uppercase;
-  color: #fff; letter-spacing: 0.05em;
-  background: var(--primary); border: 2.5px solid var(--secondary);
-  border-radius: 12px;
-  box-shadow: 0 4px 16px rgba(0,0,0,.5), 0 0 0 1px rgba(242,181,14,.2);
+  filter: drop-shadow(0 4px 12px rgba(0,0,0,.6));
 }
 .game-badge-cfb  { left: 20px; }
 .game-badge-madden { right: 20px; }
@@ -1019,8 +1010,10 @@ body.game-madden .game-badge-madden { opacity: 1; }
 </head>
 <body>
 
-<!-- Always-on animated background -->
-<div id="bg-video"></div>
+<!-- Always-on background video -->
+<video id="bg-video" autoplay muted loop playsinline
+  src="reference/background.mp4">
+</video>
 <div id="bg-tint"></div>
 
 <!-- ══ SCREEN: COVER / SPLASH ══════════════════════════════════════════════ -->
@@ -1344,12 +1337,12 @@ body.game-madden .game-badge-madden { opacity: 1; }
 
   <!-- BOTTOM GAME TOGGLE -->
   <div class="app-bottom">
-    <span class="game-badge game-badge-cfb">CFB<br>27</span>
+    <img class="game-badge game-badge-cfb" src="reference/CFB Badge logo.png" alt="CFB 27">
     <div class="game-toggle">
       <button class="game-toggle-btn active" id="toggle-cfb" onclick="setGame('CFB27')">CFB 27</button>
       <button class="game-toggle-btn" id="toggle-madden" onclick="setGame('Madden27')">Madden 27</button>
     </div>
-    <span class="game-badge game-badge-madden">MUT<br>27</span>
+    <img class="game-badge game-badge-madden" src="reference/Maddne 27 badge lgoo.png" alt="Madden 27">
   </div>
 </section>
 
