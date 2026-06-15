@@ -1397,12 +1397,14 @@ async function init() {
 
   // Register auth listener FIRST so magic links and recovery tokens are caught
   db.auth.onAuthStateChange(async (event, session) => {
+    console.log('[SK] onAuthStateChange event:', event, 'user:', session?.user?.id);
     if (event === 'PASSWORD_RECOVERY') {
       window.history.replaceState(null, '', window.location.pathname);
       showScreen('screen-auth');
       showPasswordResetScreen();
     } else if (event === 'SIGNED_IN' && session?.user) {
       currentUser = session.user;
+      console.log('[SK] SIGNED_IN — calling loadMemberAndContinue');
       await loadMemberAndContinue();
     } else if (event === 'SIGNED_OUT') {
       currentUser = null; currentMember = null;
@@ -1426,11 +1428,15 @@ async function init() {
 }
 
 async function loadMemberAndContinue() {
-  const { data } = await db.from('members').select('*').eq('member_id', currentUser.id).maybeSingle();
+  console.log('[SK] loadMemberAndContinue — querying members for', currentUser.id);
+  const { data, error } = await db.from('members').select('*').eq('member_id', currentUser.id).maybeSingle();
+  console.log('[SK] members query result — data:', data, 'error:', error);
   if (data) {
     currentMember = data;
+    console.log('[SK] member found — calling enterApp');
     enterApp();
   } else {
+    console.log('[SK] no member found — showing setup screen');
     showScreen('screen-setup');
   }
 }
