@@ -1,0 +1,4156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Scheme Kings · Coaching Platform</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@500;600;700;800;900&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+/* ==========================================================================
+   CONFIG — swap these two values to retheme the entire app
+   ========================================================================== */
+:root {
+  --bg-color:  #0a0e1a;   /* dark base behind the video */
+  --primary:   #1E54B7;   /* blue — borders, headings, panels */
+  --secondary: #F2B50E;   /* gold — pinstripes, highlights */
+  --gold:      #F5A623;   /* SK brand gold */
+  --cream:     #F0E7CB;   /* patch surface / text */
+
+  /* derived — computed automatically, do not edit */
+  --primary-deep: color-mix(in srgb, var(--primary) 70%, #000);
+  --primary-ink:  color-mix(in srgb, var(--primary) 50%, #000);
+  --cream-muted:  color-mix(in srgb, var(--cream) 60%, transparent);
+  --cream-deep:   color-mix(in srgb, var(--cream) 90%, #000);
+  --cream-edge:   color-mix(in srgb, var(--cream) 75%, #000);
+  --gold-lt:      color-mix(in srgb, var(--gold) 55%, #fff);
+  --gold-dk:      color-mix(in srgb, var(--gold) 70%, #000);
+  --ink-gold:     color-mix(in srgb, var(--gold) 22%, #000);
+  --ink:          color-mix(in srgb, var(--primary) 60%, #060b16);
+  --ink-soft:     color-mix(in srgb, var(--ink) 72%, #8a7f5e);
+  --overlay:      rgba(6,8,20,0.94);
+  --noise: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3CfeComponentTransfer%3E%3CfeFuncA type='linear' slope='0.5'/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
+  --card-radius: 16px;
+  --font-display: "Barlow Condensed", "Arial Narrow", sans-serif;
+  --font-body:    "Barlow", system-ui, sans-serif;
+  --ease: cubic-bezier(.2,.75,.2,1);
+}
+
+/* ==========================================================================
+   RESET + BASE
+   ========================================================================== */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; }
+body {
+  font-family: var(--font-body);
+  background: var(--bg-color);
+  color: var(--cream);
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden;
+}
+button { font-family: inherit; cursor: pointer; border: none; background: none; color: inherit; }
+input, select, textarea { font-family: inherit; }
+.hidden { display: none !important; }
+
+/* ==========================================================================
+   BACKGROUND VIDEO
+   ========================================================================== */
+#bg-video {
+  position: fixed; inset: 0; width: 100%; height: 100%; z-index: 0;
+  object-fit: cover;
+  filter: blur(3px) brightness(0.28);
+  animation: bgZoom 28s ease-in-out infinite alternate;
+}
+@keyframes bgZoom { from { transform: scale(1); } to { transform: scale(1.1); } }
+#bg-tint {
+  position: fixed; inset: 0; z-index: 1;
+  background: var(--primary);
+  opacity: 0.14;
+  mix-blend-mode: multiply;
+  pointer-events: none;
+}
+
+/* ==========================================================================
+   SCREEN SYSTEM — all screens stack at z-index 10+
+   ========================================================================== */
+.screen {
+  position: fixed; inset: 0; z-index: 10;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+}
+
+/* ==========================================================================
+   COVER / SPLASH
+   ========================================================================== */
+#screen-cover {
+  text-align: center;
+  padding: 32px;
+  background: radial-gradient(120% 90% at 50% 40%, transparent 40%, rgba(0,0,0,0.5));
+}
+.cover-logo {
+  width: 140px; height: 140px; margin: 0 auto 24px;
+  display: flex; align-items: center; justify-content: center;
+  position: relative;
+}
+.cover-logo::before {
+  content: ""; position: absolute; inset: -20%;
+  background: radial-gradient(circle, color-mix(in srgb, var(--secondary) 40%, transparent) 0%, transparent 65%);
+  filter: blur(8px);
+}
+.cover-logo svg { width: 100%; height: 100%; color: var(--gold); position: relative; }
+.cover-eyebrow {
+  font-family: var(--font-display); font-weight: 700; text-transform: uppercase;
+  letter-spacing: 3px; font-size: 13px; color: var(--secondary);
+  margin-bottom: 10px;
+}
+.cover-title {
+  font-family: var(--font-display); font-weight: 900; text-transform: uppercase;
+  font-size: clamp(42px, 8vw, 88px); color: var(--cream); line-height: .95;
+  text-shadow: 0 4px 24px rgba(0,0,0,.7);
+}
+.cover-sub {
+  font-family: var(--font-display); font-weight: 600; text-transform: uppercase;
+  letter-spacing: 2px; font-size: 16px;
+  color: var(--cream-muted); margin-top: 12px;
+}
+.open-btn {
+  margin-top: 40px;
+  font-family: var(--font-display); font-weight: 900; text-transform: uppercase;
+  letter-spacing: 2px; font-size: 20px;
+  color: var(--primary); background: var(--secondary);
+  padding: 16px 52px;
+  border: 2px solid var(--cream);
+  box-shadow: 0 10px 28px rgba(0,0,0,.55), inset 0 0 0 3px var(--primary);
+  transition: transform .15s ease, filter .15s ease;
+}
+.open-btn:hover { transform: translateY(-3px); filter: brightness(1.08); }
+.cover-stamp {
+  position: absolute; bottom: 24px; left: 50%; transform: translateX(-50%);
+  display: flex; align-items: center; gap: 8px;
+  font-family: var(--font-display); font-weight: 700; letter-spacing: 3px;
+  font-size: 11px; text-transform: uppercase; color: var(--gold); opacity: .8;
+}
+.cover-stamp svg { width: 18px; height: 18px; }
+
+/* ==========================================================================
+   AUTH SCREEN
+   ========================================================================== */
+#screen-auth {
+  background: var(--overlay);
+}
+.auth-card {
+  background-color: var(--cream);
+  background-image: linear-gradient(180deg, rgba(255,255,255,.45), rgba(0,0,0,.05) 60%), var(--noise);
+  background-blend-mode: soft-light, soft-light;
+  border: 3px solid var(--primary);
+  border-radius: var(--card-radius);
+  box-shadow: inset 0 0 0 2.5px var(--secondary), 0 24px 60px rgba(0,0,0,.6);
+  padding: 40px 36px;
+  width: min(440px, 94vw);
+  position: relative;
+}
+.auth-card::before {
+  content: ""; position: absolute; inset: 7px; pointer-events: none;
+  border: 1.5px dashed color-mix(in srgb, var(--cream) 50%, #fff);
+  border-radius: calc(var(--card-radius) - 4px);
+}
+.auth-logo {
+  display: flex; align-items: center; justify-content: center;
+  width: 64px; height: 64px; margin: 0 auto 20px;
+  color: var(--gold);
+}
+.auth-logo svg { width: 100%; height: 100%; }
+.auth-title {
+  font-family: var(--font-display); font-weight: 900; text-transform: uppercase;
+  font-size: 28px; color: var(--ink); text-align: center; margin-bottom: 4px;
+}
+.auth-sub {
+  font-size: 13px; color: var(--ink-soft); text-align: center; margin-bottom: 28px;
+}
+.auth-tabs {
+  display: flex; border-bottom: 2px solid var(--cream-edge); margin-bottom: 24px;
+}
+.auth-tab {
+  flex: 1; padding: 10px; text-align: center;
+  font-family: var(--font-display); font-weight: 800; text-transform: uppercase;
+  letter-spacing: 1px; font-size: 14px; color: var(--ink-soft);
+  border-bottom: 3px solid transparent; margin-bottom: -2px;
+  transition: all .15s ease;
+}
+.auth-tab.active { color: var(--primary); border-bottom-color: var(--primary); }
+.auth-tab:hover { color: var(--primary); }
+.form-group { margin-bottom: 16px; }
+.form-label {
+  display: block; font-family: var(--font-display); font-weight: 700;
+  text-transform: uppercase; letter-spacing: 1px; font-size: 11px;
+  color: var(--ink); margin-bottom: 6px;
+}
+.form-input {
+  width: 100%; padding: 11px 14px;
+  background: var(--cream-deep); border: 2px solid var(--cream-edge);
+  border-radius: 8px; font-size: 15px; color: var(--ink);
+  transition: border-color .15s ease;
+  outline: none;
+}
+.form-input:focus { border-color: var(--primary); }
+.auth-btn {
+  width: 100%; margin-top: 8px; padding: 14px;
+  font-family: var(--font-display); font-weight: 900; text-transform: uppercase;
+  letter-spacing: 2px; font-size: 17px;
+  color: var(--cream); background: var(--primary);
+  border: 2px solid var(--primary); border-radius: 8px;
+  box-shadow: 0 6px 18px rgba(0,0,0,.35);
+  transition: all .15s ease;
+}
+.auth-btn:hover { background: var(--secondary); color: var(--ink); border-color: var(--secondary); }
+.auth-error {
+  margin-top: 12px; padding: 10px 14px;
+  background: color-mix(in srgb, red 15%, var(--cream));
+  border: 1.5px solid red; border-radius: 8px;
+  font-size: 13px; color: #8b0000; text-align: center;
+}
+
+/* ==========================================================================
+   DISPLAY NAME SETUP SCREEN
+   ========================================================================== */
+#screen-setup { background: var(--overlay); }
+.setup-card {
+  background-color: var(--cream);
+  background-image: linear-gradient(180deg, rgba(255,255,255,.45), rgba(0,0,0,.05) 60%), var(--noise);
+  background-blend-mode: soft-light, soft-light;
+  border: 3px solid var(--primary);
+  border-radius: var(--card-radius);
+  box-shadow: inset 0 0 0 2.5px var(--secondary), 0 24px 60px rgba(0,0,0,.6);
+  padding: 40px 36px;
+  width: min(440px, 94vw);
+  position: relative; text-align: center;
+}
+.setup-card::before {
+  content: ""; position: absolute; inset: 7px; pointer-events: none;
+  border: 1.5px dashed color-mix(in srgb, var(--cream) 50%, #fff);
+  border-radius: calc(var(--card-radius) - 4px);
+}
+.setup-title {
+  font-family: var(--font-display); font-weight: 900; text-transform: uppercase;
+  font-size: 26px; color: var(--ink); margin-bottom: 8px;
+}
+.setup-desc { font-size: 14px; color: var(--ink-soft); margin-bottom: 24px; line-height: 1.5; }
+
+/* ==========================================================================
+   MAIN APP LAYOUT
+   ========================================================================== */
+#screen-app {
+  position: fixed; inset: 0; z-index: 10;
+  display: grid;
+  grid-template-columns: 240px 1fr 280px;
+  grid-template-rows: 1fr auto;
+  overflow: hidden;
+}
+
+/* Left nav */
+.app-left {
+  grid-column: 1; grid-row: 1;
+  display: flex; flex-direction: column;
+  justify-content: center; gap: 10px;
+  padding: 24px 16px;
+  z-index: 2;
+}
+
+/* Center */
+.app-center {
+  grid-column: 2; grid-row: 1;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: flex-start;
+  padding: 24px; overflow-y: auto; z-index: 2;
+}
+
+/* Right panel */
+.app-right {
+  grid-column: 3; grid-row: 1;
+  display: flex; flex-direction: column;
+  justify-content: center; padding: 24px 16px;
+  z-index: 2;
+}
+
+/* Bottom toggle bar */
+.app-bottom {
+  grid-column: 1 / -1; grid-row: 2;
+  display: flex; align-items: center; justify-content: center;
+  padding: 12px; gap: 0; z-index: 3;
+  border-top: 1px solid rgba(255,255,255,.07);
+  background: rgba(6,8,20,.7);
+  backdrop-filter: blur(8px);
+}
+
+/* Top banner */
+.app-banner {
+  position: absolute; top: 16px; left: 50%; transform: translateX(-50%);
+  z-index: 3; text-align: center; pointer-events: none;
+}
+.app-banner-title {
+  font-family: var(--font-display); font-weight: 900; text-transform: uppercase;
+  letter-spacing: 3px; font-size: 38px; color: var(--cream);
+  text-shadow: 0 3px 14px rgba(0,0,0,.95);
+}
+.app-banner-sub {
+  font-family: var(--font-display); font-weight: 700; text-transform: uppercase;
+  letter-spacing: 2px; font-size: 15px; color: var(--secondary);
+  text-shadow: 0 2px 10px rgba(0,0,0,.95);
+}
+
+/* ==========================================================================
+   PATCH PILL (nav buttons)
+   ========================================================================== */
+.patch {
+  --patch-h: 64px;
+  position: relative;
+  display: flex; align-items: center; gap: 10px;
+  height: var(--patch-h);
+  padding: 0 16px 0 calc(var(--patch-h) + 4px);
+  border-radius: 999px;
+  background-color: var(--cream);
+  background-image: linear-gradient(180deg, rgba(255,255,255,.6), rgba(0,0,0,.05) 55%, rgba(0,0,0,.10)), var(--noise);
+  background-blend-mode: soft-light, soft-light;
+  border: 3px solid var(--primary);
+  box-shadow:
+    inset 0 0 0 2.5px var(--gold),
+    inset 0 2px 2px rgba(255,255,255,.55),
+    inset 0 -4px 7px rgba(0,0,0,.14),
+    0 8px 20px rgba(0,0,0,.45);
+  color: var(--primary);
+  text-align: left; cursor: pointer;
+  transition: transform .16s var(--ease), box-shadow .16s var(--ease), filter .16s var(--ease);
+  width: 100%;
+}
+.patch:hover {
+  transform: translateX(4px); filter: brightness(1.05);
+  box-shadow:
+    inset 0 0 0 2.5px var(--gold),
+    inset 0 2px 2px rgba(255,255,255,.55),
+    inset 0 -4px 7px rgba(0,0,0,.14),
+    0 12px 28px rgba(0,0,0,.55),
+    0 0 0 2px color-mix(in srgb, var(--secondary) 50%, transparent);
+}
+.patch.active {
+  background-color: color-mix(in srgb, var(--primary) 12%, var(--cream));
+  box-shadow:
+    inset 0 0 0 2.5px var(--secondary),
+    inset 0 2px 2px rgba(255,255,255,.55),
+    0 8px 20px rgba(0,0,0,.45),
+    0 0 0 2px var(--secondary);
+}
+.patch .badge {
+  position: absolute; left: -3px; top: 50%; transform: translateY(-50%);
+  width: calc(var(--patch-h) + 4px); height: calc(var(--patch-h) + 4px);
+  border-radius: 50%; z-index: 2;
+  background: radial-gradient(circle at 50% 30%, color-mix(in srgb, var(--primary) 80%, #fff) 0%, var(--primary) 55%);
+  border: 3px solid var(--cream);
+  box-shadow: inset 0 0 0 2px var(--gold), 0 4px 9px rgba(0,0,0,.5);
+  display: flex; align-items: center; justify-content: center;
+  color: var(--gold);
+}
+.patch .badge svg { width: 52%; height: 52%; }
+.patch .patch-title {
+  font-family: var(--font-display); font-weight: 900; text-transform: uppercase;
+  font-size: 21px; letter-spacing: .5px; color: var(--primary); white-space: nowrap;
+  text-shadow: 0 1px 0 rgba(255,255,255,.45);
+}
+.patch .patch-sub {
+  font-family: var(--font-display); font-weight: 700; text-transform: uppercase;
+  letter-spacing: 2px; font-size: 10px; margin-top: 2px; color: var(--ink-soft);
+}
+.patch .patch-text { display: flex; flex-direction: column; line-height: 1; }
+.patch .crown { flex: 0 0 auto; margin-left: auto; width: 16px; height: 16px; color: var(--gold); }
+.patch .crown svg { width: 100%; height: 100%; }
+
+/* ==========================================================================
+   CENTER DEFAULT — two big log buttons
+   ========================================================================== */
+#center-default { display: flex; flex-direction: column; gap: 16px; width: 100%; max-width: 480px; margin: auto; }
+#log-btns-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.log-btn {
+  width: 100%; padding: 22px 18px;
+  font-family: var(--font-display); font-weight: 900; text-transform: uppercase;
+  letter-spacing: 2px; font-size: 22px;
+  display: flex; align-items: center; justify-content: center; gap: 12px;
+  border-radius: var(--card-radius);
+  background-color: var(--cream);
+  background-image: linear-gradient(180deg, rgba(255,255,255,.55), rgba(0,0,0,.06) 60%), var(--noise);
+  background-blend-mode: soft-light, soft-light;
+  border: 3px solid var(--primary);
+  box-shadow: inset 0 0 0 2.5px var(--secondary), inset 0 2px 3px rgba(255,255,255,.6), 0 10px 28px rgba(0,0,0,.5);
+  color: var(--primary);
+  transition: all .2s var(--ease);
+  position: relative; overflow: hidden;
+}
+.log-btn:hover {
+  filter: brightness(1.04);
+  transform: translateY(-2px);
+  box-shadow: inset 0 0 0 2.5px var(--gold), inset 0 2px 3px rgba(255,255,255,.6), 0 16px 36px rgba(0,0,0,.55);
+}
+.log-btn svg { width: 28px; height: 28px; flex: 0 0 auto; color: var(--primary); }
+.log-btn-sub {
+  display: block; font-size: 10px; font-weight: 700; letter-spacing: 1.5px;
+  color: var(--ink-soft); margin-top: 3px; font-family: var(--font-display); text-transform: uppercase;
+}
+
+/* ==========================================================================
+   CENTER CONTENT AREA (card forms)
+   ========================================================================== */
+#center-content {
+  width: 100%; max-width: 640px;
+  display: flex; flex-direction: column; gap: 0;
+}
+
+/* Card wrapper */
+.form-card {
+  background-color: var(--cream);
+  background-image: linear-gradient(180deg, rgba(255,255,255,.45), rgba(0,0,0,.05) 60%), var(--noise);
+  background-blend-mode: soft-light, soft-light;
+  border: 3px solid var(--primary);
+  border-radius: var(--card-radius);
+  box-shadow: inset 0 0 0 2.5px var(--secondary), 0 20px 50px rgba(0,0,0,.55);
+  position: relative; overflow: hidden;
+  max-height: calc(100vh - 120px);
+  display: flex; flex-direction: column;
+}
+.form-card::before {
+  content: ""; position: absolute; inset: 7px; pointer-events: none;
+  border: 1.5px dashed color-mix(in srgb, var(--cream) 50%, #fff);
+  border-radius: calc(var(--card-radius) - 4px); z-index: 0;
+}
+.form-card-head {
+  padding: 20px 24px 16px; border-bottom: 2px solid var(--cream-edge);
+  flex: 0 0 auto; position: relative; z-index: 1;
+}
+.form-card-title {
+  font-family: var(--font-display); font-weight: 900; text-transform: uppercase;
+  font-size: 22px; color: var(--ink); letter-spacing: .5px;
+}
+.form-card-sub {
+  font-family: var(--font-display); font-weight: 700; text-transform: uppercase;
+  letter-spacing: 2px; font-size: 10px; color: var(--ink-soft); margin-top: 2px;
+}
+.form-card-body {
+  padding: 20px 24px 24px; overflow-y: auto; flex: 1; position: relative; z-index: 1;
+}
+.form-card-body::-webkit-scrollbar { width: 5px; }
+.form-card-body::-webkit-scrollbar-thumb { background: var(--primary); border-radius: 99px; }
+.close-btn {
+  position: absolute; top: 14px; right: 14px; z-index: 10;
+  width: 32px; height: 32px; border-radius: 50%;
+  background: var(--primary); border: 2px solid var(--secondary);
+  color: var(--cream); font-size: 18px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+  transition: all .12s ease;
+}
+.close-btn:hover { background: var(--secondary); color: var(--ink); }
+
+/* Step indicator */
+.step-indicator {
+  display: flex; align-items: center; gap: 8px; margin-bottom: 20px;
+}
+.step-dot {
+  width: 28px; height: 28px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-display); font-weight: 900; font-size: 13px;
+  border: 2px solid var(--cream-edge); color: var(--ink-soft);
+  background: var(--cream-deep);
+}
+.step-dot.active { background: var(--primary); border-color: var(--primary); color: var(--cream); }
+.step-dot.done { background: var(--secondary); border-color: var(--secondary); color: var(--ink); }
+.step-line { flex: 1; height: 2px; background: var(--cream-edge); }
+.step-label {
+  font-family: var(--font-display); font-weight: 700; text-transform: uppercase;
+  letter-spacing: 1px; font-size: 10px; color: var(--ink-soft);
+}
+
+/* Form elements inside cards */
+.field-group { margin-bottom: 18px; }
+.field-label {
+  display: block; font-family: var(--font-display); font-weight: 700;
+  text-transform: uppercase; letter-spacing: 1px; font-size: 11px;
+  color: var(--ink); margin-bottom: 6px;
+}
+.field-label span { color: var(--ink-soft); font-weight: 500; text-transform: none; letter-spacing: 0; font-size: 10px; }
+.field-input, .field-select {
+  width: 100%; padding: 10px 13px;
+  background: var(--cream-deep); border: 2px solid var(--cream-edge);
+  border-radius: 8px; font-size: 14px; color: var(--ink);
+  transition: border-color .15s ease; outline: none;
+}
+.field-input:focus, .field-select:focus { border-color: var(--primary); }
+.field-textarea {
+  width: 100%; padding: 10px 13px;
+  background: var(--cream-deep); border: 2px solid var(--cream-edge);
+  border-radius: 8px; font-size: 14px; color: var(--ink); resize: vertical;
+  min-height: 80px; outline: none; transition: border-color .15s ease;
+}
+.field-textarea:focus { border-color: var(--primary); }
+
+/* Win/Loss + issues toggle */
+.toggle-group { display: flex; border-radius: 8px; overflow: hidden; border: 2px solid var(--cream-edge); }
+.toggle-btn {
+  flex: 1; padding: 10px 8px;
+  font-family: var(--font-display); font-weight: 800; text-transform: uppercase;
+  letter-spacing: 1px; font-size: 13px; color: var(--ink-soft);
+  background: var(--cream-deep); border: none;
+  transition: all .15s ease; cursor: pointer;
+}
+.toggle-btn + .toggle-btn { border-left: 2px solid var(--cream-edge); }
+.toggle-btn.active { background: var(--primary); color: var(--cream); }
+.toggle-btn.win.active  { background: #1a6b35; color: #fff; }
+.toggle-btn.loss.active { background: #8b1a1a; color: #fff; }
+
+/* Two-column field row */
+.field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+/* Section divider inside form */
+.form-section {
+  font-family: var(--font-display); font-weight: 800; text-transform: uppercase;
+  letter-spacing: 2px; font-size: 12px; color: var(--primary);
+  padding: 14px 0 10px; border-top: 1.5px solid var(--cream-edge);
+  margin-top: 4px;
+}
+.form-section:first-child { border-top: none; padding-top: 0; }
+
+/* Star rating */
+.star-row { display: flex; flex-direction: column; gap: 10px; }
+.star-item { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.star-item-label { font-size: 13px; color: var(--ink); flex: 1; }
+.star-input { display: flex; gap: 4px; }
+.star-input .star {
+  font-size: 22px; color: var(--cream-edge); cursor: pointer;
+  transition: color .1s ease, transform .1s ease;
+}
+.star-input .star:hover,
+.star-input .star.filled { color: var(--gold); }
+.star-input .star:hover { transform: scale(1.2); }
+
+/* Checkbox bonuses */
+.bonus-list { display: flex; flex-direction: column; gap: 8px; }
+.bonus-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 12px; border-radius: 8px;
+  background: var(--cream-deep); border: 2px solid var(--cream-edge);
+  cursor: pointer; transition: border-color .15s ease;
+}
+.bonus-item:hover { border-color: var(--primary); }
+.bonus-item.checked { border-color: var(--secondary); background: color-mix(in srgb, var(--secondary) 12%, var(--cream)); }
+.bonus-item input[type="checkbox"] { display: none; }
+.bonus-check {
+  width: 20px; height: 20px; border-radius: 4px; flex: 0 0 auto;
+  border: 2px solid var(--cream-edge); background: var(--cream);
+  display: flex; align-items: center; justify-content: center;
+  transition: all .15s ease;
+}
+.bonus-item.checked .bonus-check { background: var(--secondary); border-color: var(--secondary); }
+.bonus-check svg { width: 12px; height: 12px; color: var(--ink); display: none; }
+.bonus-item.checked .bonus-check svg { display: block; }
+.bonus-label { font-size: 13px; color: var(--ink); line-height: 1.35; }
+
+/* Submit button */
+.submit-btn {
+  width: 100%; margin-top: 20px; padding: 14px;
+  font-family: var(--font-display); font-weight: 900; text-transform: uppercase;
+  letter-spacing: 2px; font-size: 17px;
+  color: var(--cream); background: var(--primary);
+  border: 2px solid var(--primary); border-radius: 8px;
+  box-shadow: 0 6px 18px rgba(0,0,0,.3);
+  transition: all .15s ease;
+}
+.submit-btn:hover { background: var(--secondary); color: var(--ink); border-color: var(--secondary); }
+.submit-btn:disabled { opacity: .5; cursor: not-allowed; }
+
+/* ==========================================================================
+   SCORE RESULT CARD
+   ========================================================================== */
+.result-card { text-align: center; padding: 32px 28px; }
+.result-score-wrap { margin: 16px 0; }
+.result-score {
+  font-family: var(--font-display); font-weight: 900; font-size: 72px;
+  color: var(--ink); line-height: 1; letter-spacing: -1px;
+}
+.result-score-denom { font-size: 32px; opacity: .6; }
+.result-label {
+  font-family: var(--font-display); font-weight: 800; text-transform: uppercase;
+  letter-spacing: 2px; font-size: 18px; color: var(--secondary); margin-top: 8px;
+}
+.result-breakdown {
+  display: flex; justify-content: center; gap: 10px; margin-top: 20px;
+  flex-wrap: nowrap; align-items: center;
+}
+.result-tier {
+  display: flex; flex-direction: column; align-items: center;
+  padding: 10px 14px; border-radius: 10px;
+  background: var(--cream-deep); border: 2px solid var(--cream-edge);
+}
+.result-tier-val {
+  font-family: var(--font-display); font-weight: 900; font-size: 22px; color: var(--ink);
+}
+.result-tier-lbl {
+  font-family: var(--font-display); font-weight: 700; text-transform: uppercase;
+  letter-spacing: 1px; font-size: 9px; color: var(--ink-soft); margin-top: 2px;
+}
+.result-stars { display: flex; justify-content: center; gap: 4px; margin: 12px 0; font-size: 24px; }
+.result-actions { display: flex; gap: 10px; margin-top: 20px; justify-content: center; }
+.result-btn {
+  padding: 11px 24px;
+  font-family: var(--font-display); font-weight: 800; text-transform: uppercase;
+  letter-spacing: 1.5px; font-size: 13px;
+  border-radius: 8px; border: 2px solid var(--primary);
+  color: var(--cream); background: var(--primary);
+  transition: all .15s ease;
+}
+.result-btn:hover { background: var(--secondary); color: var(--ink); border-color: var(--secondary); }
+.result-btn.outline { background: transparent; color: var(--primary); }
+.result-btn.outline:hover { background: var(--primary); color: var(--cream); }
+
+/* ==========================================================================
+   RIGHT PANEL — AI COACHING
+   ========================================================================== */
+.ai-panel {
+  background: linear-gradient(180deg, rgba(255,255,255,.04), rgba(0,0,0,.1)), var(--primary);
+  border: 2px solid var(--secondary);
+  border-radius: var(--card-radius);
+  padding: 24px 20px;
+  box-shadow: 0 18px 40px rgba(0,0,0,.5);
+  position: relative; overflow: hidden;
+}
+.ai-panel::before {
+  content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 5px;
+  background: var(--secondary);
+}
+.ai-panel-eyebrow {
+  font-family: var(--font-display); font-weight: 700; text-transform: uppercase;
+  letter-spacing: 2px; font-size: 13px; color: var(--secondary); margin-bottom: 6px;
+  padding-left: 5px;
+}
+.ai-panel-title {
+  font-family: var(--font-display); font-weight: 900; text-transform: uppercase;
+  font-size: 28px; color: var(--cream); padding-left: 5px; margin-bottom: 10px;
+}
+.ai-panel-desc { font-size: 14px; color: var(--cream-muted); line-height: 1.5; padding-left: 5px; margin-bottom: 20px; }
+.ai-sessions-count {
+  font-family: var(--font-display); font-weight: 900; font-size: 52px;
+  color: var(--gold); text-align: center; line-height: 1;
+  text-shadow: 0 2px 12px rgba(0,0,0,.5);
+}
+.ai-sessions-label {
+  font-family: var(--font-display); font-weight: 700; text-transform: uppercase;
+  letter-spacing: 2px; font-size: 10px; color: var(--cream-muted); text-align: center;
+  margin-bottom: 4px;
+}
+.ai-sessions-reset {
+  font-size: 11px; color: var(--cream-muted); text-align: center; margin-bottom: 20px;
+}
+.ai-start-btn {
+  width: 100%; padding: 14px;
+  font-family: var(--font-display); font-weight: 900; text-transform: uppercase;
+  letter-spacing: 2px; font-size: 16px;
+  color: var(--ink); background: var(--secondary);
+  border: 2px solid var(--gold-lt); border-radius: 8px;
+  box-shadow: 0 6px 18px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.3);
+  transition: all .15s ease;
+}
+.ai-start-btn:hover { filter: brightness(1.1); transform: translateY(-2px); }
+.ai-start-btn:disabled { opacity: .4; cursor: not-allowed; transform: none; }
+.ai-divider {
+  height: 1px; background: rgba(255,255,255,.1); margin: 16px 0;
+}
+.ai-coming {
+  font-size: 11px; color: var(--cream-muted); text-align: center;
+  font-style: italic;
+}
+
+/* ==========================================================================
+   BOTTOM GAME TOGGLE
+   ========================================================================== */
+.game-toggle { display: flex; border-radius: 8px; overflow: hidden; border: 2px solid rgba(255,255,255,.15); }
+.game-toggle-btn {
+  padding: 8px 24px;
+  font-family: var(--font-display); font-weight: 800; text-transform: uppercase;
+  letter-spacing: 1.5px; font-size: 13px; color: rgba(255,255,255,.5);
+  background: transparent; transition: all .2s ease;
+}
+.game-toggle-btn.active { background: var(--secondary); color: var(--ink); }
+.game-toggle-btn + .game-toggle-btn { border-left: 1px solid rgba(255,255,255,.15); }
+
+/* Game badge logos */
+.game-badge {
+  position: fixed; bottom: 60px;
+  width: 90px; height: 90px; object-fit: contain;
+  opacity: 0; pointer-events: none;
+  transition: opacity .3s ease;
+  filter: drop-shadow(0 4px 12px rgba(0,0,0,.6));
+}
+.game-badge-cfb  { left: 20px; }
+.game-badge-madden { right: 20px; }
+body.game-cfb    .game-badge-cfb    { opacity: 1; }
+body.game-madden .game-badge-madden { opacity: 1; }
+
+/* ==========================================================================
+   HISTORY VIEW
+   ========================================================================== */
+.history-wrap { width: 100%; }
+.history-empty {
+  text-align: center; padding: 48px 24px; color: var(--cream-muted);
+  font-family: var(--font-display); font-size: 16px; text-transform: uppercase; letter-spacing: 1px;
+}
+.history-card {
+  background-color: var(--cream);
+  background-image: linear-gradient(180deg, rgba(255,255,255,.3), rgba(0,0,0,.04)), var(--noise);
+  background-blend-mode: soft-light, soft-light;
+  border: 2px solid var(--primary); border-radius: 12px;
+  box-shadow: inset 0 0 0 1.5px var(--secondary), 0 6px 16px rgba(0,0,0,.3);
+  padding: 14px 16px; margin-bottom: 10px; cursor: pointer;
+  transition: all .15s ease;
+}
+.history-card:hover { transform: translateX(3px); }
+.history-card-top {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+}
+.history-scheme {
+  font-family: var(--font-display); font-weight: 900; text-transform: uppercase;
+  font-size: 16px; color: var(--ink); letter-spacing: .5px;
+}
+.history-score {
+  font-family: var(--font-display); font-weight: 900; font-size: 20px;
+  color: var(--secondary);
+}
+.history-meta {
+  display: flex; gap: 8px; margin-top: 4px; flex-wrap: wrap;
+}
+.history-tag {
+  font-family: var(--font-display); font-weight: 700; text-transform: uppercase;
+  letter-spacing: .5px; font-size: 9px; padding: 2px 8px; border-radius: 4px;
+  background: var(--primary); color: var(--cream);
+}
+.history-tag.win { background: #1a6b35; }
+.history-tag.loss { background: #8b1a1a; }
+.history-label {
+  font-size: 11px; color: var(--ink-soft); margin-top: 3px;
+}
+
+/* ==========================================================================
+   PROFILE VIEW
+   ========================================================================== */
+.profile-wrap { width: 100%; padding-bottom: 24px; padding-top: 106px; }
+.profile-header {
+  background: linear-gradient(135deg, var(--primary), color-mix(in srgb, var(--primary) 70%, #000));
+  border: 2px solid var(--secondary); border-radius: 14px;
+  padding: 24px 22px; margin-bottom: 14px; position: relative; overflow: hidden;
+  display: flex; flex-direction: column; align-items: flex-start;
+}
+.profile-header::before {
+  content: ""; position: absolute; right: -30px; top: -30px;
+  width: 140px; height: 140px; border-radius: 50%;
+  background: rgba(242,181,14,.08); pointer-events: none;
+}
+.profile-name {
+  font-family: var(--font-display); font-weight: 900; text-transform: uppercase;
+  font-size: 32px; letter-spacing: 1px; color: var(--cream);
+  text-shadow: 0 2px 10px rgba(0,0,0,.5); line-height: 1;
+}
+.profile-meta {
+  font-family: var(--font-display); font-weight: 700; text-transform: uppercase;
+  letter-spacing: 1.5px; font-size: 11px; color: var(--secondary); margin-top: 6px;
+}
+.profile-stats {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 14px;
+}
+.stat-card {
+  background: rgba(255,255,255,.06); border: 1.5px solid rgba(255,255,255,.1);
+  border-radius: 10px; padding: 12px 10px; text-align: center;
+}
+.stat-value {
+  font-family: var(--font-display); font-weight: 900; font-size: 26px;
+  color: var(--secondary); line-height: 1;
+}
+.stat-value--sm { font-size: 14px; line-height: 1.2; word-break: break-word; }
+.stat-label {
+  font-family: var(--font-display); font-weight: 700; text-transform: uppercase;
+  letter-spacing: 1px; font-size: 9px; color: var(--cream-muted); margin-top: 4px;
+}
+.profile-section { margin-bottom: 14px; }
+.profile-section-title {
+  font-family: var(--font-display); font-weight: 900; text-transform: uppercase;
+  letter-spacing: 2px; font-size: 12px; color: var(--cream-muted);
+  display: flex; align-items: center; gap: 8px; margin-bottom: 10px;
+  padding-bottom: 6px; border-bottom: 1px solid rgba(255,255,255,.08);
+}
+.phase-badge {
+  font-size: 9px; padding: 2px 7px; border-radius: 4px;
+  background: var(--primary); color: var(--secondary); letter-spacing: .5px;
+}
+.ai-insights-placeholder {
+  background: rgba(30,84,183,.15); border: 1.5px dashed rgba(30,84,183,.4);
+  border-radius: 10px; padding: 20px 18px; display: flex; gap: 14px; align-items: flex-start;
+}
+.ai-insights-icon {
+  font-size: 22px; flex-shrink: 0; line-height: 1;
+}
+.ai-insights-text {
+  font-size: 12px; color: var(--cream-muted); line-height: 1.6;
+}
+
+/* ==========================================================================
+   MY SCHEMES VIEW
+   ========================================================================== */
+.schemes-stat-wrap { width: 100%; padding-bottom: 24px; }
+.scheme-stat-card {
+  background: rgba(255,255,255,.06); border: 1.5px solid rgba(255,255,255,.1);
+  border-radius: 12px; padding: 14px 16px; margin-bottom: 10px;
+}
+.scheme-stat-top {
+  display: flex; align-items: center; gap: 8px; margin-bottom: 10px; flex-wrap: wrap;
+}
+.scheme-stat-name {
+  font-family: var(--font-display); font-weight: 900; text-transform: uppercase;
+  font-size: 16px; color: var(--cream); letter-spacing: .5px; flex: 1;
+}
+.scheme-stat-row {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px;
+}
+.scheme-stat-item { text-align: center; }
+.ssv {
+  display: block;
+  font-family: var(--font-display); font-weight: 900; font-size: 18px;
+  color: var(--secondary); line-height: 1;
+}
+.ssv.win { color: #4ade80; }
+.ssv.loss { color: #f87171; }
+.ssl {
+  display: block;
+  font-family: var(--font-display); font-weight: 700; text-transform: uppercase;
+  letter-spacing: .5px; font-size: 8px; color: var(--cream-muted); margin-top: 3px;
+}
+
+/* ==========================================================================
+   ABOUT VIEW (stub)
+   ========================================================================== */
+.about-wrap {
+  color: var(--cream); text-align: center; padding: 32px 24px; max-width: 520px;
+}
+.about-title {
+  font-family: var(--font-display); font-weight: 900; text-transform: uppercase;
+  font-size: 28px; letter-spacing: 1px; margin-bottom: 12px; color: var(--cream);
+}
+.about-text { font-size: 14px; line-height: 1.65; color: var(--cream-muted); }
+
+/* ==========================================================================
+   UTILITY
+   ========================================================================== */
+.loading-msg {
+  font-family: var(--font-display); font-weight: 700; text-transform: uppercase;
+  letter-spacing: 2px; font-size: 13px; color: var(--cream-muted); text-align: center;
+  padding: 32px;
+}
+.error-msg {
+  padding: 10px 14px; margin-bottom: 12px;
+  background: color-mix(in srgb, red 15%, transparent);
+  border: 1.5px solid rgba(255,80,80,.5); border-radius: 8px;
+  font-size: 13px; color: #ffaaaa;
+}
+.user-info {
+  position: absolute; top: 14px; right: 14px; z-index: 20;
+  display: flex; align-items: center; gap: 8px;
+}
+.user-name {
+  font-family: var(--font-display); font-weight: 700; text-transform: uppercase;
+  letter-spacing: 1px; font-size: 11px; color: var(--cream-muted);
+}
+.signout-btn {
+  padding: 4px 10px;
+  font-family: var(--font-display); font-weight: 700; text-transform: uppercase;
+  letter-spacing: 1px; font-size: 10px;
+  color: var(--cream-muted); border: 1px solid rgba(255,255,255,.15);
+  border-radius: 4px; transition: all .12s ease;
+}
+.signout-btn:hover { color: var(--cream); border-color: rgba(255,255,255,.4); }
+
+/* ==========================================================================
+   MOBILE RESPONSIVE
+   ========================================================================== */
+@media (max-width: 768px) {
+  /* 1-col × 4-row: [toggle] / [center] / [AI bar] / [bottom nav] */
+  #screen-app {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto 1fr auto auto;
+  }
+
+  /* Hide absolute banner — no room on mobile */
+  .app-banner { display: none; }
+
+  /* Row 1: game toggle full-width */
+  .app-bottom {
+    grid-column: 1; grid-row: 1;
+    border-top: none;
+    border-bottom: 1px solid rgba(255,255,255,.1);
+    padding: 6px 10px;
+    justify-content: center;
+    gap: 8px;
+  }
+
+  /* Badge logos — inline in toggle row on mobile */
+  .game-badge {
+    position: static;
+    width: 36px; height: 36px;
+    opacity: 0;
+    transition: opacity .25s ease;
+    flex-shrink: 0;
+  }
+  body.game-cfb    .game-badge-cfb    { opacity: 1; }
+  body.game-madden .game-badge-madden { opacity: 1; }
+
+  /* Row 2: center content — full width */
+  .app-center {
+    grid-column: 1; grid-row: 2;
+    padding: 16px 14px;
+    overflow-y: auto;
+    align-items: center;
+    justify-content: flex-start;
+  }
+
+  /* Row 3: AI bar */
+  .app-right {
+    grid-column: 1; grid-row: 3;
+    padding: 0 !important;
+    justify-content: stretch;
+  }
+
+  /* Row 4: bottom tab bar nav */
+  .app-left {
+    grid-column: 1; grid-row: 4;
+    flex-direction: row;
+    justify-content: space-around;
+    align-items: center;
+    gap: 0;
+    padding: 8px 4px;
+    padding-bottom: max(8px, env(safe-area-inset-bottom));
+    border-top: 1px solid rgba(255,255,255,.1);
+    background: rgba(6,8,20,.85);
+    backdrop-filter: blur(12px);
+  }
+
+  /* Nav buttons become icon+label tab bar items */
+  .patch {
+    --patch-h: 46px;
+    width: auto;
+    flex: 1;
+    min-width: 0;
+    border-radius: 10px;
+    padding: 6px 2px 4px;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    gap: 3px;
+    box-shadow: none;
+    background: transparent;
+  }
+  .patch .badge {
+    position: static;
+    transform: none;
+    width: 28px; height: 28px;
+    border-width: 2px;
+    border-radius: 8px;
+  }
+  .patch .badge svg { width: 55%; height: 55%; }
+  .patch .patch-text { display: flex; flex-direction: column; align-items: center; }
+  .patch .patch-title { font-size: 9px; letter-spacing: .5px; color: rgba(255,255,255,.55); line-height: 1; }
+  .patch .patch-sub { display: none; }
+  .patch .crown { display: none; }
+  .patch.active .patch-title { color: var(--secondary); }
+  .patch.active .badge { border-color: var(--secondary); background: color-mix(in srgb, var(--primary) 80%, #000); }
+  .patch:hover { transform: none; }
+  .ai-panel {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding: 10px 14px;
+    width: 100%;
+    box-sizing: border-box;
+    border-radius: 0;
+    border-left: none; border-right: none; border-bottom: none;
+    overflow: hidden;
+  }
+  .ai-panel::before { display: none; }
+  .ai-panel-eyebrow { display: none; }
+  .ai-panel-title { font-size: 15px; margin-bottom: 0; white-space: nowrap; flex-shrink: 0; }
+  .ai-panel-desc { display: none; }
+  .ai-sessions-count { font-size: 26px; line-height: 1; flex-shrink: 0; }
+  .ai-sessions-label { display: none; }
+  .ai-sessions-reset { display: none; }
+  .ai-divider { display: none; }
+  .ai-coming { display: none; }
+  .ai-start-btn { width: auto; padding: 8px 16px; font-size: 11px; margin-top: 0; white-space: nowrap; flex-shrink: 0; }
+
+  /* User info: hide name, keep sign-out small — clear of toggle row */
+  .user-info { top: 56px; right: 8px; gap: 4px; }
+  .user-name { display: none; }
+  .signout-btn { font-size: 9px; padding: 3px 7px; }
+
+  /* Log buttons fill center column — stack vertically on mobile */
+  #center-default { max-width: 100%; width: 100%; gap: 8px; }
+  #log-btns-grid { grid-template-columns: 1fr; gap: 8px; }
+  .log-btn { padding: 14px 12px; font-size: 18px; }
+  .log-btn svg { width: 22px; height: 22px; }
+  .log-btn-sub { font-size: 9px; }
+  #center-content { width: 100%; }
+  .card-form { max-width: 100%; }
+
+  /* Scheme progress compact on mobile */
+  #scheme-progress-section { font-size: 11px; }
+}
+</style>
+</head>
+<body>
+
+<!-- Always-on background video -->
+<video id="bg-video" autoplay muted loop playsinline
+  src="reference/background.mp4">
+</video>
+<div id="bg-tint"></div>
+
+<!-- ══ SCREEN: COVER / SPLASH ══════════════════════════════════════════════ -->
+<section class="screen" id="screen-cover">
+  <div class="cover-logo">
+    <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M32 4L8 18V32C8 46 18 57 32 60C46 57 56 46 56 32V18L32 4Z" fill="currentColor" opacity=".18"/>
+      <path d="M14 22L32 8L50 22V32C50 43 42 52 32 55C22 52 14 43 14 32V22Z" stroke="currentColor" stroke-width="2" fill="none"/>
+      <path d="M20 28L26 34L32 22L38 34L44 28" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+      <circle cx="32" cy="44" r="3" fill="currentColor"/>
+    </svg>
+  </div>
+  <p class="cover-eyebrow">Scheme Kings</p>
+  <h1 class="cover-title">Coaching<br>Platform</h1>
+  <p class="cover-sub">Personal coaching. Community data. AI powered.</p>
+  <button class="open-btn" id="cover-open-btn">Open App</button>
+  <div class="cover-stamp">
+    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/></svg>
+    Scheme Kings · Members Only
+  </div>
+</section>
+
+<!-- ══ SCREEN: AUTH ════════════════════════════════════════════════════════ -->
+<section class="screen hidden" id="screen-auth">
+  <div class="auth-card">
+    <div class="auth-logo">
+      <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M12 22L32 8L52 22V34C52 45 43 54 32 57C21 54 12 45 12 34V22Z" stroke="currentColor" stroke-width="2.5" fill="none"/>
+        <path d="M20 30L27 37L32 24L37 37L44 30" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </div>
+    <h2 class="auth-title">Scheme Kings</h2>
+    <p class="auth-sub">Coaching Platform — Member Access</p>
+    <div class="auth-tabs">
+      <button class="auth-tab active" id="tab-login" onclick="switchAuthTab('login')">Sign In</button>
+      <button class="auth-tab" id="tab-signup" onclick="switchAuthTab('signup')">Create Account</button>
+    </div>
+    <div id="auth-form">
+      <div class="form-group">
+        <label class="form-label">Email</label>
+        <input class="form-input" type="email" id="auth-email" placeholder="your@email.com" autocomplete="email">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Password</label>
+        <input class="form-input" type="password" id="auth-password" placeholder="Password" autocomplete="current-password">
+      </div>
+      <button class="auth-btn" id="auth-submit-btn" onclick="handleAuth()">Sign In</button>
+      <div id="auth-error" class="auth-error hidden"></div>
+    </div>
+  </div>
+  <button onclick="requestFullscreen()" style="
+    margin-top:18px;
+    background:none;border:none;cursor:pointer;
+    display:flex;align-items:center;gap:6px;
+    font-family:var(--font-display);font-weight:700;text-transform:uppercase;
+    letter-spacing:1.5px;font-size:10px;color:rgba(255,255,255,.4);
+    transition:color .2s;
+  " onmouseover="this.style.color='rgba(255,255,255,.7)'" onmouseout="this.style.color='rgba(255,255,255,.4)'">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+      <polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/>
+      <line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/>
+    </svg>
+    Tap for full screen
+  </button>
+</section>
+
+<!-- ══ SCREEN: DISPLAY NAME SETUP ════════════════════════════════════════ -->
+<section class="screen hidden" id="screen-setup">
+  <div class="setup-card">
+    <div class="auth-logo" style="color:var(--gold)">
+      <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M12 22L32 8L52 22V34C52 45 43 54 32 57C21 54 12 45 12 34V22Z" stroke="currentColor" stroke-width="2.5" fill="none"/>
+        <path d="M20 30L27 37L32 24L37 37L44 30" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </div>
+    <h2 class="setup-title">One Last Step</h2>
+    <p class="setup-desc">Choose a display name for your coaching profile. This is how you'll appear in the community.</p>
+    <div class="form-group">
+      <label class="form-label">Display Name</label>
+      <input class="form-input" type="text" id="setup-name" placeholder="e.g. CoachReg" maxlength="30">
+    </div>
+    <button class="auth-btn" onclick="handleSetupName()">Enter the Platform</button>
+    <div id="setup-error" class="auth-error hidden"></div>
+  </div>
+</section>
+
+<!-- ══ SCREEN: MAIN APP ═══════════════════════════════════════════════════ -->
+<section class="screen hidden" id="screen-app">
+  <!-- User info top-right -->
+  <div class="user-info">
+    <span class="user-name" id="user-display-name"></span>
+    <button class="signout-btn" id="fullscreen-btn" onclick="toggleFullscreen()" title="Fullscreen" style="display:flex;align-items:center;gap:5px">
+      <svg id="fs-expand-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="width:12px;height:12px;flex-shrink:0">
+        <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>
+      </svg>
+      <span id="fs-label">Full Screen</span>
+    </button>
+    <button class="signout-btn" onclick="handleSignOut()">Sign Out</button>
+  </div>
+
+  <!-- Games logged badge — top left corner of screen -->
+  <div id="games-logged-corner" style="position:absolute;top:12px;left:12px;z-index:4;display:flex;flex-direction:column;align-items:center;gap:4px">
+    <div style="
+      width:82px;height:82px;border-radius:50%;
+      background-color:var(--cream);
+      background-image:linear-gradient(180deg,rgba(255,255,255,.6),rgba(0,0,0,.08) 60%),var(--noise);
+      background-blend-mode:soft-light,soft-light;
+      border:3px solid var(--primary);
+      box-shadow:inset 0 2px 3px rgba(255,255,255,.6),0 8px 22px rgba(0,0,0,.6);
+      display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;
+    ">
+      <span id="games-logged-num" style="font-family:var(--font-display);font-weight:900;font-size:30px;color:var(--primary);line-height:1">0</span>
+      <span style="font-family:var(--font-display);font-weight:800;text-transform:uppercase;letter-spacing:1px;font-size:7px;color:var(--ink-soft)">Total Games</span>
+    </div>
+  </div>
+
+  <!-- Top banner — click to return home -->
+  <div class="app-banner" onclick="showDefaultCenter()" style="cursor:pointer" title="Back to home">
+    <div class="app-banner-title">Scheme Kings</div>
+    <div class="app-banner-sub">Coaching Platform</div>
+  </div>
+
+  <!-- LEFT NAV -->
+  <nav class="app-left">
+    <button class="patch" id="nav-history" onclick="showView('history')">
+      <div class="badge">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/></svg>
+      </div>
+      <div class="patch-text">
+        <span class="patch-title">Profile</span>
+        <span class="patch-sub">Stats &amp; history</span>
+      </div>
+      <div class="crown"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/></svg></div>
+    </button>
+    <button class="patch" id="nav-schemes" onclick="showView('schemes')">
+      <div class="badge">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2M9 5a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/></svg>
+      </div>
+      <div class="patch-text">
+        <span class="patch-title">My Schemes</span>
+        <span class="patch-sub">Win rates &amp; scores</span>
+      </div>
+      <div class="crown"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/></svg></div>
+    </button>
+    <button class="patch" id="nav-community" onclick="showView('community')">
+      <div class="badge">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      </div>
+      <div class="patch-text">
+        <span class="patch-title">Community</span>
+        <span class="patch-sub">Live chat</span>
+      </div>
+      <div class="crown"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/></svg></div>
+    </button>
+    <button class="patch" id="nav-about" onclick="showView('about')">
+      <div class="badge">
+        <svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4m0-4h.01" stroke="#fff" stroke-width="2" stroke-linecap="round" fill="none"/></svg>
+      </div>
+      <div class="patch-text">
+        <span class="patch-title">About</span>
+        <span class="patch-sub">How this works</span>
+      </div>
+      <div class="crown"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/></svg></div>
+    </button>
+  </nav>
+
+  <!-- CENTER -->
+  <main class="app-center" id="app-center">
+    <!-- Default: two main log buttons + scheme progress section -->
+    <div id="center-default" style="width:100%;max-width:520px;margin:auto;display:flex;flex-direction:column;gap:12px">
+
+      <!-- Streak pills -->
+      <div style="display:flex;flex-direction:column;gap:7px">
+
+        <!-- Days logging pill (first) -->
+
+          <!-- Days logging pill -->
+          <div id="home-day-streak-card" style="
+            display:flex;align-items:center;gap:0;height:52px;
+            background-color:var(--cream);
+            background-image:linear-gradient(180deg,rgba(255,255,255,.55),rgba(0,0,0,.06) 60%),var(--noise);
+            background-blend-mode:soft-light,soft-light;
+            border:3px solid var(--primary);
+            border-radius:999px;
+            box-shadow:inset 0 2px 2px rgba(255,255,255,.55),0 5px 14px rgba(0,0,0,.4);
+            overflow:hidden;position:relative;
+            transition:filter .2s;
+          ">
+            <div style="
+              width:52px;height:52px;border-radius:50%;flex:0 0 auto;margin-left:-3px;
+              background:radial-gradient(circle at 40% 30%,color-mix(in srgb,var(--primary) 75%,#fff),var(--primary));
+              border:3px solid var(--cream);
+              display:flex;align-items:center;justify-content:center;font-size:18px;
+            ">🗓</div>
+            <div style="flex:1;padding:0 10px;min-width:0">
+              <div style="font-family:var(--font-display);font-weight:900;text-transform:uppercase;letter-spacing:1px;font-size:14px;color:var(--primary);line-height:1">Days Logging</div>
+              <div id="home-day-streak-label" style="font-family:var(--font-display);font-weight:700;font-size:9px;letter-spacing:.5px;color:var(--ink-soft);text-transform:uppercase;margin-top:2px">Consecutive Days Logged</div>
+            </div>
+            <div style="padding-right:14px;text-align:right;flex:0 0 auto">
+              <div style="display:flex;align-items:baseline;gap:2px;justify-content:flex-end">
+                <span id="home-day-streak-num" style="font-family:var(--font-display);font-weight:900;font-size:28px;color:var(--primary);line-height:1">0</span>
+                <span id="home-day-streak-next" style="font-family:var(--font-display);font-weight:700;font-size:10px;color:var(--ink-soft)"></span>
+              </div>
+            </div>
+            <div style="position:absolute;bottom:0;left:46px;right:0;height:3px;background:rgba(30,84,183,.1)">
+              <div id="home-day-streak-bar" style="height:100%;width:0%;background:var(--secondary);transition:width .6s ease"></div>
+            </div>
+          </div>
+
+          <!-- Win streak pill -->
+          <div id="home-win-streak-card" style="
+            display:flex;align-items:center;gap:0;height:52px;
+            background-color:var(--cream);
+            background-image:linear-gradient(180deg,rgba(255,255,255,.55),rgba(0,0,0,.06) 60%),var(--noise);
+            background-blend-mode:soft-light,soft-light;
+            border:3px solid var(--primary);
+            border-radius:999px;
+            box-shadow:inset 0 2px 2px rgba(255,255,255,.55),0 5px 14px rgba(0,0,0,.4);
+            overflow:hidden;position:relative;
+            transition:filter .2s;
+          ">
+            <div style="
+              width:52px;height:52px;border-radius:50%;flex:0 0 auto;margin-left:-3px;
+              background:radial-gradient(circle at 40% 30%,color-mix(in srgb,var(--primary) 75%,#fff),var(--primary));
+              border:3px solid var(--cream);
+              display:flex;align-items:center;justify-content:center;font-size:18px;
+            ">🔥</div>
+            <div style="flex:1;padding:0 10px;min-width:0">
+              <div style="font-family:var(--font-display);font-weight:900;text-transform:uppercase;letter-spacing:1px;font-size:14px;color:var(--primary);line-height:1">Win Streak</div>
+              <div id="home-win-streak-label" style="font-family:var(--font-display);font-weight:700;font-size:9px;letter-spacing:.5px;color:var(--ink-soft);text-transform:uppercase;margin-top:2px">Consecutive wins</div>
+            </div>
+            <div style="padding-right:14px;text-align:right;flex:0 0 auto">
+              <div style="display:flex;align-items:baseline;gap:2px;justify-content:flex-end">
+                <span id="home-win-streak-num" style="font-family:var(--font-display);font-weight:900;font-size:28px;color:var(--primary);line-height:1">0</span>
+                <span id="home-win-streak-next" style="font-family:var(--font-display);font-weight:700;font-size:10px;color:var(--ink-soft)"></span>
+              </div>
+            </div>
+            <div style="position:absolute;bottom:0;left:46px;right:0;height:3px;background:rgba(30,84,183,.1)">
+              <div id="home-win-streak-bar" style="height:100%;width:0%;background:var(--secondary);transition:width .6s ease"></div>
+            </div>
+          </div>
+
+      </div>
+
+      <!-- Primary log buttons -->
+      <div id="log-btns-grid">
+        <button class="log-btn" onclick="startOffenseCard()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+          <div>
+            Log Offensive Game
+            <span class="log-btn-sub">Track each game you play</span>
+          </div>
+        </button>
+        <button class="log-btn" onclick="startDefenseCard()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          <div>
+            Log Defensive Game
+            <span class="log-btn-sub">Track each game you play</span>
+          </div>
+        </button>
+      </div>
+
+      <!-- Scheme progress tracker -->
+      <div id="scheme-progress-section" style="
+        border-radius:var(--card-radius);
+        background-color:var(--cream);
+        background-image:linear-gradient(180deg,rgba(255,255,255,.45),rgba(0,0,0,.05) 60%),var(--noise);
+        background-blend-mode:soft-light,soft-light;
+        border:3px solid var(--primary);
+        box-shadow:inset 0 0 0 2.5px var(--secondary),inset 0 2px 3px rgba(255,255,255,.6),0 8px 24px rgba(0,0,0,.45);
+        overflow:hidden;
+      ">
+        <div style="
+          display:flex;align-items:center;justify-content:space-between;
+          padding:10px 16px;border-bottom:2px solid var(--cream-edge);
+        ">
+          <div style="display:flex;align-items:center;gap:8px">
+            <svg viewBox="0 0 24 24" fill="currentColor" style="width:18px;height:18px;color:var(--gold)"><path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/></svg>
+            <span style="font-family:var(--font-display);font-weight:900;text-transform:uppercase;letter-spacing:2px;font-size:16px;color:var(--primary)">Scheme Reviews</span>
+          </div>
+          <span style="font-family:var(--font-display);font-weight:700;font-size:9px;text-transform:uppercase;letter-spacing:1px;color:var(--ink-soft)">Unlocks at 5 games</span>
+        </div>
+        <div id="scheme-progress-list" style="padding:10px 16px 12px">
+          <div style="font-family:var(--font-display);font-size:11px;color:var(--ink-soft);text-align:center;padding:8px 0">Loading schemes…</div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Dynamic content (cards, history, etc.) -->
+    <div id="center-content" class="hidden"></div>
+  </main>
+
+  <!-- ONBOARDING OVERLAY -->
+  <div id="onboarding-overlay" class="hidden" style="
+    position:fixed;inset:0;z-index:100;
+    background:rgba(6,8,20,.97);
+    display:flex;align-items:center;justify-content:center;
+    padding:16px;
+    backdrop-filter:blur(8px);
+  ">
+    <div style="width:100%;max-width:500px;max-height:90vh;overflow-y:auto;">
+      <div id="onboarding-content"></div>
+    </div>
+  </div>
+
+  <!-- RIGHT PANEL -->
+  <aside class="app-right">
+    <div class="ai-panel">
+      <div class="ai-panel-eyebrow">Powered by Claude</div>
+      <div class="ai-panel-title">AI Coaching</div>
+      <div class="ai-panel-desc">Get personalized coaching based on your full game history, your schemes, and community data.</div>
+      <div class="ai-sessions-count" id="ai-sessions-display">10</div>
+      <div class="ai-sessions-label">Sessions Remaining</div>
+      <div class="ai-sessions-reset" id="ai-reset-display">Resets in 30 days</div>
+      <div class="ai-divider"></div>
+      <button class="ai-start-btn" disabled>Start Session</button>
+      <div class="ai-coming" style="margin-top:10px">AI Coaching coming in Phase 2</div>
+    </div>
+  </aside>
+
+  <!-- BOTTOM GAME TOGGLE -->
+  <div class="app-bottom">
+    <img class="game-badge game-badge-cfb" src="reference/CFB Badge logo.png" alt="CFB 27">
+    <div class="game-toggle">
+      <button class="game-toggle-btn active" id="toggle-cfb" onclick="setGame('CFB27')">CFB 27</button>
+      <button class="game-toggle-btn" id="toggle-madden" onclick="setGame('Madden27')">Madden 27</button>
+    </div>
+    <img class="game-badge game-badge-madden" src="reference/Maddne 27 badge lgoo.png" alt="Madden 27">
+  </div>
+</section>
+
+<script>
+/* ═══════════════════════════════════════════════════════════════════════════
+   CONFIG — paste your Supabase credentials here after creating the project
+   ═══════════════════════════════════════════════════════════════════════════ */
+const SUPABASE_URL      = 'https://ksgxrxqvnfpfhidxsxcs.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzZ3hyeHF2bmZwZmhpZHhzeGNzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE0MzkxMTgsImV4cCI6MjA5NzAxNTExOH0.pUD6sbkjhhTlgl5x4KHFJsThoHVlNkNBlSFES_8HHvM';
+const ANTHROPIC_API_KEY = window.__SK_ANTHROPIC_KEY__ || '';
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   APP STATE
+   ═══════════════════════════════════════════════════════════════════════════ */
+const { createClient } = supabase;
+const CREDS_CONFIGURED = SUPABASE_URL !== 'YOUR_SUPABASE_URL';
+
+// Defer client creation so a missing/placeholder URL doesn't crash the script
+let db = null;
+if (CREDS_CONFIGURED) {
+  try { db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY); } catch(e) { console.error(e); }
+}
+
+let currentUser   = null;
+let currentMember = null;
+let currentGame   = 'CFB27';
+let authMode      = 'login';  // 'login' | 'signup'
+
+// Holds step-1 coaching card data while waiting for step-2
+let pendingCard = {};
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   SCREEN NAVIGATION
+   ═══════════════════════════════════════════════════════════════════════════ */
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
+  document.getElementById(id).classList.remove('hidden');
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   INIT
+   ═══════════════════════════════════════════════════════════════════════════ */
+async function init() {
+  // Set default game badge class
+  document.body.classList.add('game-cfb');
+
+  if (!CREDS_CONFIGURED || !db) {
+    // No Supabase credentials yet — show cover, auth will display a setup notice
+    showScreen('screen-cover');
+    return;
+  }
+
+  // Register auth listener FIRST so magic links and recovery tokens are caught
+  db.auth.onAuthStateChange(async (event, session) => {
+    if (event === 'PASSWORD_RECOVERY') {
+      window.history.replaceState(null, '', window.location.pathname);
+      showScreen('screen-auth');
+      showPasswordResetScreen();
+    } else if (event === 'SIGNED_IN' && session?.user) {
+      currentUser = session.user;
+      await loadMemberAndContinue();
+    } else if (event === 'SIGNED_OUT') {
+      currentUser = null; currentMember = null;
+      showScreen('screen-cover');
+    }
+  });
+
+  // Then check for existing session (handles normal page load)
+  const hashParams = new URLSearchParams(window.location.hash.replace('#', ''));
+  if (!hashParams.get('type')) {
+    // No auth token in URL — check for existing session normally
+    const { data: { session } } = await db.auth.getSession();
+    if (session?.user) {
+      currentUser = session.user;
+      await loadMemberAndContinue();
+    } else {
+      showScreen('screen-cover');
+    }
+  }
+  // If there IS a hash token (magic link, recovery, etc.), onAuthStateChange handles it
+}
+
+async function loadMemberAndContinue() {
+  const { data } = await db.from('members').select('*').eq('member_id', currentUser.id).maybeSingle();
+  if (data) {
+    currentMember = data;
+    enterApp();
+  } else {
+    showScreen('screen-setup');
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   COVER
+   ═══════════════════════════════════════════════════════════════════════════ */
+document.getElementById('cover-open-btn').addEventListener('click', () => {
+  showScreen('screen-auth');
+});
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   AUTH
+   ═══════════════════════════════════════════════════════════════════════════ */
+function switchAuthTab(mode) {
+  authMode = mode;
+  document.getElementById('tab-login').classList.toggle('active', mode === 'login');
+  document.getElementById('tab-signup').classList.toggle('active', mode === 'signup');
+  document.getElementById('auth-submit-btn').textContent = mode === 'login' ? 'Sign In' : 'Create Account';
+  document.getElementById('auth-error').classList.add('hidden');
+}
+
+async function handleAuth() {
+  if (!CREDS_CONFIGURED || !db) {
+    showAuthError('Supabase credentials not configured yet. Open index.html and paste in your SUPABASE_URL and SUPABASE_ANON_KEY.');
+    return;
+  }
+
+  const email    = document.getElementById('auth-email').value.trim();
+  const password = document.getElementById('auth-password').value;
+  const errEl    = document.getElementById('auth-error');
+  const btn      = document.getElementById('auth-submit-btn');
+
+  if (!email || !password) { showAuthError('Please enter your email and password.'); return; }
+
+  btn.disabled = true;
+  btn.textContent = authMode === 'login' ? 'Signing in…' : 'Creating account…';
+  errEl.classList.add('hidden');
+
+  let error;
+  if (authMode === 'login') {
+    ({ error } = await db.auth.signInWithPassword({ email, password }));
+  } else {
+    ({ error } = await db.auth.signUp({ email, password }));
+  }
+
+  btn.disabled = false;
+  btn.textContent = authMode === 'login' ? 'Sign In' : 'Create Account';
+
+  if (error) {
+    showAuthError(error.message);
+  } else if (authMode === 'signup') {
+    // Email confirmation required — show message and wait
+    document.getElementById('auth-form').innerHTML = `
+      <div style="text-align:center;padding:16px 0">
+        <div style="font-size:36px;margin-bottom:12px">📬</div>
+        <div style="font-family:var(--font-display);font-weight:900;text-transform:uppercase;font-size:18px;color:var(--ink);margin-bottom:8px">Check Your Email</div>
+        <p style="font-size:13px;color:var(--ink-soft);line-height:1.6;margin-bottom:20px">
+          We sent a confirmation link to <strong>${email}</strong>.<br>
+          Click it to activate your account, then come back and sign in.
+        </p>
+        <button class="auth-btn" onclick="switchAuthTab('login');renderAuthForm()">Back to Sign In</button>
+      </div>
+    `;
+  }
+  // login success handled by onAuthStateChange
+}
+
+function showAuthError(msg) {
+  const el = document.getElementById('auth-error');
+  el.textContent = msg;
+  el.classList.remove('hidden');
+}
+
+function renderAuthForm() {
+  document.getElementById('auth-form').innerHTML = `
+    <div class="form-group">
+      <label class="form-label">Email</label>
+      <input class="form-input" type="email" id="auth-email" placeholder="your@email.com" autocomplete="email">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Password</label>
+      <input class="form-input" type="password" id="auth-password" placeholder="Password" autocomplete="current-password">
+    </div>
+    <button class="auth-btn" id="auth-submit-btn" onclick="handleAuth()">Sign In</button>
+    <div id="auth-error" class="auth-error hidden"></div>
+    <button onclick="showForgotPassword()" style="
+      background:none;border:none;cursor:pointer;width:100%;margin-top:10px;
+      font-family:var(--font-display);font-weight:700;text-transform:uppercase;
+      letter-spacing:1px;font-size:10px;color:rgba(30,84,183,.5);
+    ">Forgot Password?</button>
+  `;
+}
+
+function showForgotPassword() {
+  document.getElementById('auth-form').innerHTML = `
+    <div class="form-group">
+      <label class="form-label">Enter Your Email</label>
+      <input class="form-input" type="email" id="reset-email" placeholder="your@email.com" autocomplete="email">
+    </div>
+    <button class="auth-btn" id="reset-submit-btn" onclick="sendPasswordReset()">Send Reset Link</button>
+    <div id="auth-error" class="auth-error hidden"></div>
+    <button onclick="switchAuthTab('login');renderAuthForm()" style="
+      background:none;border:none;cursor:pointer;width:100%;margin-top:10px;
+      font-family:var(--font-display);font-weight:700;text-transform:uppercase;
+      letter-spacing:1px;font-size:10px;color:rgba(30,84,183,.5);
+    ">← Back to Sign In</button>
+  `;
+}
+
+async function sendPasswordReset() {
+  const email = document.getElementById('reset-email')?.value?.trim();
+  if (!email) return;
+  const btn = document.getElementById('reset-submit-btn');
+  btn.textContent = 'Sending…';
+  btn.disabled = true;
+  const { error } = await db.auth.resetPasswordForEmail(email, {
+    redirectTo: window.location.origin + window.location.pathname,
+  });
+  if (error) {
+    btn.textContent = 'Send Reset Link';
+    btn.disabled = false;
+    const el = document.getElementById('auth-error');
+    el.textContent = error.message;
+    el.classList.remove('hidden');
+  } else {
+    document.getElementById('auth-form').innerHTML = `
+      <div style="text-align:center;padding:16px 0">
+        <div style="font-size:36px;margin-bottom:12px">📬</div>
+        <div style="font-family:var(--font-display);font-weight:900;text-transform:uppercase;font-size:18px;color:var(--ink);margin-bottom:8px">Check Your Email</div>
+        <p style="font-size:13px;color:var(--ink-soft);line-height:1.6;margin-bottom:20px">
+          We sent a password reset link to <strong>${email}</strong>.<br>Click it to set a new password.
+        </p>
+        <button class="auth-btn" onclick="switchAuthTab('login');renderAuthForm()">Back to Sign In</button>
+      </div>
+    `;
+  }
+}
+
+function showPasswordResetScreen() {
+  showScreen('screen-auth');
+  document.getElementById('auth-form').innerHTML = `
+    <div class="form-group">
+      <label class="form-label">New Password</label>
+      <input class="form-input" type="password" id="new-password" placeholder="Enter new password" autocomplete="new-password">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Confirm Password</label>
+      <input class="form-input" type="password" id="confirm-password" placeholder="Confirm new password" autocomplete="new-password">
+    </div>
+    <button class="auth-btn" id="set-password-btn" onclick="submitNewPassword()">Set New Password</button>
+    <div id="auth-error" class="auth-error hidden"></div>
+  `;
+  document.getElementById('tab-login').classList.add('active');
+  document.getElementById('tab-signup').classList.remove('active');
+}
+
+async function submitNewPassword() {
+  const p1 = document.getElementById('new-password')?.value;
+  const p2 = document.getElementById('confirm-password')?.value;
+  const errEl = document.getElementById('auth-error');
+  if (!p1 || p1.length < 6) {
+    errEl.textContent = 'Password must be at least 6 characters.';
+    errEl.classList.remove('hidden');
+    return;
+  }
+  if (p1 !== p2) {
+    errEl.textContent = 'Passwords do not match.';
+    errEl.classList.remove('hidden');
+    return;
+  }
+  const btn = document.getElementById('set-password-btn');
+  btn.textContent = 'Saving…';
+  btn.disabled = true;
+  const { error } = await db.auth.updateUser({ password: p1 });
+  if (error) {
+    errEl.textContent = error.message;
+    errEl.classList.remove('hidden');
+    btn.textContent = 'Set New Password';
+    btn.disabled = false;
+  } else {
+    // Sign out so the recovery session is cleared, then show fresh login
+    await db.auth.signOut();
+    document.getElementById('auth-form').innerHTML = `
+      <div style="text-align:center;padding:16px 0">
+        <div style="font-size:36px;margin-bottom:12px">✅</div>
+        <div style="font-family:var(--font-display);font-weight:900;text-transform:uppercase;font-size:18px;color:var(--ink);margin-bottom:8px">Password Updated</div>
+        <p style="font-size:13px;color:var(--ink-soft);line-height:1.6;margin-bottom:20px">You're all set. Sign in with your new password.</p>
+        <button class="auth-btn" onclick="switchAuthTab('login');renderAuthForm()">Sign In</button>
+      </div>
+    `;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   DISPLAY NAME SETUP
+   ═══════════════════════════════════════════════════════════════════════════ */
+async function handleSetupName() {
+  const name = document.getElementById('setup-name').value.trim();
+  if (!name) { showSetupError('Please enter a display name.'); return; }
+
+  const { error } = await db.from('members').insert({
+    member_id:    currentUser.id,
+    display_name: name,
+    email:        currentUser.email,
+  });
+
+  if (error) { showSetupError(error.message); return; }
+
+  currentMember = { member_id: currentUser.id, display_name: name, ai_sessions_used: 0 };
+  enterApp();
+}
+
+function showSetupError(msg) {
+  const el = document.getElementById('setup-error');
+  el.textContent = msg;
+  el.classList.remove('hidden');
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   ENTER APP
+   ═══════════════════════════════════════════════════════════════════════════ */
+function enterApp() {
+  document.getElementById('user-display-name').textContent = currentMember.display_name;
+  document.getElementById('nav-profile-name').textContent = currentMember.display_name;
+  const used = currentMember.ai_sessions_used || 0;
+  document.getElementById('ai-sessions-display').textContent = Math.max(0, 10 - used);
+  showScreen('screen-app');
+  showDefaultCenter();
+  document.getElementById('toggle-cfb').addEventListener('click', () => setTimeout(loadSchemeProgress, 100));
+  document.getElementById('toggle-madden').addEventListener('click', () => setTimeout(loadSchemeProgress, 100));
+  // Show onboarding for new members
+  if (!currentMember.onboarding_completed) {
+    setTimeout(showOnboarding, 400);
+  }
+}
+
+function requestFullscreen() {
+  const el = document.documentElement;
+  if (el.requestFullscreen) el.requestFullscreen();
+  else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+}
+
+async function handleSignOut() {
+  await db.auth.signOut();
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   ONBOARDING
+   ═══════════════════════════════════════════════════════════════════════════ */
+const COACHING_STYLES = [
+  { id: 'field-general',        label: 'Field General',        icon: '🎯', desc: 'Controls the whole game' },
+  { id: 'air-raid',             label: 'Air Raid Architect',   icon: '✈️', desc: 'Pass game specialist' },
+  { id: 'defensive-mastermind', label: 'Defensive Mastermind', icon: '🛡️', desc: 'Defense wins championships' },
+  { id: 'run-game',             label: 'Run Game Specialist',  icon: '🏃', desc: 'Ground and pound' },
+  { id: 'match-coverage',       label: 'Match Coverage Master',icon: '🔒', desc: 'Elite coverage schemes' },
+  { id: 'balanced',             label: 'Balanced Coordinator', icon: '⚖️', desc: 'Best of both worlds' },
+];
+
+let onboardingData = { coaching_style: '', primary_game: '', game_mode: '', experience_level: '', offense_style: '', defense_style: '', play_frequency: '', onboarding_notes: '' };
+
+function showOnboarding() {
+  document.getElementById('onboarding-overlay').classList.remove('hidden');
+  renderOnboardingStep(1);
+}
+
+function renderOnboardingStep(step) {
+  const el = document.getElementById('onboarding-content');
+  if (step === 1) el.innerHTML = onboardingStep1();
+  else if (step === 2) el.innerHTML = onboardingStep2();
+  else if (step === 3) el.innerHTML = onboardingStep3();
+}
+
+function onboardingStep1() {
+  return `
+    <div class="form-card" style="max-height:none">
+      <div class="form-card-head">
+        <div class="form-card-title">Welcome to Scheme Kings</div>
+        <div class="form-card-sub">Step 1 of 3 — Your Coaching Identity</div>
+      </div>
+      <div class="form-card-body">
+        <div style="font-family:var(--font-display);font-weight:700;text-transform:uppercase;letter-spacing:2px;font-size:10px;color:var(--ink-soft);margin-bottom:14px">Choose Your Coaching Style</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:20px">
+          ${COACHING_STYLES.map(s => `
+            <button onclick="selectCoachingStyle('${s.id}', this)" id="style-btn-${s.id}" style="
+              display:flex;flex-direction:column;align-items:center;gap:6px;
+              padding:14px 10px;border-radius:12px;cursor:pointer;
+              background:var(--cream-deep);border:2px solid var(--cream-edge);
+              box-shadow:0 3px 10px rgba(0,0,0,.2);
+              transition:all .15s;
+            ">
+              <span style="font-size:24px">${s.icon}</span>
+              <span style="font-family:var(--font-display);font-weight:900;text-transform:uppercase;letter-spacing:.5px;font-size:11px;color:var(--ink);line-height:1.2;text-align:center">${s.label}</span>
+              <span style="font-family:var(--font-display);font-weight:600;font-size:9px;color:var(--ink-soft);text-align:center">${s.desc}</span>
+            </button>
+          `).join('')}
+        </div>
+        <div id="ob-step1-error" style="color:#c0392b;font-size:12px;margin-bottom:8px;display:none">Please pick a coaching style to continue.</div>
+        <button onclick="onboardingNext1()" style="
+          width:100%;padding:14px;border-radius:10px;
+          font-family:var(--font-display);font-weight:900;text-transform:uppercase;letter-spacing:2px;font-size:14px;
+          background:var(--primary);color:var(--cream);border:2px solid var(--secondary);
+          box-shadow:0 4px 14px rgba(0,0,0,.3);cursor:pointer;
+        ">Next →</button>
+      </div>
+    </div>
+  `;
+}
+
+function selectCoachingStyle(id, btn) {
+  onboardingData.coaching_style = id;
+  document.querySelectorAll('[id^="style-btn-"]').forEach(b => {
+    b.style.borderColor = 'var(--cream-edge)';
+    b.style.background = 'var(--cream-deep)';
+    b.style.boxShadow = '0 3px 10px rgba(0,0,0,.2)';
+  });
+  btn.style.borderColor = 'var(--primary)';
+  btn.style.background = 'color-mix(in srgb, var(--primary) 10%, var(--cream))';
+  btn.style.boxShadow = '0 0 0 2px var(--secondary), 0 4px 14px rgba(0,0,0,.3)';
+}
+
+function onboardingNext1() {
+  if (!onboardingData.coaching_style) {
+    document.getElementById('ob-step1-error').style.display = 'block';
+    return;
+  }
+  renderOnboardingStep(2);
+}
+
+function onboardingStep2() {
+  return `
+    <div class="form-card" style="max-height:none">
+      <div class="form-card-head">
+        <div class="form-card-title">Your Setup</div>
+        <div class="form-card-sub">Step 2 of 3 — Game &amp; Experience</div>
+      </div>
+      <div class="form-card-body" style="display:flex;flex-direction:column;gap:16px">
+
+        <div class="field-group">
+          <label class="field-label">Primary Game</label>
+          <select class="field-select" id="ob-game">
+            <option value="">Select…</option>
+            <option value="CFB27">College Football 27</option>
+            <option value="Madden27">Madden 27</option>
+            <option value="Both">Both</option>
+          </select>
+        </div>
+
+        <div class="field-group">
+          <label class="field-label">Game Mode</label>
+          <select class="field-select" id="ob-mode">
+            <option value="">Select…</option>
+            <option value="Dynasty/Franchise">Dynasty / Franchise</option>
+            <option value="Ultimate Team">Ultimate Team</option>
+            <option value="Both">Both</option>
+          </select>
+        </div>
+
+        <div class="field-group">
+          <label class="field-label">Experience Level</label>
+          <select class="field-select" id="ob-exp">
+            <option value="">Select…</option>
+            <option value="New to scheme-based play">New to scheme-based play</option>
+            <option value="Intermediate">Intermediate</option>
+            <option value="Experienced">Experienced — I run multiple schemes</option>
+          </select>
+        </div>
+
+        <div id="ob-step2-error" style="color:#c0392b;font-size:12px;display:none">Please fill out all fields.</div>
+        <div style="display:flex;gap:10px">
+          <button onclick="renderOnboardingStep(1)" style="
+            flex:0 0 auto;padding:12px 18px;border-radius:10px;
+            font-family:var(--font-display);font-weight:800;text-transform:uppercase;letter-spacing:1px;font-size:13px;
+            background:transparent;color:var(--ink-soft);border:2px solid var(--cream-edge);cursor:pointer;
+          ">← Back</button>
+          <button onclick="onboardingNext2()" style="
+            flex:1;padding:14px;border-radius:10px;
+            font-family:var(--font-display);font-weight:900;text-transform:uppercase;letter-spacing:2px;font-size:14px;
+            background:var(--primary);color:var(--cream);border:2px solid var(--secondary);
+            box-shadow:0 4px 14px rgba(0,0,0,.3);cursor:pointer;
+          ">Next →</button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function onboardingNext2() {
+  const game = document.getElementById('ob-game').value;
+  const mode = document.getElementById('ob-mode').value;
+  const exp  = document.getElementById('ob-exp').value;
+  if (!game || !mode || !exp) {
+    document.getElementById('ob-step2-error').style.display = 'block';
+    return;
+  }
+  onboardingData.primary_game      = game;
+  onboardingData.game_mode         = mode;
+  onboardingData.experience_level  = exp;
+  renderOnboardingStep(3);
+}
+
+function onboardingStep3() {
+  return `
+    <div class="form-card" style="max-height:none">
+      <div class="form-card-head">
+        <div class="form-card-title">Your Play Style</div>
+        <div class="form-card-sub">Step 3 of 3 — How You Play</div>
+      </div>
+      <div class="form-card-body" style="display:flex;flex-direction:column;gap:16px">
+
+        <div class="field-group">
+          <label class="field-label">Offensive Preference</label>
+          <select class="field-select" id="ob-offense">
+            <option value="">Select…</option>
+            <option value="Run-heavy">Run-heavy</option>
+            <option value="Balanced">Balanced</option>
+            <option value="Pass-heavy">Pass-heavy</option>
+            <option value="Whatever beats the defense">Whatever beats the defense</option>
+          </select>
+        </div>
+
+        <div class="field-group">
+          <label class="field-label">Defensive Preference</label>
+          <select class="field-select" id="ob-defense">
+            <option value="">Select…</option>
+            <option value="Pressure/Blitz">Pressure / Blitz</option>
+            <option value="Zone coverage">Zone coverage</option>
+            <option value="Man coverage">Man coverage</option>
+            <option value="Match coverage">Match coverage</option>
+            <option value="Mix of everything">Mix of everything</option>
+          </select>
+        </div>
+
+        <div class="field-group">
+          <label class="field-label">How Often Do You Play?</label>
+          <select class="field-select" id="ob-freq">
+            <option value="">Select…</option>
+            <option value="Daily">Daily</option>
+            <option value="A few times a week">A few times a week</option>
+            <option value="Weekly">Weekly</option>
+            <option value="Whenever I can">Whenever I can</option>
+          </select>
+        </div>
+
+        <div class="field-group">
+          <div style="font-family:var(--font-display);font-weight:700;text-transform:uppercase;letter-spacing:1px;font-size:10px;color:var(--ink-soft);margin-bottom:6px">
+            Based on everything above, we'll give you personalized scheme recommendations to start with.
+          </div>
+          <label class="field-label">Anything else we should know? <span style="font-weight:500;opacity:.6">(Optional)</span></label>
+          <textarea class="field-input" id="ob-notes" rows="3" placeholder="e.g. I struggle against Cover 3, I mainly play online, I'm trying to learn RPO concepts…" style="resize:none"></textarea>
+        </div>
+
+        <div id="ob-step3-error" style="color:#c0392b;font-size:12px;display:none">Please fill out the required fields.</div>
+        <div style="display:flex;gap:10px">
+          <button onclick="renderOnboardingStep(2)" style="
+            flex:0 0 auto;padding:12px 18px;border-radius:10px;
+            font-family:var(--font-display);font-weight:800;text-transform:uppercase;letter-spacing:1px;font-size:13px;
+            background:transparent;color:var(--ink-soft);border:2px solid var(--cream-edge);cursor:pointer;
+          ">← Back</button>
+          <button onclick="submitOnboarding()" style="
+            flex:1;padding:14px;border-radius:10px;
+            font-family:var(--font-display);font-weight:900;text-transform:uppercase;letter-spacing:2px;font-size:14px;
+            background:var(--primary);color:var(--cream);border:2px solid var(--secondary);
+            box-shadow:0 4px 14px rgba(0,0,0,.3);cursor:pointer;
+          " id="ob-submit-btn">Get My Recommendations →</button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+async function submitOnboarding() {
+  const offense = document.getElementById('ob-offense').value;
+  const defense = document.getElementById('ob-defense').value;
+  const freq    = document.getElementById('ob-freq').value;
+  if (!offense || !defense || !freq) {
+    document.getElementById('ob-step3-error').style.display = 'block';
+    return;
+  }
+  onboardingData.offense_style   = offense;
+  onboardingData.defense_style   = defense;
+  onboardingData.play_frequency  = freq;
+  onboardingData.onboarding_notes = document.getElementById('ob-notes').value;
+
+  const btn = document.getElementById('ob-submit-btn');
+  btn.textContent = 'Building your profile…';
+  btn.disabled = true;
+
+  // Fire Claude API for personalized recommendation
+  let rec = '';
+  try {
+    const styleLabel = COACHING_STYLES.find(s => s.id === onboardingData.coaching_style)?.label || onboardingData.coaching_style;
+    const prompt = `You are a football gaming coach for the Scheme Kings platform. A new member just completed their profile. Give them a personalized coaching recommendation structured in exactly 3 short sections. Be specific to their style — no generic advice.
+
+Their profile:
+- Coaching Style: ${styleLabel}
+- Primary Game: ${onboardingData.primary_game}
+- Game Mode: ${onboardingData.game_mode}
+- Experience: ${onboardingData.experience_level}
+- Offensive Preference: ${onboardingData.offense_style}
+- Defensive Preference: ${onboardingData.defense_style}
+- Play Frequency: ${onboardingData.play_frequency}
+${onboardingData.onboarding_notes ? `- Notes: ${onboardingData.onboarding_notes}` : ''}
+
+Respond in exactly this format (use these exact bold headers, keep each section to 1-2 sentences):
+
+**Where to Start:** Recommend 1-2 specific scheme types from the Scheme Kings library that fit their coaching style and offensive/defensive preferences. Be concrete — name the type of scheme (e.g. "RPO-heavy spread concepts", "cover-2 shell with edge pressure", "power run game out of I-form").
+
+**Log Both Sides:** Remind them to log both offensive AND defensive games after every session. The more games they log, the sharper their performance data gets and the faster they improve.
+
+**Unlock Scheme Reviews:** After logging 5 games with any single scheme, they unlock a Scheme Review — a community evaluation of what plays are working and what to adjust. The more members contribute, the better everyone's game gets.`;
+
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'x-api-key': ANTHROPIC_API_KEY,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true',
+        'content-type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 300,
+        messages: [{ role: 'user', content: prompt }],
+      }),
+    });
+    const data = await resp.json();
+    rec = data.content?.[0]?.text || '';
+  } catch(e) {
+    rec = '';
+  }
+
+  // Save everything to Supabase
+  await db.from('members').update({
+    coaching_style:       onboardingData.coaching_style,
+    primary_game:         onboardingData.primary_game,
+    game_mode:            onboardingData.game_mode,
+    experience_level:     onboardingData.experience_level,
+    offense_style:        onboardingData.offense_style,
+    defense_style:        onboardingData.defense_style,
+    play_frequency:       onboardingData.play_frequency,
+    onboarding_notes:     onboardingData.onboarding_notes,
+    onboarding_ai_rec:    rec,
+    onboarding_completed: true,
+  }).eq('member_id', currentUser.id);
+
+  // Update local member object
+  currentMember = { ...currentMember, ...onboardingData, onboarding_ai_rec: rec, onboarding_completed: true };
+
+  showOnboardingResult(rec);
+}
+
+function showOnboardingResult(rec) {
+  const styleObj = COACHING_STYLES.find(s => s.id === onboardingData.coaching_style);
+  const el = document.getElementById('onboarding-content');
+  el.innerHTML = `
+    <div class="form-card" style="max-height:none">
+      <div class="form-card-head">
+        <div class="form-card-title">You're All Set</div>
+        <div class="form-card-sub">Your coaching profile is live</div>
+      </div>
+      <div class="form-card-body" style="display:flex;flex-direction:column;gap:16px;align-items:center;text-align:center">
+
+        <div style="
+          width:80px;height:80px;border-radius:50%;
+          background:var(--primary);border:3px solid var(--cream);
+          box-shadow:inset 0 0 0 2.5px var(--secondary),0 8px 24px rgba(0,0,0,.4);
+          display:flex;align-items:center;justify-content:center;font-size:36px;
+        ">${styleObj?.icon || '🎯'}</div>
+
+        <div>
+          <div style="font-family:var(--font-display);font-weight:900;text-transform:uppercase;letter-spacing:2px;font-size:18px;color:var(--primary)">${styleObj?.label || 'Coach'}</div>
+          <div style="font-family:var(--font-display);font-weight:700;font-size:11px;color:var(--ink-soft);letter-spacing:1px;text-transform:uppercase;margin-top:2px">Your Coaching Style</div>
+        </div>
+
+        ${rec ? `
+        <div style="
+          background:color-mix(in srgb,var(--primary) 8%,var(--cream));
+          border:2px solid var(--primary);border-radius:12px;padding:16px;text-align:left;
+        ">
+          <div style="font-family:var(--font-display);font-weight:800;text-transform:uppercase;letter-spacing:2px;font-size:9px;color:var(--secondary);margin-bottom:8px">⚡ Your Coaching Recommendation</div>
+          <div style="font-family:var(--font-body);font-size:13px;color:var(--ink);line-height:1.6">${rec.replace(/\*\*(.+?)\*\*/g, '<strong style="font-family:var(--font-display);font-weight:900;text-transform:uppercase;letter-spacing:.5px;font-size:11px;color:var(--primary)">$1</strong>').replace(/\n\n/g, '<br><br>').replace(/\n/g, '<br>')}</div>
+        </div>
+        ` : ''}
+
+        <button onclick="closeOnboarding()" style="
+          width:100%;padding:14px;border-radius:10px;
+          font-family:var(--font-display);font-weight:900;text-transform:uppercase;letter-spacing:2px;font-size:14px;
+          background:var(--primary);color:var(--cream);border:2px solid var(--secondary);
+          box-shadow:0 4px 14px rgba(0,0,0,.3);cursor:pointer;
+        ">Start Coaching →</button>
+      </div>
+    </div>
+  `;
+}
+
+function closeOnboarding() {
+  document.getElementById('onboarding-overlay').classList.add('hidden');
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   COMMUNITY CHAT
+   ═══════════════════════════════════════════════════════════════════════════ */
+let chatSubscription = null;
+
+const STYLE_ICONS = {
+  'field-general': '🎯', 'air-raid': '✈️', 'defensive-mastermind': '🛡️',
+  'run-game': '🏃', 'match-coverage': '🔒', 'balanced': '⚖️',
+};
+
+async function loadChat() {
+  document.getElementById('nav-community').classList.add('active');
+
+  showInCenter(`
+    <div style="display:flex;flex-direction:column;height:100%;min-height:0;padding-bottom:4px">
+
+      <!-- Pinned header -->
+      <div style="
+        border-radius:var(--card-radius);
+        background-color:var(--cream);
+        background-image:linear-gradient(180deg,rgba(255,255,255,.55),rgba(0,0,0,.06) 60%),var(--noise);
+        background-blend-mode:soft-light,soft-light;
+        border:3px solid var(--primary);
+        box-shadow:inset 0 0 0 2.5px var(--secondary),0 6px 18px rgba(0,0,0,.4);
+        padding:14px 16px;margin-bottom:12px;flex-shrink:0;
+      ">
+        <div style="font-family:var(--font-display);font-weight:900;text-transform:uppercase;letter-spacing:2px;font-size:14px;color:var(--primary);margin-bottom:4px">👥 SK Community</div>
+        <div style="font-family:var(--font-display);font-weight:700;font-size:11px;color:var(--ink-soft)">📌 Welcome to the SK community. Drop your coaching style below and let's get to work.</div>
+      </div>
+
+      <!-- Messages -->
+      <div id="chat-messages" style="
+        flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:8px;
+        padding-right:2px;margin-bottom:10px;min-height:0;
+      ">
+        <div class="loading-msg">Loading messages…</div>
+      </div>
+
+      <!-- Input -->
+      <div style="display:flex;gap:8px;flex-shrink:0">
+        <input id="chat-input" type="text" maxlength="300" placeholder="Say something…" style="
+          flex:1;padding:11px 14px;border-radius:10px;
+          background:rgba(255,255,255,.07);border:1.5px solid rgba(255,255,255,.15);
+          color:var(--cream);font-family:var(--font-body);font-size:14px;
+          outline:none;
+        " onkeydown="if(event.key==='Enter')sendChat()">
+        <button onclick="sendChat()" style="
+          padding:11px 18px;border-radius:10px;flex-shrink:0;
+          font-family:var(--font-display);font-weight:900;text-transform:uppercase;
+          letter-spacing:1px;font-size:12px;
+          background:var(--primary);color:var(--cream);
+          border:2px solid var(--secondary);cursor:pointer;
+        ">Send</button>
+      </div>
+    </div>
+  `);
+
+  // Load existing messages
+  const { data: messages } = await db
+    .from('community_chat')
+    .select('*')
+    .order('created_at', { ascending: true })
+    .limit(100);
+
+  renderChatMessages(messages || []);
+
+  // Subscribe to new messages in real-time
+  if (chatSubscription) chatSubscription.unsubscribe();
+  chatSubscription = db
+    .channel('community-chat')
+    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'community_chat' }, payload => {
+      appendChatMessage(payload.new);
+    })
+    .subscribe();
+}
+
+function renderChatMessages(messages) {
+  const el = document.getElementById('chat-messages');
+  if (!el) return;
+  if (!messages.length) {
+    el.innerHTML = `<div style="text-align:center;font-family:var(--font-display);font-weight:700;font-size:12px;color:rgba(255,255,255,.3);text-transform:uppercase;letter-spacing:1px;padding:30px 0">No messages yet — be the first</div>`;
+    return;
+  }
+  el.innerHTML = messages.map(m => chatBubble(m)).join('');
+  el.scrollTop = el.scrollHeight;
+}
+
+function appendChatMessage(msg) {
+  const el = document.getElementById('chat-messages');
+  if (!el) return;
+  const empty = el.querySelector('[style*="be the first"]');
+  if (empty) el.innerHTML = '';
+  el.insertAdjacentHTML('beforeend', chatBubble(msg));
+  el.scrollTop = el.scrollHeight;
+}
+
+function chatBubble(m) {
+  const isMe = m.member_id === currentUser?.id;
+  const icon = STYLE_ICONS[m.coaching_style] || '🏈';
+  const time = new Date(m.created_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+  return `
+    <div style="display:flex;gap:8px;align-items:flex-end;${isMe ? 'flex-direction:row-reverse' : ''}">
+      <div style="
+        width:30px;height:30px;border-radius:50%;flex-shrink:0;
+        background:radial-gradient(circle at 40% 30%,color-mix(in srgb,var(--primary) 75%,#fff),var(--primary));
+        border:2px solid ${isMe ? 'var(--secondary)' : 'rgba(255,255,255,.2)'};
+        display:flex;align-items:center;justify-content:center;font-size:13px;
+      ">${icon}</div>
+      <div style="max-width:72%;${isMe ? 'align-items:flex-end' : 'align-items:flex-start'};display:flex;flex-direction:column;gap:3px">
+        <div style="font-family:var(--font-display);font-weight:800;text-transform:uppercase;letter-spacing:.5px;font-size:9px;color:${isMe ? 'var(--secondary)' : 'rgba(255,255,255,.45)'}">
+          ${isMe ? 'You' : m.display_name} · ${m.games_logged || 0} games · ${time}
+        </div>
+        <div style="
+          padding:9px 12px;border-radius:${isMe ? '12px 12px 2px 12px' : '12px 12px 12px 2px'};
+          background:${isMe ? 'var(--primary)' : 'rgba(255,255,255,.09)'};
+          border:1.5px solid ${isMe ? 'var(--secondary)' : 'rgba(255,255,255,.1)'};
+          font-family:var(--font-body);font-size:13px;color:var(--cream);line-height:1.45;
+          word-break:break-word;
+        ">${m.message}</div>
+      </div>
+    </div>
+  `;
+}
+
+async function sendChat() {
+  const input = document.getElementById('chat-input');
+  const text = input?.value?.trim();
+  if (!text || !currentUser) return;
+  input.value = '';
+
+  const { data: memberData } = await db.from('members')
+    .select('display_name, coaching_style')
+    .eq('member_id', currentUser.id)
+    .single();
+
+  const { data: countData } = await db.from('performance_cards')
+    .select('id', { count: 'exact', head: true })
+    .eq('member_id', currentUser.id);
+
+  await db.from('community_chat').insert({
+    member_id:     currentUser.id,
+    display_name:  memberData?.display_name || currentMember.display_name,
+    coaching_style: memberData?.coaching_style || currentMember.coaching_style || '',
+    games_logged:  countData?.length || 0,
+    message:       text,
+  });
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   GAME TOGGLE
+   ═══════════════════════════════════════════════════════════════════════════ */
+function setGame(game) {
+  currentGame = game;
+  document.getElementById('toggle-cfb').classList.toggle('active', game === 'CFB27');
+  document.getElementById('toggle-madden').classList.toggle('active', game === 'Madden27');
+  document.body.classList.toggle('game-cfb', game === 'CFB27');
+  document.body.classList.toggle('game-madden', game === 'Madden27');
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   CENTER VIEW MANAGEMENT
+   ═══════════════════════════════════════════════════════════════════════════ */
+function showDefaultCenter() {
+  document.getElementById('center-default').classList.remove('hidden');
+  document.getElementById('center-content').classList.add('hidden');
+  document.getElementById('center-content').innerHTML = '';
+  document.querySelectorAll('.app-left .patch').forEach(p => p.classList.remove('active'));
+  loadSchemeProgress();
+  loadStreakBadge();
+}
+
+// Streak milestones — progress bar fills toward next one
+const DAY_MILESTONES = [3, 7, 14, 30, 60, 100];
+const WIN_MILESTONES = [3, 5, 10, 15, 25, 50];
+
+function nextMilestone(val, milestones) {
+  return milestones.find(m => m > val) || milestones[milestones.length - 1];
+}
+function prevMilestone(val, milestones) {
+  const all = [0, ...milestones];
+  return [...all].reverse().find(m => m <= val) ?? 0;
+}
+
+// Animate bar: flash gold when hitting a milestone, then reset and fill to next
+function animateStreakBar(barEl, cardEl, streak, milestones) {
+  if (!barEl) return;
+  const next = nextMilestone(streak, milestones);
+  const prev = prevMilestone(streak, milestones);
+  const atMilestone = milestones.includes(streak);
+
+  if (atMilestone) {
+    // Fill to 100% instantly, flash, then reset and fill to next tier progress
+    barEl.style.transition = 'width .3s ease';
+    barEl.style.width = '100%';
+    barEl.style.background = 'var(--secondary)';
+    if (cardEl) {
+      cardEl.style.boxShadow = cardEl.style.boxShadow + ', 0 0 18px rgba(242,181,14,.5)';
+    }
+    setTimeout(() => {
+      barEl.style.transition = 'none';
+      barEl.style.width = '0%';
+      setTimeout(() => {
+        barEl.style.transition = 'width .8s ease';
+        // Progress from this milestone toward the next one (which is now streak+1..next)
+        const nextNext = milestones.find(m => m > streak) || streak;
+        const pct = nextNext > streak ? 0 : 100; // just hit it, so 0% toward next
+        barEl.style.width = pct + '%';
+        if (cardEl) cardEl.style.boxShadow = '';
+      }, 80);
+    }, 600);
+  } else {
+    const pct = prev >= next ? 100 : Math.round((streak - prev) / (next - prev) * 100);
+    barEl.style.transition = 'width .7s ease';
+    setTimeout(() => barEl.style.width = pct + '%', 100);
+  }
+}
+
+async function loadStreakBadge() {
+  if (!currentUser) return;
+
+  const { data: cards } = await db
+    .from('performance_cards')
+    .select('result, created_at')
+    .eq('member_id', currentUser.id)
+    .order('created_at', { ascending: false });
+
+  const total = cards?.length || 0;
+
+  // Games logged badge
+  const gamesNumEl = document.getElementById('games-logged-num');
+  if (gamesNumEl) gamesNumEl.textContent = total;
+
+  // ── Day streak ──
+  let dayStreak = 0;
+  if (cards?.length) {
+    const today = new Date(); today.setHours(0,0,0,0);
+    const uniqueDays = [...new Set(cards.map(c => {
+      const d = new Date(c.created_at);
+      return `${d.getFullYear()}-${String(d.getMonth()).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    }))].sort().reverse();
+    let checkDate = new Date(today);
+    for (const dayStr of uniqueDays) {
+      const [y,mo,d] = dayStr.split('-').map(Number);
+      const cardDate = new Date(y, mo, d);
+      const diff = Math.round((checkDate - cardDate) / 86400000);
+      if (diff === 0) { dayStreak++; checkDate.setDate(checkDate.getDate() - 1); }
+      else break;
+    }
+  }
+
+  const dayNumEl  = document.getElementById('home-day-streak-num');
+  const dayBarEl  = document.getElementById('home-day-streak-bar');
+  const dayNextEl = document.getElementById('home-day-streak-next');
+  const dayLblEl  = document.getElementById('home-day-streak-label');
+  const dayCard   = document.getElementById('home-day-streak-card');
+  if (dayNumEl) dayNumEl.textContent = dayStreak;
+  if (dayStreak >= 1 && dayCard) {
+    dayNumEl.style.color = 'var(--primary)';
+    const next = nextMilestone(dayStreak, DAY_MILESTONES);
+    animateStreakBar(dayBarEl, null, dayStreak, DAY_MILESTONES);
+    if (dayNextEl) dayNextEl.textContent = `→ ${next}`;
+    const sublabels = {3:'Hit 3 days',7:'Hit 7 days 🔥',14:'Two weeks 💪',30:'30 days 🏆',60:'60 days 👑',100:'100 days 🐐'};
+    if (dayLblEl) dayLblEl.textContent = sublabels[next] || 'Consecutive Days Logged';
+  } else {
+    if (dayNumEl) dayNumEl.style.color = 'var(--primary)';
+    if (dayNextEl) dayNextEl.textContent = '→ 3';
+    if (dayLblEl) dayLblEl.textContent = 'Consecutive Days Logged';
+  }
+
+  // ── Win streak ──
+  let winStreak = 0;
+  for (const c of (cards || [])) {
+    if (c.result === 'Win') winStreak++;
+    else break;
+  }
+
+  const winNumEl  = document.getElementById('home-win-streak-num');
+  const winBarEl  = document.getElementById('home-win-streak-bar');
+  const winNextEl = document.getElementById('home-win-streak-next');
+  const winLblEl  = document.getElementById('home-win-streak-label');
+  const winCard   = document.getElementById('home-win-streak-card');
+  if (winNumEl) winNumEl.textContent = winStreak;
+  if (winStreak >= 1 && winCard) {
+    winNumEl.style.color = 'var(--primary)';
+    const next = nextMilestone(winStreak, WIN_MILESTONES);
+    animateStreakBar(winBarEl, null, winStreak, WIN_MILESTONES);
+    if (winNextEl) winNextEl.textContent = `→ ${next}`;
+    const sublabels = {3:'Hit 3 wins',5:'5 straight 🔥',10:'10 wins 👑',15:'15-game run',25:'Elite tier 🏆',50:'Untouchable 🐐'};
+    if (winLblEl) winLblEl.textContent = sublabels[next] || 'Consecutive Wins';
+  } else {
+    if (winNumEl) winNumEl.style.color = 'var(--primary)';
+    if (winNextEl) winNextEl.textContent = '→ 3';
+    if (winLblEl) winLblEl.textContent = 'Consecutive Wins';
+  }
+}
+
+async function loadSchemeProgress() {
+  if (!db || !currentUser) return;
+  const listEl = document.getElementById('scheme-progress-list');
+  if (!listEl) return;
+
+  // Get all schemes for current game
+  const { data: schemes } = await db
+    .from('schemes')
+    .select('scheme_id, scheme_name, type')
+    .eq('game', currentGame)
+    .order('type').order('scheme_name');
+
+  if (!schemes?.length) {
+    listEl.innerHTML = `<div style="font-family:var(--font-display);font-size:11px;color:var(--ink-soft);text-align:center;padding:8px 0">No schemes yet — they'll appear once imported.</div>`;
+    return;
+  }
+
+  // Count games per scheme for this member
+  const { data: cards } = await db
+    .from('performance_cards')
+    .select('scheme_id, card_type')
+    .eq('member_id', currentUser.id)
+    .not('scheme_id', 'is', null);
+
+  const gameCounts = {};
+  for (const c of cards || []) {
+    gameCounts[c.scheme_id] = (gameCounts[c.scheme_id] || 0) + 1;
+  }
+
+  const rows = schemes.map(s => {
+    const count = gameCounts[s.scheme_id] || 0;
+    const unlocked = count >= 5;
+    const pct = Math.min(count / 5 * 100, 100);
+    const typeColor = s.type === 'Offense' ? 'var(--gold-dk)' : 'var(--primary)';
+
+    return `
+      <div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--cream-edge)">
+        <span style="font-family:var(--font-display);font-weight:800;font-size:9px;text-transform:uppercase;letter-spacing:1px;color:${typeColor};flex:0 0 auto;width:14px;text-align:center">${s.type[0]}</span>
+        <span style="font-family:var(--font-display);font-weight:700;text-transform:uppercase;font-size:12px;color:${unlocked ? 'var(--ink)' : 'var(--ink-soft)'};flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${s.scheme_name}</span>
+        ${unlocked
+          ? `<button onclick="startSchemeReview('${s.type}')" style="
+              font-family:var(--font-display);font-weight:800;text-transform:uppercase;
+              letter-spacing:1px;font-size:9px;padding:3px 10px;border-radius:5px;
+              background:var(--primary);border:1px solid var(--gold);
+              color:var(--secondary);cursor:pointer;flex:0 0 auto;transition:all .12s
+            ">Rate ★</button>`
+          : `<div style="display:flex;align-items:center;gap:6px;flex:0 0 auto">
+              <div style="width:60px;height:3px;background:var(--cream-edge);border-radius:99px;overflow:hidden">
+                <div style="width:${pct}%;height:100%;background:var(--secondary);border-radius:99px"></div>
+              </div>
+              <span style="font-family:var(--font-display);font-weight:700;font-size:10px;color:var(--ink-soft);white-space:nowrap">${count}/5</span>
+            </div>`
+        }
+      </div>
+    `;
+  }).join('');
+
+  listEl.innerHTML = rows;
+}
+
+function showInCenter(html) {
+  document.getElementById('center-default').classList.add('hidden');
+  const el = document.getElementById('center-content');
+  el.innerHTML = html;
+  el.classList.remove('hidden');
+  document.getElementById('app-center').scrollTop = 0;
+}
+
+function showView(view) {
+  const navEl = document.getElementById('nav-' + view);
+  // clicking the active pill closes it and returns home
+  if (navEl?.classList.contains('active')) {
+    showDefaultCenter();
+    return;
+  }
+
+  document.querySelectorAll('.app-left .patch').forEach(p => p.classList.remove('active'));
+  if (navEl) navEl.classList.add('active');
+
+  if (view === 'history') loadProfile();
+  else if (view === 'schemes') loadSchemes();
+  else if (view === 'community') loadChat();
+  else if (view === 'about') showAbout();
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   ABOUT VIEW
+   ═══════════════════════════════════════════════════════════════════════════ */
+function showAbout() {
+  showInCenter(`
+    <div class="about-wrap">
+      <h2 class="about-title">How This Works</h2>
+      <p class="about-text">
+        Every time you play a game, log it here. The coaching card captures what you ran,
+        what worked, and what struggled. The performance card scores your session out of 10
+        based on result, execution, and bonus moments.<br><br>
+        Over time, your history builds into a personal coaching database. The AI uses your
+        full history, the complete scheme library, and anonymous community data to give you
+        targeted coaching advice — not generic tips, but advice built around how <em>you</em>
+        specifically play.<br><br>
+        The more you log, the smarter it gets.
+      </p>
+    </div>
+  `);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   LOAD SCHEMES FOR DROPDOWN
+   ═══════════════════════════════════════════════════════════════════════════ */
+async function fetchSchemes(type) {
+  const { data, error } = await db.from('schemes')
+    .select('scheme_id, scheme_name')
+    .eq('game', currentGame)
+    .eq('type', type)
+    .order('scheme_name');
+  return data || [];
+}
+
+async function fetchPlays(schemeId, types) {
+  const { data } = await db.from('plays')
+    .select('play_id, play_name, formation, play_type')
+    .eq('scheme_id', schemeId)
+    .in('play_type', types)
+    .order('play_name');
+  return data || [];
+}
+
+function buildSchemeOptions(schemes) {
+  if (!schemes.length) return '<option value="">No schemes found — add via Admin</option>';
+  return '<option value="">Select scheme…</option>' +
+    schemes.map(s => `<option value="${s.scheme_id}">${s.scheme_name}</option>`).join('');
+}
+
+function buildPlayOptions(plays) {
+  let html = '<option value="">Select play…</option>';
+  plays.forEach(p => {
+    const label = p.formation ? `${p.play_name} [${p.formation}]` : p.play_name;
+    html += `<option value="${label}">${label}</option>`;
+  });
+  html += '<option value="Other">Other (type in notes)</option>';
+  return html;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   OFFENSE COACHING CARD — STEP 1
+   ═══════════════════════════════════════════════════════════════════════════ */
+async function startOffenseCard() {
+  showInCenter('<div class="loading-msg">Loading schemes…</div>');
+  const schemes = await fetchSchemes('Offense');
+
+  const today = new Date().toISOString().split('T')[0];
+
+  showInCenter(`
+    <div class="form-card">
+      <div class="form-card-head">
+        <button class="close-btn" onclick="showDefaultCenter()">✕</button>
+        <div class="form-card-title">Offense Coaching Card</div>
+        <div class="form-card-sub">Step 1 of 2 — Game Details</div>
+      </div>
+      <div class="form-card-body">
+        <div class="step-indicator">
+          <div class="step-dot active">1</div>
+          <div class="step-line"></div>
+          <div class="step-dot">2</div>
+          <span class="step-label" style="margin-left:4px">Coaching → Performance</span>
+        </div>
+
+        <div class="form-section">Game Info</div>
+
+        <div class="field-row">
+          <div class="field-group">
+            <label class="field-label">Game</label>
+            <select class="field-select" id="off-game">
+              <option value="CFB27"${currentGame==='CFB27'?' selected':''}>College Football 27</option>
+              <option value="Madden27"${currentGame==='Madden27'?' selected':''}>Madden 27</option>
+            </select>
+          </div>
+          <div class="field-group">
+            <label class="field-label">Game Mode</label>
+            <select class="field-select" id="off-mode">
+              <option value="Dynasty/Franchise">Dynasty / Franchise</option>
+              <option value="Ultimate Team">Ultimate Team</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="field-group">
+          <label class="field-label">Result</label>
+          <div class="toggle-group" id="off-result-toggle">
+            <button class="toggle-btn win active" onclick="setToggle('off-result-toggle','Win',this)">Win</button>
+            <button class="toggle-btn loss" onclick="setToggle('off-result-toggle','Loss',this)">Loss</button>
+          </div>
+          <input type="hidden" id="off-result" value="Win">
+        </div>
+
+        <div class="field-row">
+          <div class="field-group">
+            <label class="field-label">Your Team <span>(Optional)</span></label>
+            <input class="field-input" type="text" id="off-your-team" placeholder="e.g. Alabama">
+          </div>
+          <div class="field-group">
+            <label class="field-label">Opponent <span>(Optional)</span></label>
+            <input class="field-input" type="text" id="off-opponent" placeholder="e.g. Georgia">
+          </div>
+        </div>
+
+        <div class="field-group">
+          <label class="field-label">Date</label>
+          <input class="field-input" type="date" id="off-date" value="${today}">
+        </div>
+
+        <div class="form-section">Scheme</div>
+
+        <div class="field-group">
+          <label class="field-label">Scheme Used</label>
+          <select class="field-select" id="off-scheme" onchange="loadOffensePlays(this.value)">
+            ${buildSchemeOptions(schemes)}
+          </select>
+        </div>
+
+        <div class="form-section">Best Plays</div>
+
+        <div class="field-group">
+          <label class="field-label">Best Run Play</label>
+          <select class="field-select" id="off-run-play">
+            <option value="">Select a scheme first…</option>
+          </select>
+        </div>
+        <div class="field-group">
+          <label class="field-label">Why Did It Work?</label>
+          <select class="field-select" id="off-run-reason">
+            <option value="">Select…</option>
+            <option>Big holes opened up consistently</option>
+            <option>Was able to get numbers advantage in run game</option>
+            <option>Read Option (DE Crashed Down All Game)</option>
+            <option>RPO read was open consistently</option>
+            <option>Just really good execution</option>
+            <option>Motion created numbers advantage or confusion for defense</option>
+            <option value="Other">Other</option>
+          </select>
+          <input class="field-input hidden" type="text" id="off-run-reason-other" placeholder="Describe why it worked…" style="margin-top:8px">
+        </div>
+
+        <div class="field-group">
+          <label class="field-label">Best Pass Play</label>
+          <select class="field-select" id="off-pass-play">
+            <option value="">Select a scheme first…</option>
+          </select>
+        </div>
+        <div class="field-group">
+          <label class="field-label">Why Did It Work?</label>
+          <select class="field-select" id="off-pass-reason">
+            <option value="">Select…</option>
+            <option>Attacked Cover 2 / two high safeties</option>
+            <option>Attacked Cover 3 / single high</option>
+            <option>Beat Man Coverage</option>
+            <option>Beat Match Coverage</option>
+            <option>Beat the Blitz</option>
+            <option>Hit Explosive plays</option>
+            <option>Someone was always open</option>
+            <option value="Other">Other</option>
+          </select>
+          <input class="field-input hidden" type="text" id="off-pass-reason-other" placeholder="Describe why it worked…" style="margin-top:8px">
+        </div>
+
+        <div class="form-section">Session Summary</div>
+
+        <div class="field-group">
+          <label class="field-label">What Worked Best Today?</label>
+          <select class="field-select" id="off-what-worked">
+            <option value="">Select…</option>
+            <option>Run game was dominant</option>
+            <option>Pass game was clicking</option>
+            <option>Motion and shifts created confusion</option>
+            <option>Play action was open all day</option>
+            <option>Created Explosive Pass Plays</option>
+            <option>Underneath options open in Pass Game</option>
+            <option value="Other">Other</option>
+          </select>
+          <input class="field-input hidden" type="text" id="off-what-worked-other" placeholder="Describe what worked…" style="margin-top:8px">
+        </div>
+
+        <div class="field-group">
+          <label class="field-label">Biggest Struggle Today?</label>
+          <select class="field-select" id="off-struggle">
+            <option value="">Select…</option>
+            <option>Struggled vs blitz / pressure</option>
+            <option>Couldn't run the ball</option>
+            <option>Pass protection broke down</option>
+            <option>Opponent took away top read all game</option>
+            <option>Nothing open downfield</option>
+            <option>Red zone stalled out</option>
+            <option>Short yardage situations</option>
+            <option>Execution errors</option>
+            <option value="Other">Other</option>
+          </select>
+          <input class="field-input hidden" type="text" id="off-struggle-other" placeholder="Describe the struggle…" style="margin-top:8px">
+        </div>
+
+        <div class="field-group">
+          <label class="field-label">Notes <span>(Optional)</span></label>
+          <textarea class="field-textarea" id="off-notes" placeholder="Anything else worth remembering about this game…"></textarea>
+        </div>
+
+        <div id="off-step1-error" class="error-msg hidden"></div>
+        <button class="submit-btn" onclick="submitOffenseStep1()">Continue to Performance Card →</button>
+      </div>
+    </div>
+  `);
+
+  // Wire up "Other" toggles
+  wireOtherToggle('off-run-reason', 'off-run-reason-other');
+  wireOtherToggle('off-pass-reason', 'off-pass-reason-other');
+  wireOtherToggle('off-what-worked', 'off-what-worked-other');
+  wireOtherToggle('off-struggle', 'off-struggle-other');
+}
+
+async function loadOffensePlays(schemeId) {
+  if (!schemeId) return;
+  const runPlays  = await fetchPlays(schemeId, ['Run']);
+  const passPlays = await fetchPlays(schemeId, ['Pass', 'Star']);
+  document.getElementById('off-run-play').innerHTML  = buildPlayOptions(runPlays);
+  document.getElementById('off-pass-play').innerHTML = buildPlayOptions(passPlays);
+}
+
+function wireOtherToggle(selectId, inputId) {
+  const sel = document.getElementById(selectId);
+  const inp = document.getElementById(inputId);
+  if (!sel || !inp) return;
+  sel.addEventListener('change', () => {
+    inp.classList.toggle('hidden', sel.value !== 'Other');
+  });
+}
+
+function setToggle(groupId, value, btn) {
+  const group = document.getElementById(groupId);
+  group.querySelectorAll('.toggle-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  // store value in hidden sibling input
+  const hiddenId = groupId.replace('-toggle', '');
+  const hidden = document.getElementById(hiddenId);
+  if (hidden) hidden.value = value;
+}
+
+function submitOffenseStep1() {
+  const schemeId = document.getElementById('off-scheme').value;
+  if (!schemeId) {
+    document.getElementById('off-step1-error').textContent = 'Please select a scheme.';
+    document.getElementById('off-step1-error').classList.remove('hidden');
+    return;
+  }
+
+  const getVal = id => document.getElementById(id)?.value || '';
+  const getOther = (selId, othId) => {
+    const v = getVal(selId);
+    return v === 'Other' ? getVal(othId) : v;
+  };
+
+  pendingCard = {
+    card_type:        'Offense',
+    game:             getVal('off-game'),
+    game_mode:        getVal('off-mode'),
+    result:           getVal('off-result'),
+    your_team:        getVal('off-your-team'),
+    opponent:         getVal('off-opponent'),
+    date:             getVal('off-date'),
+    scheme_id:        schemeId,
+    best_run_play:    getVal('off-run-play'),
+    best_run_play_reason:  getOther('off-run-reason', 'off-run-reason-other'),
+    best_pass_play:   getVal('off-pass-play'),
+    best_pass_play_reason: getOther('off-pass-reason', 'off-pass-reason-other'),
+    what_worked:      getOther('off-what-worked', 'off-what-worked-other'),
+    biggest_struggle: getOther('off-struggle', 'off-struggle-other'),
+    notes:            getVal('off-notes'),
+  };
+
+  showOffenseStep2();
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   OFFENSE PERFORMANCE CARD — STEP 2
+   ═══════════════════════════════════════════════════════════════════════════ */
+function showOffenseStep2() {
+  const resultLabel = pendingCard.result === 'Win' ? 'WIN' : 'LOSS';
+  const resultClass = pendingCard.result === 'Win' ? 'win' : 'loss';
+
+  showInCenter(`
+    <div class="form-card">
+      <div class="form-card-head">
+        <button class="close-btn" onclick="startOffenseCard()">←</button>
+        <div class="form-card-title">Offense Performance Card</div>
+        <div class="form-card-sub">Step 2 of 2 — Rate Your Performance</div>
+      </div>
+      <div class="form-card-body">
+        <div class="step-indicator">
+          <div class="step-dot done">✓</div>
+          <div class="step-line" style="background:var(--secondary)"></div>
+          <div class="step-dot active">2</div>
+          <span class="step-label" style="margin-left:4px">Coaching → Performance</span>
+        </div>
+
+        <div class="form-section">Result Confirmation</div>
+
+        <div class="field-group">
+          <label class="field-label">Result</label>
+          <div class="toggle-group" id="perf-result-toggle">
+            <button class="toggle-btn win${pendingCard.result==='Win'?' active':''}" onclick="setToggle('perf-result-toggle','Win',this)">Win</button>
+            <button class="toggle-btn loss${pendingCard.result==='Loss'?' active':''}" onclick="setToggle('perf-result-toggle','Loss',this)">Loss</button>
+          </div>
+          <input type="hidden" id="perf-result" value="${pendingCard.result}">
+        </div>
+
+        <div class="field-group">
+          <label class="field-label">How Did the Scheme Feel?</label>
+          <div class="toggle-group" id="perf-issues-toggle">
+            <button class="toggle-btn active" onclick="setToggle('perf-issues-toggle','No Issues',this)">No Issues</button>
+            <button class="toggle-btn" onclick="setToggle('perf-issues-toggle','Some Issues',this)">Some Issues</button>
+            <button class="toggle-btn" onclick="setToggle('perf-issues-toggle','Struggled',this)">Struggled</button>
+          </div>
+          <input type="hidden" id="perf-issues" value="No Issues">
+        </div>
+
+        <div class="form-section">Star Ratings</div>
+        <p style="font-size:12px;color:var(--ink-soft);margin-bottom:14px">Rate each category 1–5 stars</p>
+
+        <div class="star-row">
+          ${buildStarItem('star-overall', 'Overall Scheme Performance')}
+          ${buildStarItem('star-run', 'Run Game')}
+          ${buildStarItem('star-pass', 'Pass Game')}
+          ${buildStarItem('star-blitz', 'Ability to Beat the Blitz')}
+          ${buildStarItem('star-explosive', 'Explosiveness')}
+        </div>
+
+        <div class="form-section">Bonus Moments</div>
+        <p style="font-size:12px;color:var(--ink-soft);margin-bottom:14px">Each bonus adds 0.5 pts (max 2.0)</p>
+
+        <div class="bonus-list">
+          ${buildBonusItem('bonus-1', 'Averaged 8 Points a Quarter (32 over full game)')}
+          ${buildBonusItem('bonus-2', 'Hit a 40+ Yard Play')}
+          ${buildBonusItem('bonus-3', 'No Turnovers')}
+          ${buildBonusItem('bonus-4', 'Scored Each Possession (TD or Field Goal)')}
+        </div>
+
+        <div id="off-step2-error" class="error-msg hidden"></div>
+        <button class="submit-btn" onclick="saveOffenseCard()">Save & Calculate Score</button>
+      </div>
+    </div>
+  `);
+
+  // init star inputs
+  initStars();
+  // init bonus items
+  document.querySelectorAll('.bonus-item').forEach(item => {
+    item.addEventListener('click', (e) => {
+      e.preventDefault();
+      item.classList.toggle('checked');
+      item.querySelector('input').checked = item.classList.contains('checked');
+    });
+  });
+}
+
+function buildStarItem(id, label) {
+  return `
+    <div class="star-item">
+      <span class="star-item-label">${label}</span>
+      <div class="star-input" id="${id}">
+        <span class="star" data-val="1">★</span>
+        <span class="star" data-val="2">★</span>
+        <span class="star" data-val="3">★</span>
+        <span class="star" data-val="4">★</span>
+        <span class="star" data-val="5">★</span>
+      </div>
+    </div>`;
+}
+
+function buildBonusItem(id, label) {
+  return `
+    <label class="bonus-item" for="${id}">
+      <div class="bonus-check">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="20 6 9 17 4 12"/>
+        </svg>
+      </div>
+      <input type="checkbox" id="${id}">
+      <span class="bonus-label">${label}</span>
+    </label>`;
+}
+
+function initStars() {
+  document.querySelectorAll('.star-input').forEach(group => {
+    const stars = group.querySelectorAll('.star');
+    stars.forEach(star => {
+      star.addEventListener('click', () => {
+        const val = parseInt(star.dataset.val);
+        stars.forEach((s, i) => s.classList.toggle('filled', i < val));
+        group.dataset.value = val;
+      });
+      star.addEventListener('mouseover', () => {
+        const val = parseInt(star.dataset.val);
+        stars.forEach((s, i) => s.classList.toggle('filled', i < val));
+      });
+      star.addEventListener('mouseout', () => {
+        const val = parseInt(group.dataset.value || 0);
+        stars.forEach((s, i) => s.classList.toggle('filled', i < val));
+      });
+    });
+  });
+}
+
+function getStarValue(id) {
+  return parseInt(document.getElementById(id)?.dataset.value || 0);
+}
+
+async function saveOffenseCard() {
+  const stars = [
+    getStarValue('star-overall'),
+    getStarValue('star-run'),
+    getStarValue('star-pass'),
+    getStarValue('star-blitz'),
+    getStarValue('star-explosive'),
+  ];
+
+  if (stars.some(s => s === 0)) {
+    document.getElementById('off-step2-error').textContent = 'Please rate all 5 categories.';
+    document.getElementById('off-step2-error').classList.remove('hidden');
+    return;
+  }
+
+  const result     = document.getElementById('perf-result').value;
+  const issues     = document.getElementById('perf-issues').value;
+  const bonus1     = document.getElementById('bonus-1').checked;
+  const bonus2     = document.getElementById('bonus-2').checked;
+  const bonus3     = document.getElementById('bonus-3').checked;
+  const bonus4     = document.getElementById('bonus-4').checked;
+
+  const score = calculateScore(result, issues, stars, [bonus1, bonus2, bonus3, bonus4]);
+
+  const cardData = {
+    ...pendingCard,
+    member_id:     currentUser.id,
+    result,
+    issues_level:  issues,
+    star_overall:  stars[0],
+    star_category2: stars[1],
+    star_category3: stars[2],
+    star_category4: stars[3],
+    star_category5: stars[4],
+    bonus_1: bonus1,
+    bonus_2: bonus2,
+    bonus_3: bonus3,
+    bonus_4: bonus4,
+    performance_score: score.total,
+  };
+
+  const { error } = await db.from('performance_cards').insert(cardData);
+
+  if (error) {
+    document.getElementById('off-step2-error').textContent = error.message;
+    document.getElementById('off-step2-error').classList.remove('hidden');
+    return;
+  }
+
+  showScoreResult(score, 'Offense', cardData.scheme_id);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   DEFENSE COACHING CARD — STEP 1
+   ═══════════════════════════════════════════════════════════════════════════ */
+async function startDefenseCard() {
+  showInCenter('<div class="loading-msg">Loading schemes…</div>');
+  const schemes = await fetchSchemes('Defense');
+  const today = new Date().toISOString().split('T')[0];
+
+  showInCenter(`
+    <div class="form-card">
+      <div class="form-card-head">
+        <button class="close-btn" onclick="showDefaultCenter()">✕</button>
+        <div class="form-card-title">Defense Coaching Card</div>
+        <div class="form-card-sub">Step 1 of 2 — Game Details</div>
+      </div>
+      <div class="form-card-body">
+        <div class="step-indicator">
+          <div class="step-dot active">1</div>
+          <div class="step-line"></div>
+          <div class="step-dot">2</div>
+          <span class="step-label" style="margin-left:4px">Coaching → Performance</span>
+        </div>
+
+        <div class="form-section">Game Info</div>
+
+        <div class="field-row">
+          <div class="field-group">
+            <label class="field-label">Game</label>
+            <select class="field-select" id="def-game">
+              <option value="CFB27"${currentGame==='CFB27'?' selected':''}>College Football 27</option>
+              <option value="Madden27"${currentGame==='Madden27'?' selected':''}>Madden 27</option>
+            </select>
+          </div>
+          <div class="field-group">
+            <label class="field-label">Game Mode</label>
+            <select class="field-select" id="def-mode">
+              <option value="Dynasty/Franchise">Dynasty / Franchise</option>
+              <option value="Ultimate Team">Ultimate Team</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="field-group">
+          <label class="field-label">Result</label>
+          <div class="toggle-group" id="def-result-toggle">
+            <button class="toggle-btn win active" onclick="setToggle('def-result-toggle','Win',this)">Win</button>
+            <button class="toggle-btn loss" onclick="setToggle('def-result-toggle','Loss',this)">Loss</button>
+          </div>
+          <input type="hidden" id="def-result" value="Win">
+        </div>
+
+        <div class="field-row">
+          <div class="field-group">
+            <label class="field-label">Your Team <span>(Optional)</span></label>
+            <input class="field-input" type="text" id="def-your-team" placeholder="e.g. Alabama">
+          </div>
+          <div class="field-group">
+            <label class="field-label">Opponent <span>(Optional)</span></label>
+            <input class="field-input" type="text" id="def-opponent" placeholder="e.g. Georgia">
+          </div>
+        </div>
+
+        <div class="field-group">
+          <label class="field-label">Date</label>
+          <input class="field-input" type="date" id="def-date" value="${today}">
+        </div>
+
+        <div class="form-section">Scheme</div>
+
+        <div class="field-group">
+          <label class="field-label">Scheme Used</label>
+          <select class="field-select" id="def-scheme" onchange="loadDefensePlays(this.value)">
+            ${buildSchemeOptions(schemes)}
+          </select>
+        </div>
+
+        <div class="form-section">Best Plays</div>
+
+        <div class="field-group">
+          <label class="field-label">Best Blitz</label>
+          <select class="field-select" id="def-blitz-play">
+            <option value="">Select a scheme first…</option>
+          </select>
+        </div>
+        <div class="field-group">
+          <label class="field-label">Why Did It Work?</label>
+          <select class="field-select" id="def-blitz-reason">
+            <option value="">Select…</option>
+            <option>Created a free rusher / unblocked blitzer</option>
+            <option>QB held the ball too long</option>
+            <option>Created Confusion For QB</option>
+            <option>Forced a bad throw under pressure</option>
+            <option>Generated an Interception</option>
+            <option value="Other">Other</option>
+          </select>
+          <input class="field-input hidden" type="text" id="def-blitz-reason-other" placeholder="Describe why it worked…" style="margin-top:8px">
+        </div>
+
+        <div class="field-group">
+          <label class="field-label">Best Coverage</label>
+          <select class="field-select" id="def-cov-play">
+            <option value="">Select a scheme first…</option>
+          </select>
+        </div>
+        <div class="field-group">
+          <label class="field-label">Why Did It Work?</label>
+          <select class="field-select" id="def-cov-reason">
+            <option value="">Select…</option>
+            <option>Disguised the coverage pre-snap</option>
+            <option>Matched their route concepts perfectly</option>
+            <option>Took away their top receiver</option>
+            <option>Confused the QB's read</option>
+            <option>Generated a turnover / pick</option>
+            <option>Zones sat in passing lanes</option>
+            <option>Took Away all deep passing options</option>
+            <option value="Other">Other</option>
+          </select>
+          <input class="field-input hidden" type="text" id="def-cov-reason-other" placeholder="Describe why it worked…" style="margin-top:8px">
+        </div>
+
+        <div class="form-section">Session Summary</div>
+
+        <div class="field-group">
+          <label class="field-label">What Worked Best Today?</label>
+          <select class="field-select" id="def-what-worked">
+            <option value="">Select…</option>
+            <option>4 Man Pass rush was dominant</option>
+            <option>Coverages shut down their passing game</option>
+            <option>Stopped the run effectively</option>
+            <option>Forced Turnovers</option>
+            <option>Blitz packages were working</option>
+            <option value="Other">Other</option>
+          </select>
+          <input class="field-input hidden" type="text" id="def-what-worked-other" placeholder="Describe what worked…" style="margin-top:8px">
+        </div>
+
+        <div class="field-group">
+          <label class="field-label">Biggest Struggle Today?</label>
+          <select class="field-select" id="def-struggle">
+            <option value="">Select…</option>
+            <option>Couldn't stop the run</option>
+            <option>Getting gashed over the middle</option>
+            <option>Couldn't get off the field</option>
+            <option>No pass rush / QB had all day</option>
+            <option>Blitz kept getting picked up</option>
+            <option>Gave up too many explosive plays</option>
+            <option value="Other">Other</option>
+          </select>
+          <input class="field-input hidden" type="text" id="def-struggle-other" placeholder="Describe the struggle…" style="margin-top:8px">
+        </div>
+
+        <div class="field-group">
+          <label class="field-label">Notes <span>(Optional)</span></label>
+          <textarea class="field-textarea" id="def-notes" placeholder="Anything else worth remembering…"></textarea>
+        </div>
+
+        <div id="def-step1-error" class="error-msg hidden"></div>
+        <button class="submit-btn" onclick="submitDefenseStep1()">Continue to Performance Card →</button>
+      </div>
+    </div>
+  `);
+
+  wireOtherToggle('def-blitz-reason', 'def-blitz-reason-other');
+  wireOtherToggle('def-cov-reason', 'def-cov-reason-other');
+  wireOtherToggle('def-what-worked', 'def-what-worked-other');
+  wireOtherToggle('def-struggle', 'def-struggle-other');
+}
+
+async function loadDefensePlays(schemeId) {
+  if (!schemeId) return;
+  const blitzPlays = await fetchPlays(schemeId, ['Blitz', 'Star']);
+  const covPlays   = await fetchPlays(schemeId, ['Coverage', 'Star']);
+  document.getElementById('def-blitz-play').innerHTML = buildPlayOptions(blitzPlays);
+  document.getElementById('def-cov-play').innerHTML   = buildPlayOptions(covPlays);
+}
+
+function submitDefenseStep1() {
+  const schemeId = document.getElementById('def-scheme').value;
+  if (!schemeId) {
+    document.getElementById('def-step1-error').textContent = 'Please select a scheme.';
+    document.getElementById('def-step1-error').classList.remove('hidden');
+    return;
+  }
+
+  const getVal = id => document.getElementById(id)?.value || '';
+  const getOther = (selId, othId) => {
+    const v = getVal(selId);
+    return v === 'Other' ? getVal(othId) : v;
+  };
+
+  pendingCard = {
+    card_type:              'Defense',
+    game:                   getVal('def-game'),
+    game_mode:              getVal('def-mode'),
+    result:                 getVal('def-result'),
+    your_team:              getVal('def-your-team'),
+    opponent:               getVal('def-opponent'),
+    date:                   getVal('def-date'),
+    scheme_id:              schemeId,
+    best_blitz_play:        getVal('def-blitz-play'),
+    best_blitz_play_reason: getOther('def-blitz-reason', 'def-blitz-reason-other'),
+    best_coverage_play:     getVal('def-cov-play'),
+    best_coverage_play_reason: getOther('def-cov-reason', 'def-cov-reason-other'),
+    what_worked:            getOther('def-what-worked', 'def-what-worked-other'),
+    biggest_struggle:       getOther('def-struggle', 'def-struggle-other'),
+    notes:                  getVal('def-notes'),
+  };
+
+  showDefenseStep2();
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   DEFENSE PERFORMANCE CARD — STEP 2
+   ═══════════════════════════════════════════════════════════════════════════ */
+function showDefenseStep2() {
+  showInCenter(`
+    <div class="form-card">
+      <div class="form-card-head">
+        <button class="close-btn" onclick="startDefenseCard()">←</button>
+        <div class="form-card-title">Defense Performance Card</div>
+        <div class="form-card-sub">Step 2 of 2 — Rate Your Performance</div>
+      </div>
+      <div class="form-card-body">
+        <div class="step-indicator">
+          <div class="step-dot done">✓</div>
+          <div class="step-line" style="background:var(--secondary)"></div>
+          <div class="step-dot active">2</div>
+          <span class="step-label" style="margin-left:4px">Coaching → Performance</span>
+        </div>
+
+        <div class="form-section">Result Confirmation</div>
+
+        <div class="field-group">
+          <label class="field-label">Result</label>
+          <div class="toggle-group" id="dperf-result-toggle">
+            <button class="toggle-btn win${pendingCard.result==='Win'?' active':''}" onclick="setToggle('dperf-result-toggle','Win',this)">Win</button>
+            <button class="toggle-btn loss${pendingCard.result==='Loss'?' active':''}" onclick="setToggle('dperf-result-toggle','Loss',this)">Loss</button>
+          </div>
+          <input type="hidden" id="dperf-result" value="${pendingCard.result}">
+        </div>
+
+        <div class="field-group">
+          <label class="field-label">How Did the Scheme Feel?</label>
+          <div class="toggle-group" id="dperf-issues-toggle">
+            <button class="toggle-btn active" onclick="setToggle('dperf-issues-toggle','No Issues',this)">No Issues</button>
+            <button class="toggle-btn" onclick="setToggle('dperf-issues-toggle','Some Issues',this)">Some Issues</button>
+            <button class="toggle-btn" onclick="setToggle('dperf-issues-toggle','Struggled',this)">Struggled</button>
+          </div>
+          <input type="hidden" id="dperf-issues" value="No Issues">
+        </div>
+
+        <div class="form-section">Star Ratings</div>
+        <p style="font-size:12px;color:var(--ink-soft);margin-bottom:14px">Rate each category 1–5 stars</p>
+
+        <div class="star-row">
+          ${buildStarItem('dstar-overall', 'Overall Scheme Performance')}
+          ${buildStarItem('dstar-pressure', 'Pass Rush / Pressure')}
+          ${buildStarItem('dstar-coverage', 'Coverage')}
+          ${buildStarItem('dstar-run', 'Stopping the Run')}
+          ${buildStarItem('dstar-bigplays', 'Limit Big Plays')}
+        </div>
+
+        <div class="form-section">Bonus Moments</div>
+        <p style="font-size:12px;color:var(--ink-soft);margin-bottom:14px">Each bonus adds 0.5 pts (max 2.0)</p>
+
+        <div class="bonus-list">
+          ${buildBonusItem('dbonus-1', 'No Touchdowns Allowed')}
+          ${buildBonusItem('dbonus-2', 'Generated 2+ Turnovers')}
+          ${buildBonusItem('dbonus-3', 'Recorded 4+ Sacks')}
+          ${buildBonusItem('dbonus-4', 'No Explosive Plays (20+ yard passes or 10+ yard runs)')}
+        </div>
+
+        <div id="def-step2-error" class="error-msg hidden"></div>
+        <button class="submit-btn" onclick="saveDefenseCard()">Save & Calculate Score</button>
+      </div>
+    </div>
+  `);
+
+  initStars();
+  document.querySelectorAll('.bonus-item').forEach(item => {
+    item.addEventListener('click', (e) => {
+      e.preventDefault();
+      item.classList.toggle('checked');
+      item.querySelector('input').checked = item.classList.contains('checked');
+    });
+  });
+}
+
+async function saveDefenseCard() {
+  const stars = [
+    getStarValue('dstar-overall'),
+    getStarValue('dstar-pressure'),
+    getStarValue('dstar-coverage'),
+    getStarValue('dstar-run'),
+    getStarValue('dstar-bigplays'),
+  ];
+
+  if (stars.some(s => s === 0)) {
+    document.getElementById('def-step2-error').textContent = 'Please rate all 5 categories.';
+    document.getElementById('def-step2-error').classList.remove('hidden');
+    return;
+  }
+
+  const result = document.getElementById('dperf-result').value;
+  const issues = document.getElementById('dperf-issues').value;
+  const bonus1 = document.getElementById('dbonus-1').checked;
+  const bonus2 = document.getElementById('dbonus-2').checked;
+  const bonus3 = document.getElementById('dbonus-3').checked;
+  const bonus4 = document.getElementById('dbonus-4').checked;
+
+  const score = calculateScore(result, issues, stars, [bonus1, bonus2, bonus3, bonus4]);
+
+  const cardData = {
+    ...pendingCard,
+    member_id:      currentUser.id,
+    result,
+    issues_level:   issues,
+    star_overall:   stars[0],
+    star_category2: stars[1],
+    star_category3: stars[2],
+    star_category4: stars[3],
+    star_category5: stars[4],
+    bonus_1: bonus1,
+    bonus_2: bonus2,
+    bonus_3: bonus3,
+    bonus_4: bonus4,
+    performance_score: score.total,
+  };
+
+  const { error } = await db.from('performance_cards').insert(cardData);
+
+  if (error) {
+    document.getElementById('def-step2-error').textContent = error.message;
+    document.getElementById('def-step2-error').classList.remove('hidden');
+    return;
+  }
+
+  showScoreResult(score, 'Defense', cardData.scheme_id);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   PERFORMANCE SCORE FORMULA
+   ═══════════════════════════════════════════════════════════════════════════ */
+function calculateScore(result, issues, stars, bonuses) {
+  // Step 1: Result tier (up to 4 pts)
+  let resultTier = 1.0;
+  if      (result === 'Win'  && issues === 'No Issues')    resultTier = 4.0;
+  else if (result === 'Win'  && issues === 'Some Issues')  resultTier = 3.0;
+  else if (result === 'Win'  && issues === 'Struggled')    resultTier = 2.5;
+  else if (result === 'Loss' && issues === 'No Issues')    resultTier = 2.0;
+  else if (result === 'Loss' && issues === 'Some Issues')  resultTier = 1.5;
+  else if (result === 'Loss' && issues === 'Struggled')    resultTier = 1.0;
+
+  // Step 2: Scheme performance tier (up to 4 pts)
+  const avg       = stars.reduce((a, b) => a + b, 0) / stars.length;
+  const schemeTier = Math.round((avg / 5 * 4) * 10) / 10;
+
+  // Step 3: Bonus tier (up to 2 pts)
+  const bonusCount = bonuses.filter(Boolean).length;
+  const bonusTier  = Math.min(bonusCount * 0.5, 2.0);
+
+  const total = Math.round((resultTier + schemeTier + bonusTier) * 10) / 10;
+
+  return { total, resultTier, schemeTier, bonusTier };
+}
+
+function getScoreLabel(score) {
+  if (score <= 2.0) return 'Rough Game';
+  if (score <= 3.5) return 'Below Average';
+  if (score <= 5.0) return 'Average Game';
+  if (score <= 6.5) return 'Decent Performance';
+  if (score <= 7.5) return 'Good Performance';
+  if (score <= 8.5) return 'Great Game';
+  if (score <= 9.4) return 'Elite Performance';
+  if (score <= 9.9) return 'Outstanding';
+  return 'Perfect Game';
+}
+
+function getScoreStars(score) {
+  const filled = Math.round(score);
+  return Array.from({length: 10}, (_, i) =>
+    `<span style="color:${i < filled ? 'var(--gold)' : 'var(--cream-edge)'}">★</span>`
+  ).join('');
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   SCORE RESULT DISPLAY
+   ═══════════════════════════════════════════════════════════════════════════ */
+async function showScoreResult(score, type, schemeId) {
+  const label = getScoreLabel(score.total);
+  const dateStr = new Date().toLocaleDateString('en-US', {month:'long',day:'numeric',year:'numeric'});
+
+  showInCenter(`
+    <div class="form-card">
+      <div class="form-card-head">
+        <div class="form-card-title">${type} — Session Scored</div>
+        <div class="form-card-sub">${dateStr}</div>
+      </div>
+      <div class="form-card-body result-card">
+        <p style="font-family:var(--font-display);font-weight:700;text-transform:uppercase;letter-spacing:2px;font-size:11px;color:var(--ink-soft)">Performance Score</p>
+        <div class="result-score-wrap">
+          <div class="result-score" id="score-countup">0.0<span class="result-score-denom"> / 10</span></div>
+        </div>
+        <div class="result-label" id="score-label" style="opacity:0;transition:opacity .3s">${label}</div>
+        <div class="result-stars" id="score-stars" style="opacity:0;transition:opacity .3s">${getScoreStars(score.total)}</div>
+
+        <div class="result-breakdown" id="score-breakdown" style="opacity:0;transition:opacity .4s;align-items:center">
+          <div class="result-tier">
+            <div class="result-tier-val">${score.resultTier.toFixed(1)}</div>
+            <div class="result-tier-lbl">Result</div>
+          </div>
+          <span style="font-size:20px;color:var(--ink-soft);font-weight:700">+</span>
+          <div class="result-tier">
+            <div class="result-tier-val">${score.schemeTier.toFixed(1)}</div>
+            <div class="result-tier-lbl">Scheme</div>
+          </div>
+          <span style="font-size:20px;color:var(--ink-soft);font-weight:700">+</span>
+          <div class="result-tier">
+            <div class="result-tier-val">${score.bonusTier.toFixed(1)}</div>
+            <div class="result-tier-lbl">Bonus</div>
+          </div>
+        </div>
+
+        <div id="post-submit-callout" style="opacity:0;transition:opacity .4s;margin:10px 0 4px"></div>
+
+        <div class="result-actions">
+          <button class="result-btn" onclick="${type==='Offense'?'startOffenseCard()':'startDefenseCard()'}">Log Another ${type}</button>
+          <button class="result-btn outline" onclick="showDefaultCenter()">Done</button>
+        </div>
+      </div>
+    </div>
+  `);
+
+  // Count-up animation
+  const countEl = document.getElementById('score-countup');
+  const target = score.total;
+  const duration = 900;
+  const start = performance.now();
+  function tick(now) {
+    const t = Math.min((now - start) / duration, 1);
+    const ease = 1 - Math.pow(1 - t, 3);
+    const current = ease * target;
+    countEl.innerHTML = current.toFixed(1) + '<span class="result-score-denom"> / 10</span>';
+    if (t < 1) requestAnimationFrame(tick);
+    else {
+      document.getElementById('score-label').style.opacity = '1';
+      document.getElementById('score-stars').style.opacity = '1';
+      setTimeout(() => {
+        document.getElementById('score-breakdown').style.opacity = '1';
+        loadPostSubmitCallout(schemeId, type);
+      }, 200);
+    }
+  }
+  requestAnimationFrame(tick);
+}
+
+async function loadPostSubmitCallout(schemeId, type) {
+  const el = document.getElementById('post-submit-callout');
+  if (!el || !currentUser) return;
+
+  const { data: cards } = await db
+    .from('performance_cards')
+    .select('result, scheme_id, created_at')
+    .eq('member_id', currentUser.id)
+    .order('created_at', { ascending: false });
+
+  if (!cards?.length) return;
+
+  const messages = [];
+
+  // Win streak
+  let streak = 0;
+  for (const c of cards) {
+    if (c.result === 'Win') streak++;
+    else break;
+  }
+  if (streak >= 2) {
+    messages.push(`🔥 ${streak}-game win streak — keep it rolling.`);
+  }
+
+  // Scheme unlock progress
+  if (schemeId) {
+    const schemeGames = cards.filter(c => c.scheme_id === schemeId).length;
+    if (schemeGames === 5) {
+      messages.push(`⭐ You just unlocked Scheme Review for this scheme!`);
+    } else if (schemeGames < 5) {
+      const needed = 5 - schemeGames;
+      messages.push(`${needed} more game${needed === 1 ? '' : 's'} with this scheme to unlock your Scheme Review.`);
+    }
+  }
+
+  // Personal best
+  const allScores = cards.map(c => c.performance_score || 0);
+  // current game is already saved, so allScores[0] is the one just logged
+
+  if (messages.length === 0) return;
+
+  el.innerHTML = messages.map(m => `
+    <div style="
+      background:rgba(242,181,14,.08);border:1px solid rgba(242,181,14,.25);
+      border-radius:10px;padding:10px 14px;margin-bottom:6px;
+      font-family:var(--font-display);font-weight:700;text-transform:uppercase;
+      letter-spacing:1px;font-size:11px;color:var(--ink);text-align:center;line-height:1.5
+    ">${m}</div>
+  `).join('');
+  el.style.opacity = '1';
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   MY PROFILE
+   ═══════════════════════════════════════════════════════════════════════════ */
+function renderHistoryCard(card) {
+  const scheme = card.schemes?.scheme_name || 'No Scheme Selected';
+  const date   = card.date ? new Date(card.date + 'T12:00:00').toLocaleDateString('en-US', {month:'short',day:'numeric',year:'numeric'}) : '—';
+  const label  = getScoreLabel(card.performance_score || 0);
+  return `
+    <div class="history-card" id="hcard-${card.card_id}">
+      <div class="history-card-top">
+        <span class="history-scheme">${scheme}</span>
+        <div style="display:flex;align-items:center;gap:10px">
+          <span class="history-score">${(card.performance_score||0).toFixed(1)}</span>
+          <button onclick="deleteGameLog('${card.card_id}')" style="
+            font-family:var(--font-display);font-weight:700;text-transform:uppercase;
+            letter-spacing:1px;font-size:9px;padding:3px 8px;border-radius:5px;
+            border:1px solid rgba(255,80,80,.3);color:rgba(255,100,100,.6);
+            background:none;cursor:pointer;transition:all .12s;flex:0 0 auto
+          " onmouseover="this.style.borderColor='rgba(255,80,80,.7)';this.style.color='#ff8080'"
+             onmouseout="this.style.borderColor='rgba(255,80,80,.3)';this.style.color='rgba(255,100,100,.6)'">Delete</button>
+        </div>
+      </div>
+      <div class="history-meta">
+        <span class="history-tag ${card.result?.toLowerCase()}">${card.result}</span>
+        <span class="history-tag">${card.card_type}</span>
+        <span class="history-tag">${card.game}</span>
+      </div>
+      <div class="history-label">${date} · ${label}</div>
+    </div>
+  `;
+}
+
+async function deleteGameLog(cardId) {
+  if (!confirm('Delete this game log? This cannot be undone.')) return;
+  const { error } = await db.from('performance_cards').delete().eq('card_id', cardId);
+  if (error) { alert('Error deleting: ' + error.message); return; }
+  // Remove card from view and reload profile
+  document.getElementById('hcard-' + cardId)?.remove();
+  // Reload progress bars on home screen in background
+  loadSchemeProgress();
+}
+
+function calcStreaks(cards) {
+  const sorted = [...cards].sort((a, b) => new Date(a.date) - new Date(b.date));
+  let longest = 0, temp = 0, current = 0;
+  for (const c of sorted) {
+    if (c.result === 'Win') { temp++; longest = Math.max(longest, temp); }
+    else temp = 0;
+  }
+  for (let i = sorted.length - 1; i >= 0; i--) {
+    if (sorted[i].result === 'Win') current++;
+    else break;
+  }
+  return { longest, current };
+}
+
+function getFavScheme(cards) {
+  const counts = {};
+  for (const c of cards) {
+    if (!c.scheme_id) continue;
+    const name = c.schemes?.scheme_name || '?';
+    counts[name] = (counts[name] || 0) + 1;
+  }
+  const top = Object.entries(counts).sort((a, b) => b[1] - a[1])[0];
+  return top ? top[0] : '—';
+}
+
+async function loadProfile() {
+  showInCenter('<div class="loading-msg">Loading your profile…</div>');
+
+  // Fetch member's game cards + all members for percentile calcs
+  const [{ data: cards }, { data: allMembers }, { data: allCards }] = await Promise.all([
+    db.from('performance_cards').select('*, schemes(scheme_name, type)').eq('member_id', currentUser.id).order('date', { ascending: false }),
+    db.from('members').select('member_id, created_at'),
+    db.from('performance_cards').select('member_id, scheme_id, created_at'),
+  ]);
+
+  const total        = cards?.length || 0;
+  const wins         = cards?.filter(c => c.result === 'Win').length || 0;
+  const winRate      = total > 0 ? Math.round(wins / total * 100) : 0;
+  const scores       = (cards || []).map(c => c.performance_score || 0);
+  const bestScore    = scores.length ? Math.max(...scores).toFixed(1) : '—';
+  const { longest, current } = calcStreaks(cards || []);
+  const favScheme    = getFavScheme(cards || []);
+  const uniqueSchemes = new Set((cards || []).filter(c => c.scheme_id).map(c => c.scheme_id)).size;
+
+  const memberSince  = currentMember.created_at ? new Date(currentMember.created_at) : null;
+  const memberSinceLabel = memberSince
+    ? memberSince.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+    : '—';
+  const daysAsMember = memberSince ? Math.floor((Date.now() - memberSince) / 86400000) : 0;
+
+  // ── Percentile calculations ──────────────────────────────────────────────
+  function percentile(myVal, allVals) {
+    if (!allVals.length) return null;
+    const below = allVals.filter(v => v < myVal).length;
+    const pct = Math.round((below / allVals.length) * 100);
+    return pct;
+  }
+  function pctLabel(pct) {
+    if (pct === null) return '';
+    const top = 100 - pct;
+    return `Top ${top < 1 ? 1 : top}% of members`;
+  }
+  function pctColor(pct) {
+    if (pct === null) return '';
+    const top = 100 - pct;
+    if (top <= 10) return 'var(--secondary)';
+    if (top <= 25) return '#7ecba1';
+    return 'rgba(255,255,255,.45)';
+  }
+
+  // Games logged per member
+  const gamesPerMember = {};
+  (allCards || []).forEach(c => { gamesPerMember[c.member_id] = (gamesPerMember[c.member_id] || 0) + 1; });
+  const allGameCounts  = Object.values(gamesPerMember);
+  const gamesPct       = percentile(total, allGameCounts);
+
+  // Schemes tried per member
+  const schemesPerMember = {};
+  (allCards || []).forEach(c => {
+    if (!c.scheme_id) return;
+    if (!schemesPerMember[c.member_id]) schemesPerMember[c.member_id] = new Set();
+    schemesPerMember[c.member_id].add(c.scheme_id);
+  });
+  const allSchemeCounts = Object.values(schemesPerMember).map(s => s.size);
+  const schemesPct      = percentile(uniqueSchemes, allSchemeCounts);
+
+  // Tenure (days as member)
+  const allTenures = (allMembers || [])
+    .filter(m => m.created_at)
+    .map(m => Math.floor((Date.now() - new Date(m.created_at)) / 86400000));
+  const tenurePct  = percentile(daysAsMember, allTenures);
+
+  // ── Coaching identity from onboarding ───────────────────────────────────
+  const styleObj   = COACHING_STYLES.find(s => s.id === currentMember.coaching_style);
+  const hasProfile = !!currentMember.coaching_style;
+
+  const identityCard = hasProfile ? `
+    <div style="
+      border-radius:var(--card-radius);
+      background-color:var(--cream);
+      background-image:linear-gradient(180deg,rgba(255,255,255,.55),rgba(0,0,0,.06) 60%),var(--noise);
+      background-blend-mode:soft-light,soft-light;
+      border:3px solid var(--primary);
+      box-shadow:inset 0 0 0 2.5px var(--secondary),inset 0 2px 3px rgba(255,255,255,.6),0 8px 24px rgba(0,0,0,.4);
+      padding:18px 16px;margin-bottom:12px;
+    ">
+      <div style="display:flex;align-items:center;gap:14px;margin-bottom:${currentMember.onboarding_ai_rec ? '14px' : '0'}">
+        <div style="
+          width:54px;height:54px;border-radius:50%;flex-shrink:0;
+          background:radial-gradient(circle at 40% 30%,color-mix(in srgb,var(--primary) 75%,#fff),var(--primary));
+          border:3px solid var(--cream);
+          box-shadow:inset 0 0 0 2px var(--secondary),0 4px 12px rgba(0,0,0,.3);
+          display:flex;align-items:center;justify-content:center;font-size:22px;
+        ">${styleObj?.icon || '🎯'}</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-family:var(--font-display);font-weight:900;text-transform:uppercase;letter-spacing:1.5px;font-size:16px;color:var(--primary);line-height:1">${styleObj?.label || currentMember.coaching_style}</div>
+          <div style="font-family:var(--font-display);font-weight:700;font-size:10px;color:var(--ink-soft);text-transform:uppercase;letter-spacing:1px;margin-top:3px">Coaching Style</div>
+          <div style="display:flex;flex-wrap:wrap;gap:5px;margin-top:8px">
+            ${currentMember.primary_game ? `<span style="font-family:var(--font-display);font-weight:800;font-size:9px;text-transform:uppercase;letter-spacing:.5px;padding:3px 8px;border-radius:999px;background:var(--primary);color:var(--cream)">${currentMember.primary_game}</span>` : ''}
+            ${currentMember.game_mode ? `<span style="font-family:var(--font-display);font-weight:800;font-size:9px;text-transform:uppercase;letter-spacing:.5px;padding:3px 8px;border-radius:999px;background:var(--primary);color:var(--cream)">${currentMember.game_mode}</span>` : ''}
+            ${currentMember.offense_style ? `<span style="font-family:var(--font-display);font-weight:800;font-size:9px;text-transform:uppercase;letter-spacing:.5px;padding:3px 8px;border-radius:999px;border:1.5px solid var(--primary);color:var(--primary)">${currentMember.offense_style}</span>` : ''}
+            ${currentMember.defense_style ? `<span style="font-family:var(--font-display);font-weight:800;font-size:9px;text-transform:uppercase;letter-spacing:.5px;padding:3px 8px;border-radius:999px;border:1.5px solid var(--primary);color:var(--primary)">${currentMember.defense_style}</span>` : ''}
+          </div>
+        </div>
+      </div>
+      ${currentMember.onboarding_ai_rec ? `
+      ` : ''}
+    </div>
+  ` : '';
+
+  // ── Stat card helper ─────────────────────────────────────────────────────
+  function statCard(value, label, pct) {
+    const pctHtml = pct !== null && pct !== undefined ? `
+      <div style="font-family:var(--font-display);font-weight:800;font-size:8px;text-transform:uppercase;letter-spacing:.5px;color:${pctColor(pct)};margin-top:5px;line-height:1">${pctLabel(pct)}</div>
+    ` : '';
+    return `
+      <div class="stat-card">
+        <div class="stat-value">${value}</div>
+        <div class="stat-label">${label}</div>
+        ${pctHtml}
+      </div>
+    `;
+  }
+
+  const gameLog = total === 0
+    ? `<div class="history-empty">No sessions logged yet.<br>Hit Log Offense or Log Defense to get started.</div>`
+    : (cards || []).map(renderHistoryCard).join('');
+
+  const tenureText = daysAsMember >= 365
+    ? `${Math.floor(daysAsMember / 365)}yr member`
+    : daysAsMember >= 30
+    ? `${Math.floor(daysAsMember / 30)}mo member`
+    : `${daysAsMember}d member`;
+
+  showInCenter(`
+    <div class="profile-wrap">
+      <div class="profile-header">
+        <div class="profile-name">${currentMember.display_name}</div>
+        <div class="profile-meta">
+          Member since ${memberSinceLabel} &nbsp;·&nbsp; ${total} game${total !== 1 ? 's' : ''} logged
+          ${tenurePct !== null ? `<span style="margin-left:8px;color:var(--secondary)">· ${pctLabel(tenurePct)}</span>` : ''}
+        </div>
+      </div>
+
+      ${identityCard}
+
+      <div class="profile-stats">
+        ${statCard(total, 'Games Logged', gamesPct)}
+        ${statCard(bestScore, 'Best Score', null)}
+        ${statCard(longest, 'Best Streak', null)}
+        ${statCard(current === 0 ? '—' : current + (cards?.[0]?.result === 'Win' ? '🔥' : ''), 'Win Streak', null)}
+        ${statCard(uniqueSchemes, 'Schemes Used', schemesPct)}
+        ${statCard(`<span class="stat-value--sm">${favScheme}</span>`, 'Most Used Scheme', null)}
+      </div>
+
+      <div class="profile-section">
+        <div class="profile-section-title">⚡ AI Coaching Insights</div>
+        ${currentMember.onboarding_ai_rec ? `
+          <div style="
+            border-radius:10px;
+            background:rgba(30,84,183,.12);border:1.5px solid rgba(30,84,183,.3);
+            padding:14px 14px;margin-bottom:8px;
+          ">
+            <div style="font-family:var(--font-display);font-weight:800;text-transform:uppercase;letter-spacing:1.5px;font-size:9px;color:var(--secondary);margin-bottom:8px">Day 1 Recommendation</div>
+            <div style="font-family:var(--font-body);font-size:12px;color:var(--cream);line-height:1.65">${currentMember.onboarding_ai_rec.replace(/\*\*(.+?)\*\*/g,'<strong style="font-family:var(--font-display);font-weight:900;text-transform:uppercase;letter-spacing:.5px;font-size:10px;color:var(--secondary)">$1</strong>').replace(/\n\n/g,'<br><br>').replace(/\n/g,'<br>')}</div>
+          </div>
+        ` : ''}
+        <div class="ai-insights-placeholder" style="${currentMember.onboarding_ai_rec ? 'opacity:.6' : ''}">
+          <div class="ai-insights-icon">📋</div>
+          <div class="ai-insights-text">Every AI coaching session insight will be saved here — tagged by scheme and timestamped. Launches with Phase 2.</div>
+        </div>
+      </div>
+
+      <div class="profile-section">
+        <button onclick="(function(btn){const log=document.getElementById('profile-game-log');const expanded=log.style.display!=='none';log.style.display=expanded?'none':'block';btn.textContent=expanded?'▶ View Game Log (${total} game${total!==1?'s':''})':'▼ Hide Game Log';})(this)" style="
+          width:100%;text-align:left;background:none;border:none;cursor:pointer;
+          font-family:var(--font-display);font-weight:900;text-transform:uppercase;
+          letter-spacing:2px;font-size:12px;color:var(--cream-muted);
+          display:flex;align-items:center;gap:8px;padding-bottom:6px;
+          border-bottom:1px solid rgba(255,255,255,.08);margin-bottom:10px;
+        ">▶ View Game Log (${total} game${total !== 1 ? 's' : ''})</button>
+        <div id="profile-game-log" style="display:none;max-height:420px;overflow-y:auto;">
+          <div class="history-wrap">${gameLog}</div>
+        </div>
+      </div>
+    </div>
+  `);
+  document.getElementById('nav-history').classList.add('active');
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   MY SCHEMES
+   ═══════════════════════════════════════════════════════════════════════════ */
+let _schemesCache = null;
+
+async function loadSchemes() {
+  showInCenter('<div class="loading-msg">Loading your schemes…</div>');
+
+  const { data: cards } = await db
+    .from('performance_cards')
+    .select('*, schemes(scheme_name, type, game)')
+    .eq('member_id', currentUser.id)
+    .not('scheme_id', 'is', null);
+
+  if (!cards?.length) {
+    showInCenter(`<div class="loading-msg">No scheme data yet — log some games with a scheme selected.</div>`);
+    document.getElementById('nav-schemes').classList.add('active');
+    return;
+  }
+
+  const schemeMap = {};
+  for (const c of cards) {
+    const sid = c.scheme_id;
+    if (!schemeMap[sid]) schemeMap[sid] = {
+      id: sid,
+      name: c.schemes?.scheme_name || 'Unknown',
+      type: c.schemes?.type || '',
+      game: c.schemes?.game || '',
+      cards: []
+    };
+    schemeMap[sid].cards.push(c);
+  }
+  _schemesCache = schemeMap;
+
+  const rendered = Object.values(schemeMap)
+    .sort((a, b) => b.cards.length - a.cards.length)
+    .map(s => {
+      const t    = s.cards.length;
+      const w    = s.cards.filter(c => c.result === 'Win').length;
+      const wr   = t > 0 ? Math.round(w / t * 100) : 0;
+      const avg  = (s.cards.reduce((a, c) => a + (c.performance_score || 0), 0) / t).toFixed(1);
+      const best = Math.max(...s.cards.map(c => c.performance_score || 0)).toFixed(1);
+      return `
+        <div class="scheme-stat-card" onclick="showSchemeDetail('${s.id}')" style="cursor:pointer;transition:border-color .15s ease" onmouseenter="this.style.borderColor='rgba(242,181,14,.5)'" onmouseleave="this.style.borderColor=''">
+          <div class="scheme-stat-top">
+            <span class="scheme-stat-name">${s.name}</span>
+            <span class="history-tag">${s.type}</span>
+            <span class="history-tag">${s.game}</span>
+            <span style="margin-left:auto;font-family:var(--font-display);font-size:10px;color:var(--cream-muted);font-weight:700">TAP FOR DETAILS →</span>
+          </div>
+          <div class="scheme-stat-row">
+            <div class="scheme-stat-item"><span class="ssv">${t}</span><span class="ssl">Games</span></div>
+            <div class="scheme-stat-item"><span class="ssv ${wr >= 50 ? 'win' : 'loss'}">${wr}%</span><span class="ssl">Win Rate</span></div>
+            <div class="scheme-stat-item"><span class="ssv">${avg}</span><span class="ssl">Avg Score</span></div>
+            <div class="scheme-stat-item"><span class="ssv">${best}</span><span class="ssl">Best</span></div>
+          </div>
+        </div>
+      `;
+    }).join('');
+
+  showInCenter(`
+    <div class="schemes-stat-wrap">
+      <div class="profile-section-title" style="margin-bottom:16px">My Schemes · Tap any scheme for full breakdown</div>
+      ${rendered}
+    </div>
+  `);
+  document.getElementById('nav-schemes').classList.add('active');
+}
+
+async function showSchemeDetail(schemeId) {
+  const s = _schemesCache?.[schemeId];
+  if (!s) return;
+
+  const t    = s.cards.length;
+  const w    = s.cards.filter(c => c.result === 'Win').length;
+  const wr   = t > 0 ? Math.round(w / t * 100) : 0;
+  const avg  = (s.cards.reduce((a, c) => a + (c.performance_score || 0), 0) / t).toFixed(1);
+  const best = Math.max(...s.cards.map(c => c.performance_score || 0)).toFixed(1);
+
+  // Top plays from this user's cards for this scheme
+  const runPlayCounts = {}, passPlayCounts = {};
+  for (const c of s.cards) {
+    if (c.best_run_play) runPlayCounts[c.best_run_play] = (runPlayCounts[c.best_run_play] || 0) + 1;
+    if (c.best_pass_play) passPlayCounts[c.best_pass_play] = (passPlayCounts[c.best_pass_play] || 0) + 1;
+  }
+  const topRun  = Object.entries(runPlayCounts).sort((a,b) => b[1]-a[1])[0]?.[0] || '—';
+  const topPass = Object.entries(passPlayCounts).sort((a,b) => b[1]-a[1])[0]?.[0] || '—';
+
+  // Recent game log for this scheme
+  const recent = [...s.cards]
+    .sort((a, b) => new Date(b.date) - new Date(a.date))
+    .slice(0, 5);
+  const recentLog = recent.map(c => {
+    const date = new Date(c.date + 'T12:00:00').toLocaleDateString('en-US', {month:'short', day:'numeric'});
+    return `<div class="history-card" style="margin-bottom:8px">
+      <div class="history-card-top">
+        <span class="history-scheme">${date} · ${c.game_mode || ''}</span>
+        <span class="history-score">${(c.performance_score||0).toFixed(1)}</span>
+      </div>
+      <div class="history-meta">
+        <span class="history-tag ${(c.result||'').toLowerCase()}">${c.result}</span>
+        ${c.best_run_play ? `<span class="history-tag">Run: ${c.best_run_play}</span>` : ''}
+        ${c.best_pass_play ? `<span class="history-tag">Pass: ${c.best_pass_play}</span>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+
+  showInCenter(`
+    <div class="schemes-stat-wrap">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
+        <button onclick="loadSchemes()" style="font-family:var(--font-display);font-weight:700;text-transform:uppercase;font-size:11px;color:var(--secondary);letter-spacing:1px;padding:4px 10px;border:1.5px solid rgba(242,181,14,.4);border-radius:6px;background:none">← Back</button>
+        <span style="font-family:var(--font-display);font-weight:900;text-transform:uppercase;font-size:18px;color:var(--cream)">${s.name}</span>
+        <span class="history-tag">${s.type}</span>
+        <span class="history-tag">${s.game}</span>
+      </div>
+
+      <div class="profile-section-title" style="margin-bottom:10px">Your Performance</div>
+      <div class="scheme-stat-row" style="margin-bottom:16px">
+        <div class="scheme-stat-item" style="background:rgba(255,255,255,.06);border:1.5px solid rgba(255,255,255,.1);border-radius:10px;padding:12px 8px;text-align:center">
+          <span class="ssv">${t}</span><span class="ssl">Games</span>
+        </div>
+        <div class="scheme-stat-item" style="background:rgba(255,255,255,.06);border:1.5px solid rgba(255,255,255,.1);border-radius:10px;padding:12px 8px;text-align:center">
+          <span class="ssv ${wr >= 50 ? 'win' : 'loss'}">${wr}%</span><span class="ssl">Win Rate</span>
+        </div>
+        <div class="scheme-stat-item" style="background:rgba(255,255,255,.06);border:1.5px solid rgba(255,255,255,.1);border-radius:10px;padding:12px 8px;text-align:center">
+          <span class="ssv">${avg}</span><span class="ssl">Avg Score</span>
+        </div>
+        <div class="scheme-stat-item" style="background:rgba(255,255,255,.06);border:1.5px solid rgba(255,255,255,.1);border-radius:10px;padding:12px 8px;text-align:center">
+          <span class="ssv">${best}</span><span class="ssl">Best Score</span>
+        </div>
+      </div>
+
+      <div class="profile-section-title" style="margin-bottom:10px">Your Top Plays</div>
+      <div class="scheme-stat-card" style="margin-bottom:14px">
+        <div class="scheme-stat-row">
+          <div class="scheme-stat-item">
+            <span class="ssv" style="font-size:13px;line-height:1.3">${topRun}</span>
+            <span class="ssl">Top Run Play</span>
+          </div>
+          <div class="scheme-stat-item">
+            <span class="ssv" style="font-size:13px;line-height:1.3">${topPass}</span>
+            <span class="ssl">Top Pass Play</span>
+          </div>
+        </div>
+      </div>
+
+      <div style="background:rgba(30,84,183,.1);border:1.5px dashed rgba(30,84,183,.35);border-radius:12px;padding:14px 16px;margin-bottom:14px">
+        <div style="font-family:var(--font-display);font-weight:700;text-transform:uppercase;letter-spacing:1px;font-size:10px;color:var(--secondary);margin-bottom:6px">Community Data · Coming Soon</div>
+        <div style="font-size:12px;color:var(--cream-muted);line-height:1.6">Community win rate, top plays, and coaching tips for ${s.name} will be available once more members log games with this scheme.</div>
+      </div>
+
+      ${recentLog ? `
+      <div class="profile-section-title" style="margin-bottom:10px">Recent Games with this Scheme</div>
+      ${recentLog}` : ''}
+    </div>
+  `);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   SCHEME REVIEW FLOW
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+async function startSchemeReview(type) {
+  showInCenter('<div class="loading-msg">Loading your schemes…</div>');
+
+  // Get all schemes of this type for current game
+  const { data: schemes } = await db
+    .from('schemes')
+    .select('scheme_id, scheme_name')
+    .eq('game', currentGame)
+    .eq('type', type)
+    .order('scheme_name');
+
+  if (!schemes?.length) {
+    showInCenter(`<div class="loading-msg">No ${type} schemes found for ${currentGame}.</div>`);
+    return;
+  }
+
+  // Count how many games each scheme has for this member
+  const { data: cards } = await db
+    .from('performance_cards')
+    .select('scheme_id')
+    .eq('member_id', currentUser.id)
+    .eq('card_type', type)
+    .not('scheme_id', 'is', null);
+
+  const gameCounts = {};
+  for (const c of cards || []) {
+    gameCounts[c.scheme_id] = (gameCounts[c.scheme_id] || 0) + 1;
+  }
+
+  const typeColor = type === 'Offense' ? 'var(--secondary)' : 'var(--gold)';
+  const icon = type === 'Offense'
+    ? '<path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>'
+    : '<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>';
+
+  const schemeRows = schemes.map(s => {
+    const count = gameCounts[s.scheme_id] || 0;
+    const unlocked = count >= 5;
+    const pct = Math.min(count / 5 * 100, 100);
+    return `
+      <div onclick="${unlocked ? `selectReviewScheme('${s.scheme_id}','${type}',${count})` : ''}"
+        style="
+          padding:14px 16px; border-radius:10px; margin-bottom:8px; cursor:${unlocked ? 'pointer' : 'default'};
+          background:${unlocked ? 'rgba(30,84,183,.08)' : 'rgba(0,0,0,.04)'};
+          border:1.5px solid ${unlocked ? 'rgba(242,181,14,.5)' : 'var(--cream-edge)'};
+          opacity:${unlocked ? '1' : '.6'};
+          transition:all .15s ease;
+        "
+        ${unlocked ? `onmouseenter="this.style.background='rgba(242,181,14,.1)'" onmouseleave="this.style.background='rgba(30,84,183,.08)'"` : ''}
+      >
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px">
+          <div>
+            <div style="font-family:var(--font-display);font-weight:900;text-transform:uppercase;font-size:16px;color:${unlocked ? 'var(--ink)' : 'var(--ink-soft)'}">
+              ${s.scheme_name}
+            </div>
+            <div style="font-size:11px;color:var(--ink-soft);margin-top:3px">
+              ${count} game${count !== 1 ? 's' : ''} logged
+            </div>
+          </div>
+          ${unlocked
+            ? `<span style="font-family:var(--font-display);font-weight:800;text-transform:uppercase;font-size:10px;letter-spacing:1px;color:var(--primary);padding:4px 10px;border:1.5px solid var(--primary);border-radius:6px">Rate →</span>`
+            : `<div style="text-align:right">
+                <div style="font-size:10px;color:var(--ink-soft);margin-bottom:4px">${5 - count} more game${5 - count !== 1 ? 's' : ''} to unlock</div>
+                <div style="width:80px;height:4px;background:var(--cream-edge);border-radius:99px;overflow:hidden">
+                  <div style="width:${pct}%;height:100%;background:var(--secondary);border-radius:99px"></div>
+                </div>
+              </div>`
+          }
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  showInCenter(`
+    <div class="form-card">
+      <div class="form-card-head">
+        <button class="close-btn" onclick="showDefaultCenter()">✕</button>
+        <div class="form-card-title">Rate ${type} Scheme</div>
+        <div class="form-card-sub">Select a scheme you've played 5+ games with</div>
+      </div>
+      <div class="form-card-body">
+        <div style="display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:10px;background:rgba(242,181,14,.1);border:1px solid rgba(242,181,14,.3);margin-bottom:20px">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:18px;height:18px;color:var(--gold-dk);flex-shrink:0"><path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/></svg>
+          <span style="font-size:12px;color:var(--ink);line-height:1.5">Rate a scheme after getting real reps with it. Your ratings help build community data for every playbook.</span>
+        </div>
+        ${schemeRows || '<p style="color:var(--ink-soft);font-size:13px">No schemes available yet.</p>'}
+      </div>
+    </div>
+  `);
+}
+
+async function selectReviewScheme(schemeId, type, gameCount) {
+  showInCenter('<div class="loading-msg">Loading scheme plays…</div>');
+
+  const { data: scheme } = await db.from('schemes').select('scheme_name').eq('scheme_id', schemeId).single();
+  const playTypes = type === 'Offense' ? ['Run','Pass','Star'] : ['Blitz','Coverage','Star'];
+  const { data: plays } = await db.from('plays')
+    .select('play_id, play_name, formation, play_type')
+    .eq('scheme_id', schemeId)
+    .in('play_type', playTypes)
+    .order('play_type').order('play_name');
+
+  const isOffense = type === 'Offense';
+
+  const starCategories = isOffense
+    ? ['Overall Rating','Run Game','Pass Game','Pass Protection','Explosiveness']
+    : ['Overall Rating','Pass Rush / Pressure','Coverage','Stopping the Run','Limit Big Plays'];
+
+  const starIds = ['sr-overall','sr-cat2','sr-cat3','sr-cat4','sr-cat5'];
+
+  const strengthOptions = isOffense ? [
+    'Run game was dominant',
+    'Pass game was clicking',
+    'Motion and shifts created confusion',
+    'Play action was open all day',
+    'Created Explosive Pass Plays',
+    'Underneath options open in Pass Game',
+  ] : [
+    '4 Man Pass rush was dominant',
+    'Coverages shut down their passing game',
+    'Stopped the run effectively',
+    'Forced Turnovers',
+    'Blitz packages were working',
+  ];
+
+  const weaknessOptions = isOffense ? [
+    'Struggled vs blitz / pressure',
+    "Couldn't run the ball",
+    'Pass protection broke down',
+    'Opponent took away top read all game',
+    'Nothing open downfield',
+    'Red zone stalled out',
+    'Short yardage situations',
+    'Execution errors',
+  ] : [
+    "Couldn't stop the run",
+    'Getting gashed over the middle',
+    "Couldn't get off the field",
+    'No pass rush / QB had all day',
+    'Blitz kept getting picked up',
+    'Gave up too many explosive plays',
+  ];
+
+  const playRatingRows = (plays || []).map(p => {
+    const label = p.formation ? `${p.play_name} [${p.formation}]` : p.play_name;
+    const typeTag = `<span style="font-family:var(--font-display);font-weight:800;font-size:9px;text-transform:uppercase;letter-spacing:1px;padding:2px 6px;border-radius:4px;background:var(--cream-edge);color:var(--ink-soft)">${p.play_type}</span>`;
+    return `
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 0;border-bottom:1px solid var(--cream-edge)">
+        <div style="flex:1;min-width:0">
+          <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+            ${typeTag}
+            <span style="font-size:13px;color:var(--ink)">${label}</span>
+          </div>
+        </div>
+        <div class="star-input" id="pr-${p.play_id}" style="flex-shrink:0">
+          <span class="star" data-val="1">★</span>
+          <span class="star" data-val="2">★</span>
+          <span class="star" data-val="3">★</span>
+          <span class="star" data-val="4">★</span>
+          <span class="star" data-val="5">★</span>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  showInCenter(`
+    <div class="form-card">
+      <div class="form-card-head">
+        <button class="close-btn" onclick="startSchemeReview('${type}')">←</button>
+        <div class="form-card-title">${scheme?.scheme_name}</div>
+        <div class="form-card-sub">${type} Scheme Review · ${gameCount} games logged</div>
+      </div>
+      <div class="form-card-body">
+
+        <div class="form-section">Scheme Ratings</div>
+        <p style="font-size:12px;color:var(--ink-soft);margin-bottom:14px">Rate the scheme overall — based on your experience across all your games with it</p>
+        <div class="star-row">
+          ${starCategories.map((cat, i) => buildStarItem(starIds[i], cat)).join('')}
+        </div>
+
+        <div class="form-section">Strengths &amp; Weaknesses</div>
+
+        <div class="field-group">
+          <label class="field-label">Biggest Strength</label>
+          <select class="field-select" id="sr-strength">
+            <option value="">Select…</option>
+            ${strengthOptions.map(o => `<option>${o}</option>`).join('')}
+            <option value="Other">Other</option>
+          </select>
+          <input class="field-input hidden" type="text" id="sr-strength-other" placeholder="Describe the strength…" style="margin-top:8px">
+        </div>
+
+        <div class="field-group">
+          <label class="field-label">Biggest Weakness</label>
+          <select class="field-select" id="sr-weakness">
+            <option value="">Select…</option>
+            ${weaknessOptions.map(o => `<option>${o}</option>`).join('')}
+            <option value="Other">Other</option>
+          </select>
+          <input class="field-input hidden" type="text" id="sr-weakness-other" placeholder="Describe the weakness…" style="margin-top:8px">
+        </div>
+
+        <div class="field-group">
+          <label class="field-label">Who Is This Scheme Best For?</label>
+          <select class="field-select" id="sr-bestfor">
+            <option value="">Select…</option>
+            <option>Beginners</option>
+            <option>Intermediate</option>
+            <option>Advanced</option>
+            <option>All Levels</option>
+          </select>
+        </div>
+
+        <div class="form-section">Rate Individual Plays</div>
+        <p style="font-size:12px;color:var(--ink-soft);margin-bottom:14px">Rate each play on overall effectiveness at doing its job. Only fill out the ones you want — standout plays, good or bad.</p>
+        ${playRatingRows || '<p style="font-size:13px;color:rgba(255,255,255,.3)">No plays found for this scheme.</p>'}
+
+        <div class="form-section">Notes</div>
+        <div class="field-group">
+          <textarea class="field-textarea" id="sr-notes" placeholder="Anything else about this scheme? Tips, matchup notes, adjustments that helped… (optional)"></textarea>
+        </div>
+
+        <div id="sr-error" class="error-msg hidden"></div>
+        <button class="submit-btn" onclick="saveSchemeReview('${schemeId}','${type}',${gameCount})">Submit Review</button>
+      </div>
+    </div>
+  `);
+
+  initStars();
+  wireOtherToggle('sr-strength', 'sr-strength-other');
+  wireOtherToggle('sr-weakness', 'sr-weakness-other');
+
+  // store plays list for save function
+  window._reviewPlays = plays || [];
+}
+
+async function saveSchemeReview(schemeId, type, gameCount) {
+  const stars = ['sr-overall','sr-cat2','sr-cat3','sr-cat4','sr-cat5'].map(getStarValue);
+  if (stars[0] === 0) {
+    const el = document.getElementById('sr-error');
+    el.textContent = 'Please give at least an overall rating.';
+    el.classList.remove('hidden');
+    return;
+  }
+
+  const btn = document.querySelector('#center-content .submit-btn');
+  if (btn) { btn.disabled = true; btn.textContent = 'Saving…'; }
+
+  const getVal = id => document.getElementById(id)?.value || '';
+  const getOther = (selId, othId) => { const v = getVal(selId); return v === 'Other' ? getVal(othId) : v; };
+
+  const reviewData = {
+    member_id:       currentUser.id,
+    scheme_id:       schemeId,
+    card_type:       type,
+    star_overall:    stars[0] || 1,
+    star_category2:  stars[1] || 1,
+    star_category3:  stars[2] || 1,
+    star_category4:  stars[3] || 1,
+    star_category5:  stars[4] || 1,
+    biggest_strength: getOther('sr-strength','sr-strength-other'),
+    biggest_weakness: getOther('sr-weakness','sr-weakness-other'),
+    best_for:         getVal('sr-bestfor'),
+    notes:            getVal('sr-notes'),
+    games_logged_at_time: gameCount,
+  };
+
+  const { data: reviewRow, error: reviewErr } = await db
+    .from('scheme_reviews').insert(reviewData).select().single();
+
+  if (reviewErr) {
+    const el = document.getElementById('sr-error');
+    el.textContent = reviewErr.message;
+    el.classList.remove('hidden');
+    if (btn) { btn.disabled = false; btn.textContent = 'Submit Review'; }
+    return;
+  }
+
+  // Save individual play ratings (only plays that were actually rated)
+  const playRatings = (window._reviewPlays || [])
+    .map(p => ({ play_id: p.play_id, rating: getStarValue(`pr-${p.play_id}`) }))
+    .filter(p => p.rating > 0)
+    .map(p => ({
+      review_id:   reviewRow.review_id,
+      member_id:   currentUser.id,
+      scheme_id:   schemeId,
+      play_id:     p.play_id,
+      star_rating: p.rating,
+    }));
+
+  if (playRatings.length) {
+    await db.from('play_ratings').insert(playRatings);
+  }
+
+  // Success screen
+  const ratedPlays = playRatings.length;
+  showInCenter(`
+    <div class="form-card">
+      <div class="form-card-head">
+        <div class="form-card-title">Review Submitted</div>
+        <div class="form-card-sub">${type} Scheme · ${new Date().toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'})}</div>
+      </div>
+      <div class="form-card-body" style="text-align:center;padding:32px 28px">
+        <div style="font-size:52px;margin-bottom:16px">👑</div>
+        <div style="font-family:var(--font-display);font-weight:900;text-transform:uppercase;font-size:22px;color:var(--primary);margin-bottom:8px">Thanks for the Review</div>
+        <p style="font-size:13px;color:var(--ink-soft);line-height:1.7;margin-bottom:24px">
+          Your overall rating and ${ratedPlays} play rating${ratedPlays !== 1 ? 's' : ''} have been added to the community data.<br>
+          This helps every member get better recommendations from the playbooks and AI coaching.
+        </p>
+        <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
+          <button class="result-btn" onclick="startSchemeReview('${type}')">Rate Another Scheme</button>
+          <button class="result-btn outline" onclick="showDefaultCenter()">Done</button>
+        </div>
+      </div>
+    </div>
+  `);
+  window._reviewPlays = [];
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   FULLSCREEN
+   ═══════════════════════════════════════════════════════════════════════════ */
+function toggleFullscreen() {
+  if (!document.fullscreenElement) {
+    document.documentElement.requestFullscreen().catch(() => {});
+    document.getElementById('fs-expand-icon').innerHTML = `<path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"/>`;
+    document.getElementById('fs-label').textContent = 'Exit Full Screen';
+  } else {
+    document.exitFullscreen().catch(() => {});
+    document.getElementById('fs-expand-icon').innerHTML = `<path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>`;
+    document.getElementById('fs-label').textContent = 'Full Screen';
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   BOOT
+   ═══════════════════════════════════════════════════════════════════════════ */
+init();
+</script>
+</body>
+</html>
