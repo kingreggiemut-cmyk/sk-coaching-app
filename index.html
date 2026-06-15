@@ -59,16 +59,19 @@ input, select, textarea { font-family: inherit; }
    ========================================================================== */
 #bg-video {
   position: fixed; inset: 0; width: 100%; height: 100%; z-index: 0;
-  object-fit: cover;
-  filter: blur(3px) brightness(0.28);
-  animation: bgZoom 28s ease-in-out infinite alternate;
+  background: linear-gradient(135deg, #0a1628 0%, #1E54B7 40%, #0d2040 70%, #0a1628 100%);
+  background-size: 400% 400%;
+  animation: bgShift 20s ease infinite;
 }
-@keyframes bgZoom { from { transform: scale(1); } to { transform: scale(1.1); } }
+@keyframes bgShift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
 #bg-tint {
   position: fixed; inset: 0; z-index: 1;
-  background: var(--primary);
-  opacity: 0.14;
-  mix-blend-mode: multiply;
+  background: radial-gradient(ellipse at 30% 20%, rgba(242,181,14,0.06) 0%, transparent 60%),
+              radial-gradient(ellipse at 70% 80%, rgba(30,84,183,0.12) 0%, transparent 60%);
   pointer-events: none;
 }
 
@@ -681,10 +684,16 @@ input, select, textarea { font-family: inherit; }
 /* Game badge logos */
 .game-badge {
   position: fixed; bottom: 60px;
-  width: 90px; height: 90px; object-fit: contain;
+  width: 72px; height: 72px;
   opacity: 0; pointer-events: none;
   transition: opacity .3s ease;
-  filter: drop-shadow(0 4px 12px rgba(0,0,0,.6));
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-display); font-weight: 900; font-size: 15px;
+  line-height: 1.1; text-align: center; text-transform: uppercase;
+  color: #fff; letter-spacing: 0.05em;
+  background: var(--primary); border: 2.5px solid var(--secondary);
+  border-radius: 12px;
+  box-shadow: 0 4px 16px rgba(0,0,0,.5), 0 0 0 1px rgba(242,181,14,.2);
 }
 .game-badge-cfb  { left: 20px; }
 .game-badge-madden { right: 20px; }
@@ -1010,10 +1019,8 @@ body.game-madden .game-badge-madden { opacity: 1; }
 </head>
 <body>
 
-<!-- Always-on background video -->
-<video id="bg-video" autoplay muted loop playsinline
-  src="reference/background.mp4">
-</video>
+<!-- Always-on animated background -->
+<div id="bg-video"></div>
 <div id="bg-tint"></div>
 
 <!-- ══ SCREEN: COVER / SPLASH ══════════════════════════════════════════════ -->
@@ -1164,7 +1171,7 @@ body.game-madden .game-badge-madden { opacity: 1; }
       </div>
       <div class="patch-text">
         <span class="patch-title">Community</span>
-        <span class="patch-sub">Live chat</span>
+        <span class="patch-sub">Analytics</span>
       </div>
       <div class="crown"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/></svg></div>
     </button>
@@ -1337,12 +1344,12 @@ body.game-madden .game-badge-madden { opacity: 1; }
 
   <!-- BOTTOM GAME TOGGLE -->
   <div class="app-bottom">
-    <img class="game-badge game-badge-cfb" src="reference/CFB Badge logo.png" alt="CFB 27">
+    <span class="game-badge game-badge-cfb">CFB<br>27</span>
     <div class="game-toggle">
       <button class="game-toggle-btn active" id="toggle-cfb" onclick="setGame('CFB27')">CFB 27</button>
       <button class="game-toggle-btn" id="toggle-madden" onclick="setGame('Madden27')">Madden 27</button>
     </div>
-    <img class="game-badge game-badge-madden" src="reference/Maddne 27 badge lgoo.png" alt="Madden 27">
+    <span class="game-badge game-badge-madden">MUT<br>27</span>
   </div>
 </section>
 
@@ -1672,6 +1679,7 @@ function enterApp() {
   document.getElementById('ai-sessions-display').textContent = Math.max(0, 10 - used);
   showScreen('screen-app');
   showDefaultCenter();
+  showChatWidget();
   document.getElementById('toggle-cfb').addEventListener('click', () => setTimeout(loadSchemeProgress, 100));
   document.getElementById('toggle-madden').addEventListener('click', () => setTimeout(loadSchemeProgress, 100));
   // Show onboarding for new members
@@ -2172,23 +2180,117 @@ async function sendChat() {
   const text = input?.value?.trim();
   if (!text || !currentUser) return;
   input.value = '';
+  await insertChatMessage(text);
+}
 
-  const { data: memberData } = await db.from('members')
-    .select('display_name, coaching_style')
-    .eq('member_id', currentUser.id)
-    .single();
-
-  const { data: countData } = await db.from('performance_cards')
-    .select('id', { count: 'exact', head: true })
-    .eq('member_id', currentUser.id);
-
+async function insertChatMessage(text) {
   await db.from('community_chat').insert({
-    member_id:     currentUser.id,
-    display_name:  memberData?.display_name || currentMember.display_name,
-    coaching_style: memberData?.coaching_style || currentMember.coaching_style || '',
-    games_logged:  countData?.length || 0,
-    message:       text,
+    member_id:      currentUser.id,
+    display_name:   currentMember.display_name,
+    coaching_style: currentMember.coaching_style || '',
+    games_logged:   currentMember.games_logged || 0,
+    message:        text,
   });
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   FLOATING CHAT WIDGET
+   ═══════════════════════════════════════════════════════════════════════════ */
+let widgetSubscription = null;
+let widgetLoaded = false;
+let widgetUnread = 0;
+
+function showChatWidget() {
+  document.getElementById('chat-widget').style.display = 'block';
+}
+
+function toggleChatWidget() {
+  const panel = document.getElementById('chat-widget-panel');
+  const isOpen = !panel.classList.contains('hidden');
+  if (isOpen) {
+    panel.classList.add('hidden');
+  } else {
+    panel.classList.remove('hidden');
+    widgetUnread = 0;
+    document.getElementById('chat-widget-unread').style.display = 'none';
+    if (!widgetLoaded) initWidgetChat();
+    else document.getElementById('chat-widget-messages').scrollTop = 99999;
+  }
+}
+
+async function initWidgetChat() {
+  widgetLoaded = true;
+  const { data: messages } = await db
+    .from('community_chat')
+    .select('*')
+    .order('created_at', { ascending: true })
+    .limit(100);
+  renderWidgetMessages(messages || []);
+
+  if (widgetSubscription) widgetSubscription.unsubscribe();
+  widgetSubscription = db
+    .channel('widget-chat')
+    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'community_chat' }, payload => {
+      appendWidgetMessage(payload.new);
+      const panel = document.getElementById('chat-widget-panel');
+      if (panel.classList.contains('hidden')) {
+        widgetUnread++;
+        const badge = document.getElementById('chat-widget-unread');
+        badge.textContent = widgetUnread;
+        badge.style.display = 'inline-block';
+      }
+    })
+    .subscribe();
+}
+
+function renderWidgetMessages(messages) {
+  const el = document.getElementById('chat-widget-messages');
+  if (!el) return;
+  if (!messages.length) {
+    el.innerHTML = `<div style="text-align:center;font-size:12px;color:rgba(255,255,255,.3);padding:20px 0">No messages yet</div>`;
+    return;
+  }
+  el.innerHTML = messages.map(m => widgetBubble(m)).join('');
+  el.scrollTop = el.scrollHeight;
+}
+
+function appendWidgetMessage(msg) {
+  const el = document.getElementById('chat-widget-messages');
+  if (!el) return;
+  const empty = el.querySelector('[style*="No messages yet"]');
+  if (empty) el.innerHTML = '';
+  el.insertAdjacentHTML('beforeend', widgetBubble(msg));
+  el.scrollTop = el.scrollHeight;
+}
+
+function widgetBubble(m) {
+  const isMe = m.member_id === currentUser?.id;
+  const icon = STYLE_ICONS[m.coaching_style] || '🏈';
+  const time = new Date(m.created_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+  return `
+    <div style="display:flex;gap:6px;align-items:flex-end;${isMe ? 'flex-direction:row-reverse' : ''}">
+      <div style="width:24px;height:24px;border-radius:50%;flex-shrink:0;
+        background:var(--primary);border:1.5px solid ${isMe ? 'var(--secondary)' : 'rgba(255,255,255,.2)'};
+        display:flex;align-items:center;justify-content:center;font-size:11px;">${icon}</div>
+      <div style="max-width:76%;display:flex;flex-direction:column;gap:2px;${isMe ? 'align-items:flex-end' : ''}">
+        <div style="font-size:9px;color:${isMe ? 'var(--secondary)' : 'rgba(255,255,255,.4)'};font-weight:700;text-transform:uppercase;letter-spacing:.4px">
+          ${isMe ? 'You' : m.display_name} · ${time}
+        </div>
+        <div style="padding:7px 10px;border-radius:${isMe ? '10px 10px 2px 10px' : '10px 10px 10px 2px'};
+          background:${isMe ? 'var(--primary)' : 'rgba(255,255,255,.1)'};
+          border:1px solid ${isMe ? 'var(--secondary)' : 'rgba(255,255,255,.1)'};
+          font-size:12px;color:#fff;line-height:1.4;word-break:break-word;">${m.message}</div>
+      </div>
+    </div>
+  `;
+}
+
+async function sendWidgetChat() {
+  const input = document.getElementById('chat-widget-input');
+  const text = input?.value?.trim();
+  if (!text || !currentUser) return;
+  input.value = '';
+  await insertChatMessage(text);
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -4164,5 +4266,57 @@ function toggleFullscreen() {
    ═══════════════════════════════════════════════════════════════════════════ */
 init();
 </script>
+
+<!-- ══ FLOATING CHAT WIDGET ═══════════════════════════════════════════════ -->
+<div id="chat-widget" style="display:none">
+  <div id="chat-widget-panel" class="hidden" style="
+    position:fixed; bottom:72px; left:16px; z-index:9999;
+    width:320px; height:420px;
+    background:var(--ink); border:2px solid var(--secondary);
+    border-radius:16px; display:flex; flex-direction:column;
+    box-shadow:0 8px 32px rgba(0,0,0,.6); overflow:hidden;
+  ">
+    <div style="
+      padding:12px 16px; background:var(--primary);
+      display:flex; align-items:center; justify-content:space-between;
+      border-bottom:2px solid var(--secondary);
+    ">
+      <span style="font-family:var(--font-display);font-weight:900;font-size:13px;color:#fff;text-transform:uppercase;letter-spacing:.05em">Members Chat</span>
+      <button onclick="toggleChatWidget()" style="background:none;border:none;color:rgba(255,255,255,.6);cursor:pointer;font-size:18px;line-height:1;padding:0">✕</button>
+    </div>
+    <div id="chat-widget-messages" style="
+      flex:1; overflow-y:auto; padding:12px; display:flex; flex-direction:column; gap:8px;
+      scrollbar-width:thin; scrollbar-color:rgba(255,255,255,.1) transparent;
+    "></div>
+    <div style="padding:10px 12px; border-top:1px solid rgba(255,255,255,.1); display:flex; gap:8px;">
+      <input id="chat-widget-input" type="text" maxlength="300" placeholder="Say something…" style="
+        flex:1; background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.15);
+        border-radius:8px; padding:8px 12px; color:#fff; font-size:13px;
+        outline:none; font-family:var(--font-body);
+      " onkeydown="if(event.key==='Enter')sendWidgetChat()">
+      <button onclick="sendWidgetChat()" style="
+        background:var(--secondary); border:none; border-radius:8px;
+        padding:8px 12px; cursor:pointer; font-size:16px;
+      ">➤</button>
+    </div>
+  </div>
+  <button id="chat-widget-btn" onclick="toggleChatWidget()" style="
+    position:fixed; bottom:16px; left:16px; z-index:9999;
+    background:var(--primary); border:2px solid var(--secondary);
+    border-radius:24px; padding:10px 18px;
+    display:flex; align-items:center; gap:8px;
+    cursor:pointer; box-shadow:0 4px 16px rgba(0,0,0,.4);
+    font-family:var(--font-display); font-weight:700; font-size:12px;
+    color:#fff; text-transform:uppercase; letter-spacing:.05em;
+    transition: transform .15s ease;
+  " onmouseenter="this.style.transform='scale(1.04)'" onmouseleave="this.style.transform='scale(1)'">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+    Members Chat
+    <span id="chat-widget-unread" style="
+      display:none; background:var(--secondary); color:var(--ink);
+      border-radius:10px; padding:1px 6px; font-size:10px; font-weight:900;
+    "></span>
+  </button>
+</div>
 </body>
 </html>
