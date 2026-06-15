@@ -1429,14 +1429,26 @@ async function init() {
 
 async function loadMemberAndContinue() {
   console.log('[SK] loadMemberAndContinue — querying members for', currentUser.id);
-  const { data, error } = await db.from('members').select('*').eq('member_id', currentUser.id).maybeSingle();
-  console.log('[SK] members query result — data:', data, 'error:', error);
-  if (data) {
-    currentMember = data;
-    console.log('[SK] member found — calling enterApp');
-    enterApp();
-  } else {
-    console.log('[SK] no member found — showing setup screen');
+  try {
+    const { data: { session } } = await db.auth.getSession();
+    const token = session?.access_token || SUPABASE_ANON_KEY;
+    const res = await fetch(
+      `${SUPABASE_URL}/rest/v1/members?member_id=eq.${currentUser.id}&select=*&limit=1`,
+      { headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' } }
+    );
+    const rows = await res.json();
+    console.log('[SK] members fetch result:', rows);
+    const data = Array.isArray(rows) && rows.length > 0 ? rows[0] : null;
+    if (data) {
+      currentMember = data;
+      console.log('[SK] member found — calling enterApp');
+      enterApp();
+    } else {
+      console.log('[SK] no member found — showing setup screen');
+      showScreen('screen-setup');
+    }
+  } catch (err) {
+    console.error('[SK] loadMemberAndContinue error:', err);
     showScreen('screen-setup');
   }
 }
