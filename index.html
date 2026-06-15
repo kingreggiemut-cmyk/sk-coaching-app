@@ -1655,7 +1655,8 @@ function showSetupError(msg) {
    ═══════════════════════════════════════════════════════════════════════════ */
 function enterApp() {
   document.getElementById('user-display-name').textContent = currentMember.display_name;
-  document.getElementById('nav-profile-name').textContent = currentMember.display_name;
+  const navProfileName = document.getElementById('nav-profile-name');
+  if (navProfileName) navProfileName.textContent = currentMember.display_name;
   const used = currentMember.ai_sessions_used || 0;
   document.getElementById('ai-sessions-display').textContent = Math.max(0, 10 - used);
   showScreen('screen-app');
