@@ -1,0 +1,2108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Scheme Kings · Interactive Playbook</title>
+
+<!--
+  ============================================================================
+  SCHEME KINGS — INTERACTIVE PLAYBOOK
+  Single-file template. Vanilla HTML/CSS/JS. No frameworks, no build step.
+  Embed in Squarespace via a Code Block.
+
+  ┌────────────────────────────────────────────────────────────────────────┐
+  │ MAKING A NEW PLAYBOOK (weekly)                                           │
+  │ 1. Keep THIS file as your untouched master template.                     │
+  │ 2. Copy the whole folder (index.html + /assets + /plays + /formations)   │
+  │    and rename it for the new scheme (e.g. "49ers-playbook").             │
+  │ 3. In the COPY, edit ONLY:                                               │
+  │      • [CONFIG]  SCHEME_CONFIG  — colors, names, asset paths             │
+  │      • [DATA]    PLAYS, ABOUT, PERSONNEL, FORMATIONS, SERIES             │
+  │ 4. Drop the new files into the COPY's folders:                          │
+  │      assets/team_logo.png      (left pill badge + big center logo)       │
+  │      assets/cover_logo.png     (cover title card + center field logo)    │
+  │      assets/stadium_bg.mp4     + assets/stadium_poster.jpg               │
+  │      plays/<id>-field.jpg | <id>-formation.jpg | <id>-playcall.jpg       │
+  │      formations/<name>.jpg                                               │
+  │ 5. Paste the COPY's index.html into that week's Squarespace Code Block.  │
+  │ Nothing in the CSS or app code is ever touched — every color cascades    │
+  │ from the 2 config colors, and all content comes from the data blocks.    │
+  └────────────────────────────────────────────────────────────────────────┘
+
+  SECTION MAP (search these tags):
+    [CONFIG]      scheme variables (colors, names, asset paths)
+    [DATA]        plays, filters, about / personnel / formations / series
+    [STYLE:BASE]  reset, variables, typography, shared panel + pill material
+    [STYLE:COVER] state 1
+    [STYLE:FIELD] state 2 (floating pills + center logo)
+    [STYLE:TAKEOVER] state 3 (play card + section/list cards)
+    [STYLE:MOBILE]  the separate <768px layout
+    [MARKUP]      the page skeleton
+    [APP]         all interactive logic
+  ============================================================================
+-->
+
+<!--
+  FONTS — The Scheme Kings identity depends on Barlow Condensed (display) +
+  Barlow (body). The brief's typography spec asks to load Barlow from Google
+  Fonts; the technical spec prefers no external calls. We load from Google
+  Fonts here (one request, works inside Squarespace embeds) and provide a
+  condensed system fallback stack so the app still reads correctly if the
+  request is blocked. To go fully self-contained, download the woff2 files,
+  drop them in /assets and replace this link with an @font-face block.
+-->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@500;600;700;800;900&display=swap" rel="stylesheet">
+
+<style>
+/* ==========================================================================
+   [STYLE:BASE] — reset, CSS custom properties, typography, shared material
+   ========================================================================== */
+
+/* Color custom properties. Defaults below are overwritten at runtime by
+   applyConfig() using SCHEME_CONFIG, so the *single source of truth* is the
+   config block — these defaults only matter before JS runs. */
+:root{
+  --primary:   #8B0000;   /* dark team color — panel fills            */
+  --secondary: #D4AF37;   /* bright team color — accent bar, borders  */
+  --cream:     #F0EAD0;   /* universal text — never pure white        */
+  --gold:      #F5A623;   /* Scheme Kings gold — brand quality stamp  */
+
+  /* Derived tones (computed from the above via color-mix so they retrace
+     automatically on a scheme swap). */
+  --primary-deep:  color-mix(in srgb, var(--primary) 72%, #000);
+  --primary-ink:   color-mix(in srgb, var(--primary) 55%, #000);
+  --cream-muted:   color-mix(in srgb, var(--cream) 62%, transparent);
+  --overlay:       rgba(6,5,4,0.93);
+  --panel-shadow:  0 18px 40px rgba(0,0,0,.55), 0 3px 0 rgba(0,0,0,.35);
+
+  --bar: 6px;             /* width of the signature left accent bar    */
+  --font-display: "Barlow Condensed", "Oswald", "Arial Narrow", "Helvetica Neue Condensed", sans-serif;
+  --font-body: "Barlow", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+
+  --ease: cubic-bezier(.2,.75,.2,1);   /* premium ease for motion */
+  --board: color-mix(in srgb, var(--primary) 18%, #0c0a08);  /* dark matte board */
+
+  /* Derived metallic shades — ALL computed from the four config tokens, so
+     every gradient/highlight/shadow re-tints automatically on a scheme swap.
+     (#fff/#000 here are only lighten/darken operands, never scheme colors.) */
+  --gold-lt:  color-mix(in srgb, var(--gold) 52%, #fff);   /* gold highlight  */
+  --gold-dk:  color-mix(in srgb, var(--gold) 72%, #000);   /* gold shade edge */
+  --ink-gold: color-mix(in srgb, var(--gold) 24%, #000);   /* dark text on gold */
+  --sec-lt:   color-mix(in srgb, var(--secondary) 55%, #fff); /* secondary highlight */
+  --sec-dk:   color-mix(in srgb, var(--secondary) 68%, #000); /* secondary shade */
+  --ink-sec:  color-mix(in srgb, var(--secondary) 24%, #000); /* dark text on secondary */
+  --sub-tan:  color-mix(in srgb, var(--secondary) 62%, #000); /* pill subtitle */
+
+  /* Cream-patch surfaces (the varsity-patch material used across all cards). */
+  --ink:        color-mix(in srgb, var(--primary) 60%, #060b16);  /* deep heading text on cream */
+  --ink-soft:   color-mix(in srgb, var(--ink) 76%, #8a7f5e);      /* muted body text on cream   */
+  --cream-deep: color-mix(in srgb, var(--cream) 91%, #000);       /* inset boxes / lined rows   */
+  --cream-edge: color-mix(in srgb, var(--cream) 78%, #000);       /* hairlines on cream         */
+  --stitch:     color-mix(in srgb, var(--cream) 50%, #ffffff);    /* dashed stitch highlight    */
+  --diagram:    color-mix(in srgb, var(--primary) 32%, #0a1120);  /* dark navy field/diagram    */
+  --card-radius: 18px;
+  /* grayscale fractal-noise tile — shared felt/board texture (kept subtle) */
+  --noise: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3CfeComponentTransfer%3E%3CfeFuncA type='linear' slope='0.5'/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+*{box-sizing:border-box; margin:0; padding:0;}
+
+/* logo block: crown fallback shown until/unless the configured image loads */
+.logo-wrap{display:inline-flex; align-items:center; justify-content:center; color:var(--gold);}
+.logo-wrap .logo-fallback{display:flex; width:100%; height:100%;}
+.logo-wrap .logo-fallback svg{width:100%; height:100%;}
+.logo-wrap .logo-img{display:none; max-width:100%; max-height:100%; object-fit:contain;}
+html,body{height:100%;}
+body{
+  font-family:var(--font-body);
+  color:var(--cream);
+  background:#0a0a0a;
+  overflow:hidden;              /* app owns scrolling; locked on desktop */
+  -webkit-font-smoothing:antialiased;
+  text-rendering:optimizeLegibility;
+}
+button{font-family:inherit; cursor:pointer; border:none; background:none; color:inherit;}
+img{display:block;}
+
+/* --- Display + body type helpers --- */
+.display{
+  font-family:var(--font-display);
+  font-weight:900;
+  text-transform:uppercase;
+  letter-spacing:.5px;
+  line-height:.95;
+}
+.eyebrow{
+  font-family:var(--font-display);
+  font-weight:700;
+  text-transform:uppercase;
+  letter-spacing:2px;
+  font-size:12px;
+  color:var(--secondary);
+}
+
+/* --- Shared panel material: matte primary fill, secondary border + the
+       hard vertical accent bar on the left edge. Used by every large panel. */
+.panel{
+  position:relative;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.04), rgba(0,0,0,.10)),
+    var(--primary);
+  border:2px solid var(--secondary);
+  border-radius:0;                       /* sharp corners — tactical feel */
+  box-shadow:var(--panel-shadow);
+}
+.panel::before{                          /* the brand signature accent bar */
+  content:"";
+  position:absolute; left:0; top:0; bottom:0;
+  width:var(--bar);
+  background:var(--secondary);
+}
+
+/* --- The signature IVORY VARSITY PATCH PILL (left nav + category chips).
+       Cream felt fill, raised primary border, gold inner pinstripe, applied
+       badge on the left, gold crown quality stamp on the right. Matches the
+       supplied pill reference image. --- */
+.patch{
+  --patch-h:54px;
+  position:relative;
+  display:flex; align-items:center; gap:12px;
+  height:var(--patch-h);
+  /* extra left padding makes room for the emblem that overhangs the left end */
+  padding:0 18px 0 calc(var(--patch-h) + 6px);
+  border-radius:999px;                          /* squat varsity capsule */
+  /* ivory felt: faint top sheen + grayscale noise blended into the cream */
+  background-color:var(--cream);
+  background-image:
+    linear-gradient(180deg, rgba(255,255,255,.6), rgba(0,0,0,.05) 55%, rgba(0,0,0,.10)),
+    var(--noise);
+  background-blend-mode:soft-light, soft-light;
+  /* raised dark border + gold inner pinstripe + floating drop shadow */
+  border:3px solid var(--primary);
+  box-shadow:
+    inset 0 0 0 2.5px var(--gold),              /* gold pinstripe              */
+    inset 0 2px 2px rgba(255,255,255,.55),      /* top inner highlight (raised)*/
+    inset 0 -4px 7px rgba(0,0,0,.14),           /* bottom inner shade          */
+    0 10px 22px rgba(0,0,0,.5);                 /* float off the background     */
+  color:var(--primary);
+  text-align:left;
+  transition:transform .16s var(--ease), box-shadow .16s var(--ease), filter .16s var(--ease);
+}
+.patch:hover, .patch:focus-visible{
+  transform:translateX(4px);
+  filter:brightness(1.05);
+  box-shadow:
+    inset 0 0 0 2.5px var(--gold),
+    inset 0 2px 2px rgba(255,255,255,.55),
+    inset 0 -4px 7px rgba(0,0,0,.14),
+    0 12px 28px rgba(0,0,0,.55),
+    0 0 0 2px color-mix(in srgb, var(--secondary) 55%, transparent);  /* subtle glow ring */
+  outline:none;
+}
+/* the applied circular emblem — overhangs the left end, raised off the pill.
+   Holds the CONSISTENT Scheme Kings crown (crownLogo image); if that file is
+   missing it falls back to the built-in gold crown vector on a scheme circle. */
+.patch .badge{
+  position:absolute; left:-3px; top:50%; transform:translateY(-50%);
+  flex:0 0 auto; z-index:2; overflow:hidden;
+  width:calc(var(--patch-h) + 6px); height:calc(var(--patch-h) + 6px);
+  border-radius:50%;
+  background:
+    radial-gradient(circle at 50% 30%, color-mix(in srgb,var(--primary) 80%,#fff) 0%, var(--primary) 55%);
+  border:3px solid var(--cream);
+  box-shadow:inset 0 0 0 2px var(--gold), 0 4px 9px rgba(0,0,0,.5);
+  display:flex; align-items:center; justify-content:center;
+}
+/* team logo: shown whole (contain) on the cream emblem so non-circular marks
+   aren't cropped; small padding frames it inside the ring */
+.patch .badge .badge-img{display:none; width:100%; height:100%; object-fit:contain; padding:15%;}
+.patch .badge .badge-fb{display:flex; width:58%; height:58%; color:var(--gold);
+  filter:drop-shadow(0 1px 1px rgba(0,0,0,.45));}
+.patch .badge .badge-fb svg{width:100%; height:100%;}
+/* once a logo loads, give the emblem a clean cream face + keep the gold ring */
+.patch .badge.has-img{
+  background:var(--cream);
+  box-shadow:inset 0 0 0 2px var(--gold), 0 4px 9px rgba(0,0,0,.5);
+}
+.patch .patch-text{display:flex; flex-direction:column; line-height:1; min-width:0;}
+.patch .patch-title{
+  font-family:var(--font-display); font-weight:900; text-transform:uppercase;
+  font-size:19px; letter-spacing:.5px; color:var(--primary); white-space:nowrap;
+  text-shadow:0 1px 0 rgba(255,255,255,.45);    /* slight emboss on the board */
+}
+.patch .patch-sub{
+  font-family:var(--font-display); font-weight:700; text-transform:uppercase;
+  letter-spacing:2px; font-size:9px; margin-top:3px; white-space:nowrap;
+  color:var(--sub-tan);   /* derived from --secondary */
+}
+.patch .crown{flex:0 0 auto; margin-left:auto; width:19px; height:19px; color:var(--gold);
+  filter:drop-shadow(0 1px 1px rgba(0,0,0,.35));}
+.patch .crown svg{width:100%; height:100%;}
+
+/* ==========================================================================
+   [STYLE] Background video — sits behind all three states, always looping
+   ========================================================================== */
+#bg-video, #bg-tint{
+  position:fixed; inset:0; width:100%; height:100%; z-index:0;
+}
+#bg-video{
+  object-fit:cover;
+  filter:blur(3px) brightness(0.32);     /* softens + darkens for legibility */
+  background:#0a0a0a;
+  /* almost-imperceptible slow push-in/out so the scene feels alive */
+  animation:bgZoom 28s ease-in-out infinite alternate;
+}
+@keyframes bgZoom{ from{transform:scale(1);} to{transform:scale(1.12);} }
+@media (prefers-reduced-motion:reduce){ #bg-video{animation:none;} }
+#bg-tint{                                 /* scheme-color wash over the video */
+  background:var(--primary);
+  opacity:0.18;
+  mix-blend-mode:multiply;
+  pointer-events:none;
+}
+
+/* ==========================================================================
+   [STYLE:MOTION] — entrance animations for the floating pills
+   Pills fade + slide in from their own edge, staggered (delay set inline
+   per pill by JS). fill:backwards holds the start state during the delay so
+   they don't flash before animating; after finishing they fall back to base
+   styles, leaving the :hover transform free to work.
+   ========================================================================== */
+@keyframes pillInLeft  { from{opacity:0; transform:translateX(-46px);} to{opacity:1; transform:translateX(0);} }
+@keyframes pillInRight { from{opacity:0; transform:translateX( 46px);} to{opacity:1; transform:translateX(0);} }
+@keyframes pillInUp    { from{opacity:0; transform:translateY( 26px);} to{opacity:1; transform:translateY(0);} }
+/* centered variant keeps the bottom pill's translateX(-50%) anchor */
+@keyframes pillInUpC   { from{opacity:0; transform:translateX(-50%) translateY(26px);}
+                         to  {opacity:1; transform:translateX(-50%) translateY(0);} }
+
+#field.show .left-nav  .patch{ animation:pillInLeft  .5s var(--ease) backwards; }
+#field.show .right-nav .patch{ animation:pillInRight .5s var(--ease) backwards; }
+#field.show .mobile-nav .patch{ animation:pillInUp   .5s var(--ease) backwards; }
+#field.show .callsheet-pill{ animation:pillInUpC .5s var(--ease) .25s backwards; }
+@media (prefers-reduced-motion:reduce){
+  #field.show .left-nav .patch, #field.show .right-nav .patch,
+  #field.show .mobile-nav .patch, #field.show .callsheet-pill{ animation:none; }
+}
+
+/* App layers stack above the video. Explicit width/height (not just inset:0)
+   so they reliably fill the viewport across every embed/browser engine. */
+#cover, #field, #takeover{position:fixed; top:0; left:0; width:100%; height:100%;}
+#cover{z-index:40;}
+#field{z-index:20;}
+#takeover{z-index:60;}
+
+.hidden{display:none !important;}
+
+/* ==========================================================================
+   [STYLE:COVER] — State 1, cinematic title card
+   ========================================================================== */
+#cover{
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  text-align:center; padding:32px;
+  background:radial-gradient(120% 90% at 50% 40%, transparent 40%, rgba(0,0,0,.55));
+  transition:opacity .5s ease, transform .5s ease;
+}
+#cover.lift{opacity:0; transform:scale(1.04); pointer-events:none;}
+.cover-logo{
+  position:relative;
+  width:168px; height:168px; margin-bottom:26px;
+  display:flex; align-items:center; justify-content:center;
+}
+/* soft scheme-colored glow behind the cover logo */
+.cover-logo::before{
+  content:""; position:absolute; inset:-18%;
+  background:radial-gradient(circle, color-mix(in srgb,var(--secondary) 40%, transparent) 0%, transparent 68%);
+  filter:blur(6px); z-index:-1;
+}
+.cover-logo img{max-width:100%; max-height:100%; object-fit:contain;
+  filter:drop-shadow(0 8px 22px rgba(0,0,0,.65));}
+.cover-series{margin-bottom:14px;}
+.cover-title{
+  font-size:clamp(44px, 8vw, 104px);
+  color:var(--cream);
+  text-shadow:0 4px 24px rgba(0,0,0,.7);
+  max-width:14ch;
+}
+.cover-sub{
+  margin-top:16px; font-size:clamp(14px,1.6vw,19px); font-weight:500;
+  letter-spacing:1px; color:var(--cream-muted); text-transform:uppercase;
+}
+.open-btn{
+  margin-top:42px;
+  font-family:var(--font-display); font-weight:900; text-transform:uppercase;
+  letter-spacing:2px; font-size:22px;
+  color:var(--primary);
+  background:var(--secondary);
+  padding:18px 54px;
+  border:2px solid var(--cream);
+  box-shadow:0 10px 28px rgba(0,0,0,.55), inset 0 0 0 3px var(--primary);
+  transition:transform .15s ease, filter .15s ease;
+}
+.open-btn:hover{transform:translateY(-3px); filter:brightness(1.08);}
+.cover-stamp{
+  position:absolute; bottom:26px; left:50%; transform:translateX(-50%);
+  display:flex; align-items:center; gap:9px; color:var(--gold);
+  font-family:var(--font-display); font-weight:700; letter-spacing:3px;
+  font-size:12px; text-transform:uppercase; opacity:.85;
+}
+.cover-stamp svg{width:20px; height:20px;}
+
+/* cover entrance — elements rise in sequence on load (a cinematic title card) */
+@keyframes coverRise{ from{opacity:0; transform:translateY(26px);} to{opacity:1; transform:none;} }
+@keyframes coverFade{ from{opacity:0;} to{opacity:1;} }
+#cover:not(.lift) .cover-logo  { animation:coverRise .7s var(--ease) .05s both; }
+#cover:not(.lift) .cover-series{ animation:coverRise .7s var(--ease) .20s both; }
+#cover:not(.lift) .cover-title { animation:coverRise .8s var(--ease) .30s both; }
+#cover:not(.lift) .cover-sub   { animation:coverRise .7s var(--ease) .46s both; }
+#cover:not(.lift) .cover-stamp { animation:coverRise .7s var(--ease) .85s both; }
+/* button fades in, then gently pulses a glow ring to invite the click
+   (opacity/box-shadow only — leaves the :hover lift free) */
+@keyframes btnGlow{
+  0%,100%{ box-shadow:0 10px 28px rgba(0,0,0,.55), inset 0 0 0 3px var(--primary), 0 0 0 0 transparent; }
+  50%    { box-shadow:0 10px 28px rgba(0,0,0,.55), inset 0 0 0 3px var(--primary),
+           0 0 26px 5px color-mix(in srgb, var(--secondary) 55%, transparent); }
+}
+#cover:not(.lift) .open-btn{
+  animation:coverFade .7s var(--ease) .58s both, btnGlow 2.6s ease-in-out 1.5s infinite;
+}
+@media (prefers-reduced-motion:reduce){
+  #cover .cover-logo,#cover .cover-series,#cover .cover-title,
+  #cover .cover-sub,#cover .cover-stamp,#cover .open-btn{ animation:none; }
+}
+
+/* ==========================================================================
+   [STYLE:FIELD] — State 2, the persistent open-field navigation
+   ========================================================================== */
+#field{opacity:0; transition:opacity .5s ease .15s;}
+#field.show{opacity:1;}
+
+/* tasteful top banner over the field — text only (no box), floats clean */
+.field-banner{
+  position:absolute; top:18px; left:50%; transform:translateX(-50%); z-index:6;
+  display:flex; flex-direction:column; align-items:center; gap:5px;
+  text-align:center; pointer-events:none; max-width:92vw;
+}
+.field-banner .fb-crown{width:32px; height:32px; color:var(--gold);
+  filter:drop-shadow(0 2px 8px rgba(0,0,0,.75));}
+.field-banner .fb-1{font-family:var(--font-display); font-weight:900; text-transform:uppercase;
+  letter-spacing:3px; font-size:32px; color:var(--cream);
+  text-shadow:0 3px 14px rgba(0,0,0,.95), 0 1px 3px rgba(0,0,0,.8);}
+.field-banner .fb-2{font-family:var(--font-display); font-weight:700; text-transform:uppercase;
+  letter-spacing:2.5px; font-size:14px; color:var(--secondary);
+  text-shadow:0 2px 10px rgba(0,0,0,.95), 0 1px 3px rgba(0,0,0,.8);}
+#field.show .field-banner{animation:pillInUpC .6s var(--ease) backwards;}
+/* hide the banner while a takeover is open so it doesn't ghost through
+   (!important to beat the entrance animation's cascade) */
+body.overlay-on .field-banner{opacity:0 !important; animation:none !important; transition:opacity .2s ease;}
+
+/* center brand — ambient, behind the pills; big team logo that gently breathes,
+   with the scheme initial as the fallback if no logo image is present. */
+.field-watermark{
+  position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+  pointer-events:none; user-select:none;
+}
+.field-watermark .fw-letter{
+  font-family:var(--font-display); font-weight:900; font-size:46vh;
+  color:var(--cream); opacity:.06; letter-spacing:-4px;
+}
+.field-watermark .fw-logo{
+  display:none; max-width:46vw; max-height:62vh; object-fit:contain;
+  filter:drop-shadow(0 14px 36px rgba(0,0,0,.55));
+  animation:logoBreathe 6s ease-in-out infinite;
+}
+@keyframes logoBreathe{
+  0%,100%{opacity:.16; transform:scale(1);}
+  50%    {opacity:.26; transform:scale(1.045);}
+}
+@media (prefers-reduced-motion:reduce){ .field-watermark .fw-logo{animation:none; opacity:.2;} }
+
+/* No top/bottom bars — the entire screen is the stadium video with floating
+   pills on the left, right, and bottom-center over the open field. */
+
+/* --- left floating pills --- */
+.left-nav{
+  position:absolute; left:22px; top:50%; transform:translateY(-50%); z-index:5;
+  display:flex; flex-direction:column; gap:12px; width:236px;
+}
+.left-nav .nav-divider{
+  height:2px; background:var(--secondary); opacity:.5; margin:5px 6px;
+  position:relative;
+}
+.left-nav .nav-divider::after{
+  content:"SERIES"; position:absolute; left:50%; top:50%;
+  transform:translate(-50%,-50%);
+  background:var(--primary-deep); padding:0 8px;
+  font-family:var(--font-display); font-weight:700; letter-spacing:2px;
+  font-size:9px; color:var(--secondary);
+}
+/* series-link pills are a slimmer variant of the patch */
+.patch.series{--patch-h:40px;}
+.patch.series .patch-title{font-size:15px;}
+
+/* --- right floating pills (play categories) --- */
+.right-nav{
+  position:absolute; right:22px; top:50%; transform:translateY(-50%); z-index:5;
+  display:flex; flex-direction:column; gap:12px; width:236px; align-items:flex-end;
+}
+.right-nav .patch{width:100%;}
+/* right pills lean toward their own edge on hover (mirror of the left stack) */
+.right-nav .patch:hover, .right-nav .patch:focus-visible{transform:translateX(-4px);}
+
+/* --- top-left Scheme Kings circular CTA badge --- */
+.sk-circle-badge{
+  position:absolute; top:28px; left:28px; z-index:5;
+  width:158px; height:158px; border-radius:50%;
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  text-align:center; text-decoration:none; gap:5px; padding:18px;
+  background:radial-gradient(circle at 50% 35%,
+    color-mix(in srgb, var(--primary) 80%, #fff) 0%,
+    var(--primary) 55%,
+    var(--primary-deep) 100%);
+  border:3px solid var(--gold);
+  box-shadow:
+    inset 0 0 0 4px var(--primary-deep),
+    inset 0 0 0 6.5px var(--gold),
+    0 8px 28px rgba(0,0,0,.65),
+    0 0 22px color-mix(in srgb, var(--gold) 18%, transparent);
+  transform:rotate(-9deg);
+  transition:transform .22s var(--ease), box-shadow .22s var(--ease), filter .22s var(--ease);
+}
+.sk-circle-badge:hover{
+  transform:rotate(-4deg) scale(1.08);
+  filter:brightness(1.08);
+  box-shadow:
+    inset 0 0 0 4px var(--primary-deep),
+    inset 0 0 0 6.5px var(--gold),
+    0 14px 36px rgba(0,0,0,.7),
+    0 0 38px color-mix(in srgb, var(--gold) 38%, transparent);
+}
+.sk-circle-badge .scb-logo{
+  width:46px; height:46px; object-fit:contain; flex:0 0 auto;
+  filter:drop-shadow(0 2px 4px rgba(0,0,0,.55));
+}
+.sk-circle-badge .scb-logo-fb{
+  width:46px; height:46px; color:var(--gold); flex:0 0 auto;
+  filter:drop-shadow(0 2px 4px rgba(0,0,0,.55));
+}
+.sk-circle-badge .scb-logo-fb svg{ width:100%; height:100%; }
+.sk-circle-badge .scb-title{
+  font-family:var(--font-display); font-weight:900; text-transform:uppercase;
+  font-size:21px; letter-spacing:.5px; line-height:.92; color:var(--cream);
+  text-shadow:0 2px 7px rgba(0,0,0,.7);
+}
+.sk-circle-badge .scb-sub{
+  font-family:var(--font-display); font-weight:700; text-transform:uppercase;
+  font-size:9px; letter-spacing:1.5px; line-height:1.4; color:var(--gold);
+  text-shadow:0 1px 4px rgba(0,0,0,.6);
+}
+@keyframes badgeDrop{
+  from{ opacity:0; transform:rotate(-9deg) scale(.55); }
+  to  { opacity:1; transform:rotate(-9deg) scale(1); }
+}
+#field.show .sk-circle-badge{ animation:badgeDrop .45s var(--ease) .1s backwards; }
+@media (prefers-reduced-motion:reduce){ #field.show .sk-circle-badge{ animation:none; transform:rotate(-9deg); } }
+@media (max-width:768px){ .sk-circle-badge{ display:none; } }
+
+/* --- bottom-center Call Sheet pill (opens the full tag-filtered call sheet) */
+.callsheet-pill{
+  position:absolute; bottom:26px; left:50%; transform:translateX(-50%); z-index:6;
+  --patch-h:54px; min-width:300px;
+}
+.callsheet-pill:hover, .callsheet-pill:focus-visible{transform:translateX(-50%) translateY(-4px);}
+
+/* shared filter row + chips (used inside the overlay cards) */
+.filter-row{display:flex; flex-wrap:wrap; gap:6px; margin-bottom:14px;}
+/* small filter + tag pills: dark tint inactive, secondary fill active */
+.chip{
+  font-family:var(--font-display); font-weight:700; text-transform:uppercase;
+  letter-spacing:1px; font-size:11px;
+  padding:5px 12px; border-radius:999px; border:2px solid var(--primary);
+  color:var(--cream); background:var(--primary);
+  box-shadow:0 2px 5px rgba(0,0,0,.25);
+  transition:all .12s var(--ease); white-space:nowrap;
+}
+.chip:hover{filter:brightness(1.12); transform:translateY(-1px);}
+.chip.active{background:var(--secondary); color:var(--ink); border-color:var(--ink);}
+
+.play-list{flex:1; overflow-y:auto; margin:0 -6px; padding:0 6px;}
+.play-list::-webkit-scrollbar{width:6px;}
+.play-list::-webkit-scrollbar-thumb{background:var(--secondary); opacity:.6;}
+.group-label{
+  font-family:var(--font-display); font-weight:700; text-transform:uppercase;
+  letter-spacing:2px; font-size:11px; color:var(--cream-muted);
+  margin:13px 0 6px;
+}
+.play-item{
+  display:flex; align-items:center; gap:8px; width:100%;
+  padding:11px 13px; margin-bottom:7px; text-align:left;
+  background:var(--cream);
+  border:2px solid color-mix(in srgb, var(--primary) 76%, var(--cream));
+  border-radius:10px; box-shadow:0 4px 11px rgba(0,0,0,.32);
+  transition:transform .12s var(--ease), box-shadow .12s var(--ease), border-color .12s var(--ease);
+}
+.play-item:hover{transform:translateX(3px); border-color:var(--primary);
+  box-shadow:0 6px 15px rgba(0,0,0,.42), inset 0 0 0 2px var(--secondary);}
+.play-item.selected{border-color:var(--primary);
+  box-shadow:inset 0 0 0 2.5px var(--secondary), 0 6px 15px rgba(0,0,0,.42);}
+.play-item .pi-text{flex:1; min-width:0; display:flex; flex-direction:column; gap:2px;}
+.play-item .pi-name{font-family:var(--font-display); font-weight:700;
+  text-transform:uppercase; font-size:15px; letter-spacing:.5px; color:var(--ink); line-height:1.05;}
+.play-item .pi-form{font-size:10px; letter-spacing:.5px; color:var(--ink-soft);
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+.play-item .pi-star{width:14px; height:14px; color:var(--gold); flex:0 0 auto; align-self:flex-start;}
+
+/* Scheme Kings Exclusive badge (brushed gold) — marks bonus plays */
+.excl{display:inline-flex; align-items:center; gap:4px; width:fit-content; margin-top:3px;
+  font-family:var(--font-display); font-weight:800; text-transform:uppercase; letter-spacing:1px;
+  font-size:8.5px; color:var(--ink-gold);
+  background:linear-gradient(180deg, var(--gold-lt), var(--gold) 55%, var(--gold-dk));
+  border:1px solid var(--gold-lt); padding:2px 7px;
+  box-shadow:0 1px 3px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,255,255,.5);}
+.excl svg{width:9px; height:9px;}
+.play-item.selected .excl{color:var(--ink-gold);}   /* keep gold even when row selected */
+.excl.excl-lg{font-size:11px; letter-spacing:1.5px; padding:5px 11px; margin:10px 0 4px;}
+.excl.excl-lg svg{width:12px; height:12px;}
+.empty{padding:24px 6px; color:var(--cream-muted); font-size:13px; text-align:center;}
+
+/* PLAY-PILL — a play row rendered as a full varsity-patch button (built on the
+   .patch material: cream felt, blue stitched border, gold pinstripe, left
+   scheme badge), with a name + tag pills and a gold play button on the right. */
+.play-pill{ --patch-h:74px; width:100%; gap:0; cursor:pointer; text-align:left; }
+.play-pill:hover, .play-pill:focus-visible{ transform:none; }   /* no sideways shift on a full-width row */
+.play-pill .pp-main{ flex:1; min-width:0; display:flex; flex-direction:column; gap:7px; }
+.play-pill .pp-name{ font-family:var(--font-display); font-weight:900; text-transform:uppercase;
+  font-size:25px; letter-spacing:.5px; color:var(--ink); line-height:.95;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.play-pill .pp-tags{ display:flex; flex-wrap:wrap; gap:7px; }
+.pp-tag{ font-family:var(--font-display); font-weight:800; text-transform:uppercase;
+  letter-spacing:.5px; font-size:10px; padding:3px 9px; border-radius:5px; white-space:nowrap; }
+.pp-tag.gold{ color:var(--ink-gold);
+  background:linear-gradient(180deg, var(--gold-lt), var(--gold) 58%, var(--gold-dk));
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.5); }
+.pp-tag.blue{ color:var(--cream); background:var(--primary); }
+.play-pill .pp-play{ flex:0 0 auto; margin-left:14px; width:50px; height:50px; border-radius:50%;
+  display:flex; align-items:center; justify-content:center; color:var(--ink-gold);
+  background:radial-gradient(circle at 50% 32%, var(--gold-lt), var(--gold) 56%, var(--gold-dk));
+  border:2px solid var(--gold-lt);
+  box-shadow:0 4px 11px rgba(0,0,0,.4), inset 0 2px 0 rgba(255,255,255,.55), inset 0 -3px 6px rgba(120,70,0,.3);
+  transition:transform .14s var(--ease), box-shadow .14s var(--ease); }
+.play-pill .pp-play svg{ width:21px; height:21px; margin-left:3px; }
+.play-pill:hover .pp-play{ transform:scale(1.09);
+  box-shadow:0 6px 15px rgba(0,0,0,.45), 0 0 16px color-mix(in srgb,var(--gold) 50%, transparent), inset 0 2px 0 rgba(255,255,255,.55); }
+
+/* ==========================================================================
+   [STYLE:TAKEOVER] — State 3, full-screen dark overlay + centered card
+   ========================================================================== */
+#takeover{
+  display:flex; align-items:center; justify-content:center; padding:30px;
+  background:var(--overlay);
+  opacity:0; pointer-events:none; transition:opacity .22s ease;
+}
+#takeover.open{opacity:1; pointer-events:auto;}
+
+.card{
+  position:relative;
+  width:min(1180px, 96vw); max-height:92vh;
+  display:flex; overflow:hidden;
+  opacity:1; transform:none;            /* resting state */
+  will-change:transform, opacity;
+}
+/* Entrances are CSS animations (fire on insertion, independent of overlay
+   state) so play cards grow from center and panels slide in from their pill's
+   side — and prev/next slide-ins still work while the overlay stays open. */
+/* The card "deals in" with a subtle 3D tilt (like a page being laid down),
+   not a flat pop — direction depends on which pill opened it. */
+@keyframes cardInScale { from{opacity:0; transform:perspective(1600px) translateY(34px) rotateX(9deg)  scale(.965);} to{opacity:1; transform:perspective(1600px) translateY(0) rotateX(0) scale(1);} }
+@keyframes cardInLeft  { from{opacity:0; transform:perspective(1600px) translateX(-90px) rotateY(-12deg) scale(.97);} to{opacity:1; transform:perspective(1600px) translateX(0) rotateY(0) scale(1);} }
+@keyframes cardInRight { from{opacity:0; transform:perspective(1600px) translateX( 90px) rotateY( 12deg) scale(.97);} to{opacity:1; transform:perspective(1600px) translateX(0) rotateY(0) scale(1);} }
+@keyframes cardInBottom{ from{opacity:0; transform:perspective(1600px) translateY( 80px) rotateX(14deg) scale(.97);} to{opacity:1; transform:perspective(1600px) translateY(0) rotateX(0) scale(1);} }
+.card.in-scale { animation:cardInScale  .34s var(--ease) both; }
+.card.in-left  { animation:cardInLeft   .36s var(--ease) both; }
+.card.in-right { animation:cardInRight  .36s var(--ease) both; }
+.card.in-bottom{ animation:cardInBottom .36s var(--ease) both; }
+/* whoosh: the card balloons out of the exact pill that was clicked
+   (JS sets transform-origin to the pill's position relative to the card) */
+@keyframes cardMorph{ from{opacity:0; transform:scale(.10);} 60%{opacity:1;} to{opacity:1; transform:scale(1);} }
+.card.in-morph{ animation:cardMorph .4s var(--ease) both; }
+/* prev/next: JS adds .stepping + an inline transform to slide the old card out */
+.card.stepping{ transition:transform .17s ease, opacity .17s ease; }
+/* close: a deliberate lift-and-tilt back out (reverses the deal-in) */
+@keyframes cardOut{ from{opacity:1; transform:perspective(1600px) rotateX(0) translateY(0) scale(1);}
+                    to  {opacity:0; transform:perspective(1600px) rotateX(8deg) translateY(28px) scale(.965);} }
+.card.out{ animation:cardOut .24s var(--ease) both; }
+/* inner blocks rise + fade in, staggered (delays set per child by JS) so the
+   card's contents lay out in sequence after it lands */
+@keyframes contentRise{ from{opacity:0; transform:translateY(16px);} to{opacity:1; transform:none;} }
+@media (prefers-reduced-motion:reduce){
+  .card.in-scale,.card.in-left,.card.in-right,.card.in-bottom,.card.in-morph,.card.out{ animation:none; }
+}
+
+/* ===== CREAM VARSITY-PATCH MATERIAL — the shared surface for every card =====
+   Warm ivory felt, raised scheme-color border, gold pinstripe, a dashed cream
+   stitch line just inside it, soft drop shadow, and a gold crown corner stamp. */
+.cream-patch{
+  position:relative;
+  background-color:var(--cream);
+  background-image:
+    linear-gradient(180deg, rgba(255,255,255,.5), rgba(0,0,0,.05) 60%, rgba(0,0,0,.09)),
+    var(--noise);
+  background-blend-mode:soft-light, soft-light;
+  border:3px solid var(--primary);
+  border-radius:var(--card-radius);
+  box-shadow:
+    inset 0 0 0 2.5px var(--secondary),          /* gold pinstripe */
+    inset 0 2px 2px rgba(255,255,255,.6),
+    inset 0 -5px 10px rgba(0,0,0,.06),
+    0 20px 46px rgba(0,0,0,.5);
+  color:var(--ink-soft);
+}
+.cream-patch::before{                             /* dashed cream stitch inside the border */
+  content:""; position:absolute; inset:6px; pointer-events:none;
+  border:1.6px dashed var(--stitch); border-radius:calc(var(--card-radius) - 5px);
+}
+/* gold crown quality stamp in a patch corner */
+.crown-stamp{position:absolute; right:13px; bottom:11px; width:22px; height:22px; z-index:3;
+  color:var(--gold); pointer-events:none; filter:drop-shadow(0 1px 1px rgba(0,0,0,.3));}
+.crown-stamp svg{width:100%; height:100%;}
+/* the big PLAY card is a cream patch but its corners clip the columns */
+.card.cream-patch{ overflow:hidden; }
+
+/* close button */
+.card-close{
+  position:absolute; top:13px; right:13px; z-index:10;
+  width:36px; height:36px; display:flex; align-items:center; justify-content:center;
+  border-radius:50%;
+  background:var(--primary); border:2px solid var(--secondary); color:var(--cream);
+  font-family:var(--font-display); font-size:21px; font-weight:700; line-height:1;
+  box-shadow:0 3px 8px rgba(0,0,0,.35);
+  transition:all .12s ease;
+}
+.card-close:hover{background:var(--secondary); color:var(--ink); transform:scale(1.06);}
+
+/* ---- PLAY CARD: full-width header above a two-column body ---- */
+.play-card{flex-direction:column;}
+.card-head{
+  display:flex; justify-content:space-between; align-items:flex-start; gap:18px;
+  flex:0 0 auto; padding:22px 62px 15px 28px;          /* right pad clears the close btn */
+  border-bottom:2px solid var(--cream-edge);
+}
+.card-head-id{min-width:0;}
+.card-head .card-name{margin-bottom:4px;}
+.card-head .card-form{margin-bottom:0;}
+.card-head-tags{display:flex; flex-wrap:wrap; gap:7px; justify-content:flex-end; align-items:center;
+  padding-top:7px; max-width:52%;}
+.card-body{display:flex; flex:1; min-height:0; overflow:hidden;}
+
+.card-left{
+  flex:0 0 37%; padding:22px;
+  background:transparent;
+  border-right:2px solid var(--cream-edge);
+  display:flex; flex-direction:column; gap:14px; overflow-y:auto;
+}
+.card-right{flex:1; padding:24px 30px; overflow-y:auto;}
+.card-left::-webkit-scrollbar, .card-right::-webkit-scrollbar{width:6px;}
+.card-left::-webkit-scrollbar-thumb, .card-right::-webkit-scrollbar-thumb{background:var(--primary);}
+
+/* image / diagram slots — dark navy field panels inset in the cream card */
+.imgslot{
+  position:relative; width:100%; aspect-ratio:16/9; overflow:hidden; border-radius:10px;
+  background:var(--diagram); border:2px solid var(--primary);
+  box-shadow:inset 0 0 0 2px color-mix(in srgb,var(--cream) 30%, transparent), inset 0 2px 12px rgba(0,0,0,.45);
+  display:flex; align-items:center; justify-content:center;
+}
+.imgslot img{width:100%; height:100%; object-fit:cover;}
+.imgslot .img-ph{
+  position:absolute; font-family:var(--font-display); font-weight:700;
+  letter-spacing:2px; font-size:11px; color:color-mix(in srgb,var(--cream) 55%, transparent); text-align:center;
+}
+.imgslot.loaded .img-ph{display:none;}          /* hide placeholder once a real image paints */
+.imgslot.img-missing img{display:none;}
+.thumb-row{display:flex; gap:12px;}
+.thumb-row .imgslot{flex:1;}
+
+/* field-view-as-video: gold play button + label overlaid on the thumbnail */
+.video-slot{display:block; cursor:pointer;}
+.video-ov{position:absolute; inset:0; z-index:2;
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:11px;
+  background:linear-gradient(180deg, rgba(0,0,0,.12), rgba(0,0,0,.46));
+  transition:background .16s var(--ease);}
+.video-play{
+  width:62px; height:62px; border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+  color:var(--ink-gold);
+  background:linear-gradient(180deg, var(--gold-lt), var(--gold) 50%, var(--gold-dk));
+  border:3px solid #fff3cf;
+  box-shadow:0 6px 16px rgba(0,0,0,.55), inset 0 2px 0 rgba(255,255,255,.6);
+  transition:transform .16s var(--ease), box-shadow .16s var(--ease);}
+.video-play svg{width:26px; height:26px; margin-left:3px;}
+.video-label{font-family:var(--font-display); font-weight:900; text-transform:uppercase;
+  letter-spacing:2px; font-size:15px; color:var(--cream); text-shadow:0 1px 5px rgba(0,0,0,.85);}
+.video-slot:hover .video-play{transform:scale(1.09);
+  box-shadow:0 8px 22px rgba(0,0,0,.6), 0 0 22px color-mix(in srgb, var(--gold) 55%, transparent), inset 0 2px 0 rgba(255,255,255,.6);}
+.video-slot:hover .video-ov{background:linear-gradient(180deg, rgba(0,0,0,.05), rgba(0,0,0,.34));}
+.video-slot.playing{cursor:default;}
+/* embedded breakdown video (plays in place inside the card) */
+.video-frame{position:absolute; inset:0; width:100%; height:100%; border:0; z-index:4; background:#000;}
+.video-pending{position:absolute; inset:0; z-index:4; padding:18px; text-align:center;
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px;
+  background:var(--primary-deep); color:var(--cream-muted);}
+.video-pending p{font-size:13px; line-height:1.55;}
+.video-pending code{color:var(--secondary); font-family:ui-monospace, monospace;}
+
+/* in-game Setup note on a play card */
+.setup-note{line-height:1.55; font-size:14.5px; color:var(--ink-soft);
+  padding:12px 14px; background:var(--cream-deep); border-left:4px solid var(--primary);
+  border-radius:0 8px 8px 0;}
+
+/* WATCH BREAKDOWN — the most premium element on the card: brushed gold,
+   raised bevel, a play-icon coin, and a sweeping sheen on hover. */
+.watch-btn{
+  position:relative; overflow:hidden;
+  display:flex; align-items:center; justify-content:center; gap:13px;
+  width:100%; padding:17px;
+  color:var(--ink-gold);
+  background:linear-gradient(180deg, var(--gold-lt) 0%, var(--gold) 46%, var(--gold-dk) 100%);
+  font-family:var(--font-display); font-weight:900; text-transform:uppercase;
+  letter-spacing:2px; font-size:19px;
+  border:2.5px solid var(--gold-lt);
+  box-shadow:
+    inset 0 2px 0 rgba(255,255,255,.7),
+    inset 0 -4px 8px rgba(120,70,0,.35),
+    0 10px 26px rgba(0,0,0,.55),
+    0 0 0 2px rgba(0,0,0,.15);
+  text-shadow:0 1px 0 rgba(255,255,255,.45);
+  transition:transform .14s var(--ease), box-shadow .14s var(--ease), filter .14s var(--ease);
+}
+.watch-btn:hover{
+  transform:translateY(-2px); filter:brightness(1.05);
+  box-shadow:
+    inset 0 2px 0 rgba(255,255,255,.8),
+    inset 0 -4px 8px rgba(120,70,0,.35),
+    0 14px 32px rgba(0,0,0,.6),
+    0 0 22px color-mix(in srgb, var(--gold) 55%, transparent);
+}
+/* the play-icon sits in its own dark coin to read as a video button */
+.watch-btn svg{
+  width:20px; height:20px; padding:6px; box-sizing:content-box;
+  background:var(--ink-gold); color:var(--gold); border-radius:50%;
+  box-shadow:inset 0 0 0 1.5px rgba(255,255,255,.25);
+}
+/* sweeping sheen */
+.watch-btn::after{
+  content:""; position:absolute; top:0; left:-60%; width:45%; height:100%;
+  background:linear-gradient(100deg, transparent, rgba(255,255,255,.55), transparent);
+  transform:skewX(-18deg); transition:left .5s var(--ease);
+}
+.watch-btn:hover::after{ left:130%; }
+
+/* right column content */
+.card-type{margin-bottom:6px; color:var(--primary);}
+.card-type .star{display:inline-block; width:14px; height:14px; color:var(--gold);
+  vertical-align:-2px; margin-right:5px;}
+.card-name{font-size:clamp(34px,4.4vw,56px); color:var(--ink); margin-bottom:6px;}
+.card-form{font-size:13px; letter-spacing:1.5px; text-transform:uppercase;
+  color:var(--ink-soft); margin-bottom:18px;}
+
+/* section headers: navy varsity label with a gold underline */
+.sec-head{
+  display:inline-block;
+  font-family:var(--font-display); font-weight:800; text-transform:uppercase;
+  letter-spacing:2.5px; font-size:15px; color:var(--ink);
+  padding:0 2px 6px; margin:22px 0 13px;
+  border-bottom:2.5px solid var(--secondary);
+}
+.reads{list-style:none; counter-reset:r;}
+.reads li{display:flex; gap:14px; align-items:flex-start; margin-bottom:11px;
+  padding-bottom:11px; border-bottom:1px solid var(--cream-edge);}
+.reads li:last-child{border-bottom:none;}
+/* numbered reads — a substantial brushed-gold medallion with bevel + shadow */
+.reads .num{
+  flex:0 0 auto; width:36px; height:36px; display:flex; align-items:center;
+  justify-content:center; counter-increment:r;
+  color:var(--ink-sec); font-family:var(--font-display); font-weight:900; font-size:19px;
+  background:linear-gradient(180deg, var(--sec-lt), var(--secondary) 48%, var(--sec-dk));
+  border:2px solid var(--sec-lt);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.7),
+    inset 0 -3px 5px rgba(90,60,0,.4),
+    0 3px 7px rgba(0,0,0,.5);
+  text-shadow:0 1px 0 rgba(255,255,255,.4);
+}
+.reads .num::before{content:counter(r);}
+.reads .read-text{flex:1; line-height:1.45; font-size:15px; padding-top:4px;}
+.reads .read-text b{font-family:var(--font-display); font-weight:700;
+  text-transform:uppercase; letter-spacing:.5px; color:var(--ink); font-size:16px;}
+.reads .read-text span{color:var(--ink-soft);}
+
+.adjust{list-style:none;}
+.adjust li{display:flex; gap:10px; margin-bottom:8px; font-size:14.5px; line-height:1.4; color:var(--ink-soft);}
+.adjust li::before{content:"\2192"; color:var(--primary); font-weight:700;
+  font-size:17px; line-height:1.2;}
+
+.whentouse{font-style:italic; font-size:15px; line-height:1.55; color:var(--ink);
+  padding:14px 16px; background:var(--cream-deep); border-left:4px solid var(--gold);
+  border-radius:0 8px 8px 0;}
+
+.tag-row{display:flex; flex-wrap:wrap; gap:7px; margin-top:12px;}
+.tag-row .chip{cursor:pointer;}
+
+/* card footer (play card only) */
+.card-footer{
+  display:flex; align-items:center; justify-content:space-between;
+  margin-top:24px; padding-top:16px; border-top:2px solid var(--cream-edge);
+}
+.card-footer .foot-label{font-family:var(--font-display); font-weight:700;
+  text-transform:uppercase; letter-spacing:1px; font-size:12px; color:var(--ink-soft);}
+.card-footer .foot-label span{color:var(--primary);}
+.nav-btns{display:flex; gap:9px;}
+.nav-btns button{
+  font-family:var(--font-display); font-weight:800; text-transform:uppercase;
+  letter-spacing:1px; font-size:13px; color:var(--cream);
+  padding:9px 16px; background:var(--primary); border:2px solid var(--primary); border-radius:8px;
+  transition:all .12s ease;
+}
+.nav-btns button:hover{background:var(--secondary); color:var(--ink); border-color:var(--secondary);}
+
+/* ---- SECTION CARD (About / Personnel / Formations) ---- */
+.section-card{
+  flex-direction:column; width:min(1040px,96vw);
+  padding:30px 36px; overflow-y:auto;
+}
+.section-card::-webkit-scrollbar{width:6px;}
+.section-card::-webkit-scrollbar-thumb{background:var(--secondary);}
+/* section header: centered ivory title over the dimmed stadium */
+.section-card .sc-eyebrow{margin-bottom:6px; text-align:center; color:var(--secondary);
+  text-shadow:0 2px 8px rgba(0,0,0,.7);}
+.section-card .sc-title{font-size:clamp(30px,4.4vw,52px); color:var(--cream); text-align:center;
+  text-shadow:0 3px 14px rgba(0,0,0,.75);}
+.section-card .sc-divider{height:2px; max-width:560px; margin:14px auto 24px;
+  background:linear-gradient(90deg, transparent, var(--gold) 18%, var(--gold) 82%, transparent);}
+
+/* Scheme Philosophy — each pillar is its own cream patch */
+.pillars{display:flex; flex-direction:column; gap:16px;}
+.pillar{padding:18px 22px;}
+.pillar .p-head{font-family:var(--font-display); font-weight:800; text-transform:uppercase;
+  letter-spacing:1px; font-size:21px; color:var(--ink); margin-bottom:6px;}
+.pillar p{line-height:1.6; font-size:15px; color:var(--ink-soft); max-width:62ch;}
+
+/* Personnel — varsity patch per position: big abbreviation + role + two pills */
+.card-grid{display:grid; grid-template-columns:repeat(4,1fr); gap:16px;}
+.mini-card{padding:20px 16px 16px; display:flex; flex-direction:column; align-items:center; text-align:center;}
+.mini-card .mc-pos{font-family:var(--font-display); font-weight:900; font-size:46px;
+  letter-spacing:1px; line-height:1; color:var(--ink);}
+.mini-card .mc-role{font-size:12.5px; line-height:1.45; color:var(--ink-soft); margin:11px 0 14px;}
+.mini-card .mc-pills{display:flex; gap:8px; flex-wrap:wrap; justify-content:center; margin-top:auto;}
+.mc-pill{display:flex; flex-direction:column; align-items:center; gap:2px; min-width:66px;
+  background:var(--primary); border-radius:9px; padding:6px 11px;}
+.mc-pill b{font-family:var(--font-display); font-weight:800; text-transform:uppercase;
+  letter-spacing:1px; font-size:8px; color:color-mix(in srgb,var(--cream) 70%, var(--secondary));}
+.mc-pill i{font-style:normal; font-weight:700; font-size:12px; color:var(--cream);}
+
+/* Formations — patch rows: dark field diagram + name + description + play tags */
+.form-list{display:flex; flex-direction:column; gap:16px;}
+.form-row{display:flex; gap:18px; align-items:center; padding:14px 18px;}
+.form-row .imgslot{flex:0 0 230px; align-self:center;}
+.form-row .f-text{flex:1;}
+.form-row .f-name{font-family:var(--font-display); font-weight:900; text-transform:uppercase;
+  font-size:26px; color:var(--ink); margin-bottom:6px;}
+.form-row .f-desc{line-height:1.55; font-size:14px; color:var(--ink-soft);}
+.f-tags{display:flex; flex-wrap:wrap; gap:7px; margin-top:11px;}
+.ftag{font-family:var(--font-display); font-weight:700; text-transform:uppercase; letter-spacing:.5px;
+  font-size:10.5px; color:var(--cream); background:var(--primary); border-radius:999px; padding:4px 11px;}
+button.ftag{cursor:pointer; transition:background .12s var(--ease), color .12s var(--ease), transform .12s var(--ease);}
+button.ftag:hover{background:var(--secondary); color:var(--ink); transform:translateY(-1px);}
+
+/* ---- SERIES WRITE-UP ("Full Offense" pill) ---- */
+.series-intro{line-height:1.65; font-size:15px; color:var(--cream); margin:0 auto 24px;
+  max-width:72ch; text-align:center; text-shadow:0 1px 6px rgba(0,0,0,.6);}
+/* three vertical "trading card" patches */
+.team-list{display:grid; grid-template-columns:repeat(3,1fr); gap:18px;}
+.team-row{display:flex; flex-direction:column; align-items:center; text-align:center; padding:24px 18px 20px;}
+.team-row .t-shield{width:54px; height:54px; border-radius:50%; margin-bottom:13px;
+  background:var(--cream); border:3px solid var(--primary);
+  box-shadow:inset 0 0 0 2px var(--secondary); color:var(--gold);
+  display:flex; align-items:center; justify-content:center;}
+.team-row .t-shield img{width:70%; height:70%; object-fit:contain;}
+.team-row .t-shield svg{width:54%; height:54%;}
+.team-row .t-era{font-family:var(--font-display); font-weight:700; text-transform:uppercase;
+  letter-spacing:2px; font-size:11px; color:var(--primary); margin-bottom:6px;}
+.team-row .t-name{font-family:var(--font-display); font-weight:900; text-transform:uppercase;
+  font-size:24px; letter-spacing:.5px; color:var(--ink); line-height:1.05; margin-bottom:10px;}
+.team-row .t-blurb{line-height:1.55; font-size:13.5px; color:var(--ink-soft); margin-bottom:14px;}
+.team-row .t-actions{display:flex; flex-direction:column; gap:9px; width:100%; margin-top:auto;}
+.team-row .yt-link, .team-row .sk-badge{width:100%; justify-content:center;}
+
+/* gold "Watch Full YouTube Breakdown" button — shared by About + each team */
+.yt-link{display:inline-flex; align-items:center; gap:9px;
+  font-family:var(--font-display); font-weight:900; text-transform:uppercase; letter-spacing:1.5px;
+  font-size:13px; color:var(--ink-gold);
+  background:linear-gradient(180deg, var(--gold-lt), var(--gold) 50%, var(--gold-dk));
+  padding:10px 16px; border:2px solid var(--gold-lt); border-radius:8px;
+  box-shadow:0 5px 14px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.5);
+  transition:filter .14s var(--ease), transform .14s var(--ease);}
+.yt-link:hover{filter:brightness(1.06); transform:translateY(-2px);}
+.yt-link svg{width:16px; height:16px; padding:4px; box-sizing:content-box;
+  background:var(--ink-gold); color:var(--gold); border-radius:50%;}
+.about-yt{margin-top:24px; display:flex;}   /* full-width-ish in the About section */
+
+/* "Full Playbook on Scheme Kings" — solid blue button-badge */
+.sk-badge{display:inline-flex; align-items:center; justify-content:center; gap:6px;
+  font-family:var(--font-display); font-weight:800; text-transform:uppercase; letter-spacing:1.5px;
+  font-size:11px; color:var(--cream); background:var(--primary);
+  border:2px solid var(--primary); border-radius:8px; padding:9px 13px;
+  box-shadow:0 4px 10px rgba(0,0,0,.35);}
+.sk-badge svg{width:13px; height:13px; color:var(--secondary);}
+.series-outro{font-style:italic; line-height:1.6; font-size:14px; color:var(--cream); text-align:center;
+  margin:24px auto 0; max-width:80ch; text-shadow:0 1px 6px rgba(0,0,0,.6);}
+
+/* ---- LIST CARD — category list + full call sheet, opened as overlays ---- */
+.list-card{width:min(1020px,96vw);}
+/* plays flow across the screen in two columns (group labels span the row) */
+.list-card .overlay-list{display:grid; grid-template-columns:repeat(2,1fr);
+  gap:14px 18px; align-content:start;}
+.list-card .overlay-list .group-label{grid-column:1/-1; margin:14px 0 2px; font-size:12px;
+  color:var(--secondary);}
+.list-card .overlay-list .group-label:first-child{margin-top:2px;}
+.list-card .overlay-list .empty{grid-column:1/-1;}
+.list-card .filter-row{margin-bottom:10px; justify-content:center;}
+
+/* ---- HUB MENU (mobile only) — patch pills stacked inside the overlay ---- */
+.menu-list{display:flex; flex-direction:column; gap:12px;}
+.menu-row{width:100%; --patch-h:58px;}
+.menu-row .patch-title{font-size:20px;}
+.menu-divider{height:2px; background:var(--secondary); opacity:.45; margin:6px 4px 2px;
+  position:relative;}
+.menu-divider::after{content:"SERIES PLAYBOOKS"; position:absolute; left:50%; top:50%;
+  transform:translate(-50%,-50%); background:var(--primary); padding:0 10px;
+  font-family:var(--font-display); font-weight:700; letter-spacing:2px;
+  font-size:9px; color:var(--secondary);}
+
+/* ==========================================================================
+   [STYLE:MOBILE] — separate vertical-phone layout, <768px. Not a shrink.
+   ========================================================================== */
+.mobile-only{display:none;}
+@media (max-width:768px){
+  body{overflow:auto;}
+  #bg-video{filter:blur(2px) brightness(0.32);}   /* lighter blur for perf */
+
+  .desktop-only{display:none !important;}
+  .mobile-only{display:block;}
+
+  /* cover scales fine; just tighten */
+  .cover-logo{width:96px; height:96px;}
+
+  .field-watermark{font-size:34vh;}
+  .field-banner{top:12px;}
+  .field-banner .fb-crown{width:24px; height:24px;}
+  .field-banner .fb-1{font-size:22px; letter-spacing:2px;}
+  .field-banner .fb-2{font-size:11px; letter-spacing:1.5px;}
+
+  /* Mobile uses a simpler hub nav (the desktop left/right stacks are hidden).
+     Two big tap-friendly pills, centered, open sub-menus. */
+  .mobile-nav{
+    display:flex; flex-direction:column; gap:16px;
+    position:absolute; left:50%; top:44%; transform:translate(-50%,-50%);
+    z-index:5; width:min(330px, 82vw);
+  }
+  /* keep the base left padding so the overhanging emblem never covers text */
+  .mobile-nav .patch{width:100%; --patch-h:64px; padding:0 18px 0 calc(var(--patch-h) + 8px); gap:13px;}
+  .mobile-nav .patch .patch-title{font-size:23px;}
+  .mobile-nav .patch .patch-sub{font-size:9px;}
+  .mobile-nav .patch .badge{width:40px; height:40px;}
+
+  /* Call Sheet pill stays floating, centered along the bottom */
+  .callsheet-pill{bottom:18px; min-width:0; width:auto; max-width:calc(100% - 24px);}
+
+  /* --- takeover: single column, scrollable --- */
+  #takeover{padding:0; align-items:stretch;}
+  .card{width:100%; max-height:100%; height:100%; flex-direction:column;}
+  /* play card goes full-bleed on mobile (no floating border/stitch) */
+  .card.cream-patch{border:none; border-radius:0; box-shadow:none;}
+  .card.cream-patch::before{display:none;}
+  /* header stacks; body scrolls as one column (name first, then video, reads) */
+  .card-head{flex-direction:column; gap:10px; padding:16px 50px 12px 18px;}
+  .card-head-tags{justify-content:flex-start; max-width:100%;}
+  .card-body{flex-direction:column; overflow-y:auto;}
+  .card-left, .card-right{overflow:visible; flex:0 0 auto;}
+  .card-left{
+    border-right:none; border-bottom:2px solid var(--cream-edge);
+    padding:16px;
+  }
+  .thumb-row{flex-direction:row;}
+  .card-right{padding:20px 18px 40px;}
+  .card-name{font-size:34px;}
+  .card-close{position:fixed; top:10px; right:10px;}  /* always reachable */
+
+  .section-card{width:100%; height:100%; max-height:100%; padding:22px 18px 40px;}
+  .card-grid{grid-template-columns:repeat(2,1fr); gap:12px;}
+  .mini-card .mc-pos{font-size:38px;}
+  .team-list{grid-template-columns:1fr;}
+  .list-card .overlay-list{grid-template-columns:1fr;}
+  .play-pill .pp-name{font-size:22px;}
+  .form-row{flex-direction:column; align-items:stretch;}
+  .form-row .imgslot{flex:0 0 auto; width:100%;}
+}
+
+/* tiny extra safety for very short landscape phones */
+@media (max-height:520px) and (min-width:769px){
+  .left-nav{gap:8px;} .patch{--patch-h:44px;}
+}
+</style>
+</head>
+<body>
+
+<!-- ==========================================================================
+     [MARKUP] — page skeleton. Most content is injected by the app on load.
+     ========================================================================== -->
+
+<!-- Background video (behind everything) + scheme color tint -->
+<video id="bg-video" autoplay muted loop playsinline></video>
+<div id="bg-tint"></div>
+
+<!-- STATE 1 — COVER -->
+<section id="cover">
+  <div class="cover-logo" id="cover-logo"></div>
+  <div class="cover-series eyebrow" id="cover-series"></div>
+  <h1 class="display cover-title" id="cover-title"></h1>
+  <div class="cover-sub" id="cover-sub"></div>
+  <button class="open-btn" id="open-btn">Open Playbook</button>
+  <div class="cover-stamp" id="cover-stamp"></div>
+</section>
+
+<!-- STATE 2 — OPEN FIELD VIEW (no bars: floating pills over the video) -->
+<section id="field">
+  <!-- tasteful top banner (config-driven; hidden if tagline is empty) -->
+  <div class="field-banner" id="field-banner"></div>
+
+  <!-- ambient center brand: big animated team logo (falls back to the initial) -->
+  <div class="field-watermark" id="field-watermark">
+    <span class="fw-letter" id="fw-letter"></span>
+    <img class="fw-logo" id="fw-logo" alt="">
+  </div>
+
+  <!-- Persistent SK circular CTA badge — top left, desktop only -->
+  <a class="sk-circle-badge" id="sk-cta" target="_blank" rel="noopener"></a>
+
+  <!-- DESKTOP: LEFT floating pills (About / Personnel / Formations + series) -->
+  <nav class="left-nav desktop-only" id="left-nav"></nav>
+
+  <!-- DESKTOP: RIGHT floating pills (play categories: Run / Pass / Star) -->
+  <nav class="right-nav desktop-only" id="right-nav"></nav>
+
+  <!-- MOBILE: two hub pills (About / Play Calls) that open sub-menus -->
+  <nav class="mobile-nav mobile-only" id="mobile-nav"></nav>
+
+  <!-- BOTH: bottom-center pill opens the full tag-filtered call sheet -->
+  <button class="patch callsheet-pill" id="callsheet-pill"></button>
+</section>
+
+<!-- STATE 3 — TAKEOVER (card injected by app) -->
+<section id="takeover">
+  <div id="takeover-inner"></div>
+</section>
+
+<script>
+/* ==========================================================================
+   [CONFIG] — SCHEME_CONFIG
+   The ONLY block you edit to reskin a playbook for a different team.
+   Colors here are injected into CSS custom properties on load.
+   ========================================================================== */
+const SCHEME_CONFIG = {
+  // Identity
+  schemeName: "Scheme Kings",
+  schemeSubtitle: "Pro Style Offense · CFB 26",
+  seriesLabel: "Pro Style Series",
+  teamInitial: "SK",                // ambient watermark letters on the field
+
+  // Tasteful banner across the top of the open-field view. Leave tagline ""
+  // to hide it entirely. Keep it short — two short lines max.
+  tagline:    "Exclusive Scheme Kings Playbooks",
+  taglineSub: "A New One Drops Every Week · Madden & College Football",
+
+  // Colors (swap these per scheme)
+  primaryColor: "#1E54B7",          // team color #1 — stitched borders, headings, accents
+  secondaryColor: "#F2B50E",        // team color #2 — gold pinstripe / highlights
+  cream:         "#F0E7CB",         // creamy off-white patch surface — universal
+  gold:          "#F5A623",         // Scheme Kings gold — DO NOT change (brand)
+
+  // Assets (swap these per scheme — drop files into /assets)
+  backgroundVideo:  "assets/stadium_bg.mp4",
+  backgroundPoster: "assets/stadium_poster.jpg",   // static fallback if video fails
+
+  // LOGOS
+  //  teamLogo  = THIS scheme's team logo. Shows in the left emblem badge on
+  //              every main pill (About/Personnel/Formations, Run/Pass/Star,
+  //              Call Sheet). Swap it with the scheme each week.
+  //  coverLogo = the large team logo on the cover title card (usually the same).
+  //  (The crown on the RIGHT end of every pill is the Scheme Kings mark and
+  //   never changes — it's built in.)
+  //  Series pills use each series team's own logo — see seriesLinks below.
+  //  Any missing file falls back to the built-in gold crown.
+  teamLogo:  "assets/team_logo.png",
+  coverLogo: "assets/cover_logo.png",
+
+  // Scheme Kings brand logo — stays the same every week (unlike teamLogo).
+  // Shows in the persistent top-left CTA badge on the field view.
+  schemeKingsLogo: "Assets/scheme kings logo.png",
+  schemeKingsUrl:  "",   // your Squarespace subscription/checkout page URL
+
+  // GitHub Pages base URL for Squarespace deployment.
+  // Leave as "" for local development — paths resolve relative to the file.
+  // Before pasting into Squarespace, set this to your full GitHub Pages URL,
+  // e.g. "https://yourusername.github.io/scheme-kings-assets/alabama"
+  // Everything else updates automatically — no other path changes needed.
+  assetBaseUrl: "",
+};
+// The series teams live in the SERIES write-up below (the "Full Offense" pill),
+// not here — edit them there.
+
+/* ==========================================================================
+   [DATA] — Plays, filters, and About / Personnel / Formations content.
+   Add a play = add one object to PLAYS. Nothing else changes.
+
+   NOTE: This is fully-structured PLACEHOLDER sample content for the Alabama
+   Pro Style scheme (PA Flood is taken verbatim from the brief; the rest are
+   authored to demonstrate the template). Replace text + image paths with your
+   real plays/screenshots. Image files go in /plays using the id-based naming
+   convention; until they exist each slot shows a "SCREENSHOT PENDING" tile.
+   ========================================================================== */
+
+/* ---- TAGS ----------------------------------------------------------------
+   To tag a play you ONLY edit that play's `tags: [...]` array (below). Any tag
+   you use is auto-labeled from its id ("vs-cover-3" → "Vs Cover 3") and auto-
+   added as a call-sheet filter button. The two lists here are OPTIONAL:
+
+   TAG_LABELS  — only to shorten/override an auto label (e.g. show "Cover 3").
+   FILTER_TAGS — only to choose WHICH tags become quick-filter buttons, and
+                 their order. Leave it EMPTY ([]) to show every tag you've used.
+   -------------------------------------------------------------------------- */
+const TAG_LABELS = {
+  "vs-cover-3":"Cover 3", "vs-cover-2":"Cover 2", "vs-man":"Man",
+  "play-action":"PA", "red-zone":"RZ", "third-down":"3rd Down", "money-play":"Money",
+};
+const FILTER_TAGS = ["vs-cover-3","vs-man","play-action","red-zone","third-down","money-play"];
+
+// Pretty-print a tag id when it has no TAG_LABELS override ("vs-man" → "Vs Man").
+function prettifyTag(id){
+  return id.split("-").map(w =>
+    w === "vs" ? "Vs" : w === "rpo" ? "RPO" :
+    w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
+}
+function tagLabel(id){ return TAG_LABELS[id] || prettifyTag(id); }
+// Every tag actually used across PLAYS, in first-appearance order.
+function tagsInUse(){
+  const seen = [];
+  PLAYS.forEach(p => (p.tags||[]).forEach(t => { if(!seen.includes(t)) seen.push(t); }));
+  return seen;
+}
+// The filter-chip id list: "All" first, then your curated FILTER_TAGS (or, if
+// that's empty, every tag in use) — but only tags that some play actually has.
+function filterChipIds(){
+  const used = tagsInUse();
+  const ids = (FILTER_TAGS && FILTER_TAGS.length)
+    ? FILTER_TAGS.filter(t => used.includes(t))
+    : used;
+  return ["all", ...ids];
+}
+
+const PLAYS = [
+  /* ----- RUN GAME ----- */
+  {
+    id: "power-o", name: "Power O", type: "Run Game", formation: "I-Form Pro",
+    tags: ["vs-man","red-zone","auto-motion"],
+    reads: [
+      { label: "Playside double", text: "tackle and tight end wash the 5-tech, create the wall" },
+      { label: "Pulling guard", text: "kick or wrap the first off-color jersey through the hole" },
+      { label: "Fullback iso", text: "lead up on the playside linebacker, finish the block" },
+      { label: "Cutback", text: "if the backside crashes, press the hole then bend it back" },
+    ],
+    adjustments: [
+      "Motion the wing across to add a second puller",
+      "Tag the backside WR on a crack vs loaded box",
+      "Check to a stretch if they walk the safety down",
+    ],
+    whenToUse: "Your downhill identity play. Run it early to set up everything else — the more they load the box, the more your play-action shots open up.",
+    images: { fieldView:"plays/power-o-field.jpg", formation:"plays/power-o-formation.jpg", playCall:"plays/power-o-playcall.jpg" },
+    videoUrl: "https://www.youtube.com/watch?v=UNLISTED_LINK",
+  },
+  {
+    id: "inside-zone", name: "Inside Zone Split", type: "Run Game", formation: "Singleback Ace",
+    tags: ["vs-all-zone","rpo"],
+    reads: [
+      { label: "Frontside bubble", text: "if the play stretches clean, get vertical off the guard's hip" },
+      { label: "A-gap", text: "first read is the playside A-gap — bang it if it's open" },
+      { label: "Backside cut", text: "backside end widens, plant and cut underneath the double team" },
+    ],
+    adjustments: [
+      "Tag a backside bubble RPO off the read",
+      "Slice the H-back across to seal the backside end",
+      "Glance route tag vs single-high safety",
+    ],
+    whenToUse: "The bread-and-butter zone run that pairs with RPO tags. Reads the backside end so it stays sound against movement and pressure.",
+    images: { fieldView:"plays/inside-zone-field.jpg", formation:"plays/inside-zone-formation.jpg", playCall:"plays/inside-zone-playcall.jpg" },
+    videoUrl: "https://www.youtube.com/watch?v=UNLISTED_LINK",
+  },
+  {
+    id: "counter-trey", name: "Counter Trey", type: "Run Game", formation: "Strong Pro",
+    tags: ["vs-man","blitz-beater"],
+    reads: [
+      { label: "Down blocks", text: "playside down-blocks create the long wall — let it develop" },
+      { label: "Guard kick", text: "pulling guard kicks the edge, sets the alley wall" },
+      { label: "Tackle wrap", text: "second puller wraps up through the hole onto the linebacker" },
+    ],
+    adjustments: [
+      "Counter bash tag — keep it on the QB vs crashing end",
+      "Flip to the weak side vs an overloaded strong front",
+    ],
+    whenToUse: "Misdirection power that punishes fast-flowing linebackers. Pull it out once they start keying your Power O footwork.",
+    images: { fieldView:"plays/counter-trey-field.jpg", formation:"plays/counter-trey-formation.jpg", playCall:"plays/counter-trey-playcall.jpg" },
+    videoUrl: "https://www.youtube.com/watch?v=UNLISTED_LINK",
+  },
+
+  /* ----- PASS GAME ----- */
+  {
+    // Taken verbatim from the build brief's sample object.
+    id: "pa-flood", name: "PA Flood", type: "Pass Game", subtype: "Play Action",
+    formation: "Singleback Wing Tight",
+    tags: ["vs-all-zone","play-action","money-play","vs-man"],
+    reads: [
+      { label: "Corner route", text: "flat defender stays shallow, drop it behind him along the sideline" },
+      { label: "Stick-nod", text: "LBs bite on play action, TE slips into the vacated window" },
+      { label: "Dig", text: "deeper routes capped or pressure arrives, work it across the middle" },
+      { label: "RB flat", text: "everything deep covered, easy completion to the back in space" },
+    ],
+    setup: "Come out with the solo receiver to the wide side of the field. Put the tight end on that side on a streak, then take the inside tight end on the short side and put him on a stick-and-nod route.",
+    adjustments: [
+      "Solo WR to wide side",
+      "TE wide side on streak",
+      "Inside TE short side stick-nod",
+    ],
+    whenToUse: "Best after establishing the power run. The more LBs respect the fake, the harder the stick-nod window opens. Classic high-low on the flat defender and linebackers simultaneously.",
+    images: { fieldView:"plays/pa-flood-field.jpg", formation:"plays/pa-flood-formation.jpg", playCall:"plays/pa-flood-playcall.jpg" },
+    videoUrl: "https://www.youtube.com/watch?v=UNLISTED_LINK",
+  },
+  {
+    id: "mesh", name: "Mesh", type: "Pass Game", formation: "Gun Trips TE",
+    tags: ["vs-man","third-down","blitz-beater"],
+    reads: [
+      { label: "Mesh crossers", text: "vs man the rub springs a crosser free — throw on the break" },
+      { label: "Sit window", text: "vs zone the crossers settle in the soft spot, hit it on time" },
+      { label: "Corner", text: "trips-side corner route caps the deal against squat coverage" },
+      { label: "Checkdown", text: "back leaks to the flat as your pressure outlet" },
+    ],
+    adjustments: [
+      "Set the back to scan-protect vs heavy blitz looks",
+      "Convert the corner to a wheel vs Cover 2 sink",
+    ],
+    whenToUse: "Your money third-down answer against man and pressure. The natural rub action gets a free release underneath when they bring extra rushers.",
+    images: { fieldView:"plays/mesh-field.jpg", formation:"plays/mesh-formation.jpg", playCall:"plays/mesh-playcall.jpg" },
+    videoUrl: "https://www.youtube.com/watch?v=UNLISTED_LINK",
+  },
+  {
+    id: "smash", name: "Smash", type: "Pass Game", formation: "Singleback Wing Tight",
+    exclusive: true,
+    tags: ["vs-cover-2","vs-cover-3","red-zone"],
+    reads: [
+      { label: "Corner", text: "high-low the corner — if he sinks to the hitch, throw it over the top" },
+      { label: "Hitch", text: "if the corner squats on the flat, take the easy hitch underneath" },
+      { label: "Backside dig", text: "safety rotates, come back to the backside dig over the ball" },
+    ],
+    adjustments: [
+      "Corner-to-fade tag in the red zone",
+      "Slot to a return route vs hard Cover 2 cloud",
+    ],
+    whenToUse: "The cleanest Cover 2 / Cover 3 beater in the book and a red-zone staple. Pure horizontal stretch on the corner — let the coverage tell you which to throw.",
+    images: { fieldView:"plays/smash-field.jpg", formation:"plays/smash-formation.jpg", playCall:"plays/smash-playcall.jpg" },
+    videoUrl: "https://www.youtube.com/watch?v=UNLISTED_LINK",
+  },
+  {
+    id: "stick", name: "Stick", type: "Pass Game", formation: "Gun Trips TE",
+    exclusive: true,
+    tags: ["vs-all-zone","third-down","rpo"],
+    reads: [
+      { label: "Stick route", text: "TE settles past the sticks vs zone — first and fastest read" },
+      { label: "Flat", text: "back or slot to the flat pulls the defender and opens the stick" },
+      { label: "Backside slant", text: "single receiver slant as your one-on-one pressure beater" },
+    ],
+    adjustments: [
+      "Tag the stick as a stick-nod vs aggressive squat corners",
+      "Bubble RPO off the box count to the trips side",
+    ],
+    whenToUse: "Quick-game answer to stay on schedule on third-and-medium. Built-in high-low on the flat defender with a fast, decisive read.",
+    images: { fieldView:"plays/stick-field.jpg", formation:"plays/stick-formation.jpg", playCall:"plays/stick-playcall.jpg" },
+    videoUrl: "https://www.youtube.com/watch?v=UNLISTED_LINK",
+  },
+
+  /* ----- STAR PLAYS ----- */
+  {
+    id: "pa-boot", name: "PA Boot Flood", type: "Star Play", subtype: "Play Action",
+    formation: "I-Form Pro",
+    tags: ["play-action","money-play","vs-man","blitz-beater"],
+    reads: [
+      { label: "Deep comeback", text: "boot away from the run fake, drop it on the comeback up the sideline" },
+      { label: "Crosser", text: "the dragging TE comes wide open across the bootleg face" },
+      { label: "Flat", text: "fullback in the flat is the easy first-down dump-off" },
+      { label: "Run lane", text: "everyone covered? tuck it and take the open edge" },
+    ],
+    adjustments: [
+      "Keep the backside tackle home vs an edge-pressure tell",
+      "Throwback tag to the backside TE vs heavy flow",
+    ],
+    whenToUse: "The signature shot off your Power O action — a true money play. Gets the QB on the edge with a built-in three-level flood and a run-or-throw answer.",
+    images: { fieldView:"plays/pa-boot-field.jpg", formation:"plays/pa-boot-formation.jpg", playCall:"plays/pa-boot-playcall.jpg" },
+    videoUrl: "https://www.youtube.com/watch?v=UNLISTED_LINK",
+  },
+  {
+    id: "dagger", name: "Dagger", type: "Star Play", subtype: "Vertical Shot",
+    formation: "Gun Trips TE",
+    tags: ["vertical-shot","vs-cover-3","money-play"],
+    reads: [
+      { label: "Seam clear", text: "inside vertical runs off the safety and clears the middle" },
+      { label: "Dig", text: "the deep dig settles into the vacated window behind the LBs" },
+      { label: "Comeback", text: "backside comeback if the coverage spins to the dig" },
+    ],
+    adjustments: [
+      "Convert the seam to a bender vs single-high",
+      "Sit the dig down vs heavy hook-zone match",
+    ],
+    whenToUse: "Your explosive answer versus Cover 3 and middle-of-field-closed looks. The seam clears the safety so the dig hits in the soft middle for chunk yardage.",
+    images: { fieldView:"plays/dagger-field.jpg", formation:"plays/dagger-formation.jpg", playCall:"plays/dagger-playcall.jpg" },
+    videoUrl: "https://www.youtube.com/watch?v=UNLISTED_LINK",
+  },
+];
+
+/* ----- Section content (left pills open these in the takeover) ----- */
+const ABOUT = {
+  title: SCHEME_CONFIG.schemeName,
+  youtube: "https://www.youtube.com/watch?v=UNLISTED_LINK",   // this week's full YouTube breakdown
+  pillars: [
+    { head: "Establish The Run",
+      text: "Everything starts with downhill, physical run game out of pro-style sets. Power O and Counter set the tone, force the box to commit, and earn the right to take shots. We dictate tempo by running the football on our terms." },
+    { head: "Play-Action Off Your Identity",
+      text: "Once the linebackers respect the run, the bootlegs and play-action floods become unfair. Every shot in this scheme is built directly off a run the defense has already seen — same backfield action, same offensive line footwork, completely different result." },
+    { head: "Answer Every Coverage",
+      text: "Pro-style means having a clean answer for whatever they show. Smash for two-high, Dagger for single-high, Mesh and Stick to stay on schedule, and quick-game RPOs to punish loaded boxes. You are never without a call." },
+  ],
+};
+
+const PERSONNEL = [
+  { pos:"QB",   title:"Quarterback", role:"Rhythm passer who executes play-action and bootleg on the move. Decisive in the quick game, calm in the pocket.", inspo:"Field General", card:"Elite" },
+  { pos:"RB",   title:"Running Back", role:"Downhill one-cut back with the contact balance to finish Power and the vision to bend the zone.", inspo:"Bell-Cow", card:"Premium" },
+  { pos:"FB",   title:"Fullback / H-Back", role:"Lead blocker and play-action chess piece. Iso blocks, kick-outs, and slips into the flat off the fake.", inspo:"Lead Blocker", card:"Utility" },
+  { pos:"TE",   title:"Tight End (Y)", role:"In-line Y who walls off the 5-tech in the run game and wins the stick-nod over the middle.", inspo:"Complete TE", card:"Elite" },
+  { pos:"WR1",  title:"X Receiver", role:"Isolation outside threat for backside slants, comebacks, and the dig. Wins one-on-one at the catch point.", inspo:"Boundary X", card:"Elite" },
+  { pos:"SLOT", title:"Z / Slot", role:"Movement receiver for motion, smash corners, and mesh crossers. Quick and sudden in space.", inspo:"Slot Weapon", card:"Premium" },
+];
+
+const FORMATIONS = [
+  { name:"I-Form Pro", desc:"Classic two-back pro set built for Power O, Counter, and the PA Boot shot off it.", img:"formations/i-form-pro.jpg", tags:["Power O","Counter","PA Boot"] },
+  { name:"Singleback Wing Tight", desc:"Compact, run-strong look for PA Flood, Smash, and the flood-route pass game.", img:"formations/singleback-wing-tight.jpg", tags:["PA Flood","Smash","Flood"] },
+  { name:"Strong Pro", desc:"Balanced strong-side set for Counter Trey and gap-scheme power with two-tight-end answers.", img:"formations/strong-pro.jpg", tags:["Counter Trey","Gap Power","PA"] },
+  { name:"Gun Trips TE", desc:"Spread-it-out passing set for Mesh, Stick, and Dagger with clean RPO tags off the box count.", img:"formations/gun-trips-te.jpg", tags:["Mesh","Stick","Dagger"] },
+];
+
+/* The series write-up — ONE "Full Offense" pill opens this summary of the
+   teams that make up the series. Edit freely; each team takes an optional
+   `url` (link to its playbook) and optional `logo` (small mark on its row). */
+const SERIES = {
+  pillTitle: "Full Offense",
+  pillSub:   "The Pro-Style Series",
+  eyebrow:   "The Pro-Style Series",
+  title:     "The 3 Pro-Style Teams",
+  intro: "This scheme is part of the Full Pro-Style Offense — all designed to run out of the Michigan State playbook and combine into one complete offensive system. The full playlist is linked below so you can see how every piece fits together.",
+  teams: [
+    { name:"Mid-2000s USC Trojans", era:"Pete Carroll Era", youtube:"#", logo:"",
+      blurb:"The gold standard of modern college pro-style. Carroll, Leinart, Reggie Bush and LenDale White won two national titles by overwhelming opponents with a dominant under-center run game paired with explosive play-action — physicality, balance, and elite skill talent." },
+    { name:"Late-2000s Alabama Crimson Tide", era:"Saban's Early Dynasty", youtube:"#", logo:"",
+      blurb:"A true under-center, downhill powerhouse. Built on dominant offensive lines, punishing backs like Ingram and Richardson, and efficient QBs. Power football first, then calculated vertical shots once defenses were forced to overcommit." },
+    { name:"2013 Florida State Seminoles", era:"Jameis Winston Era", youtube:"#", logo:"",
+      blurb:"Pro-style blending into a more modern structure. Still grounded in under-center and play-action, but mixing in shotgun and spread for tempo and spacing — a national-title season built on explosive downfield passing and NFL route concepts." },
+  ],
+  outro: "Each team gets its own full YouTube breakdown, and every version of the scheme gets a complete Scheme Kings playbook release — embedded video breakdowns, detailed write-ups, adjustments, coaching notes, and when-to-use indicators.",
+};
+
+/* ==========================================================================
+   [APP] — all interactive logic
+   ========================================================================== */
+
+// Inline SK crown mark — used as a logo fallback everywhere an asset image is
+// missing, and as the gold quality stamp. Rendered in --gold (brand constant).
+const CROWN = `<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+  <circle cx="5"  cy="7.6" r="1.7"/>
+  <circle cx="12" cy="4.4" r="1.9"/>
+  <circle cx="19" cy="7.6" r="1.7"/>
+  <path d="M4 9.3 L6.4 17 H17.6 L20 9.3 L15.5 12.6 L12 6.7 L8.5 12.6 Z"/>
+  <rect x="6" y="17.4" width="12" height="2.9" rx="0.4"/>
+</svg>`;
+const PLAY_ICON = `<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M6 4l14 8-14 8V4z"/></svg>`;
+const STAR_ICON = `<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2l2.9 6.3 6.9.7-5.2 4.6 1.5 6.8L12 17.8 5.9 20.4l1.5-6.8L2.2 9l6.9-.7L12 2z"/></svg>`;
+
+// Live app state
+const state = {
+  filter: "all",       // current call-sheet filter (tag id or "all")
+  view: null,          // current takeover content: {kind:'play', id} | {kind:'section', key}
+  list: [],            // ordered play ids matching the current filter (for prev/next)
+};
+
+const $ = (sel) => document.querySelector(sel);
+
+// Prepends assetBaseUrl to a path when deploying to Squarespace via GitHub.
+// Returns the path unchanged during local development (assetBaseUrl is "").
+function assetUrl(path){
+  if(!path) return path;
+  const base = (SCHEME_CONFIG.assetBaseUrl || "").replace(/\/+$/, "");
+  return base ? `${base}/${path}` : path;
+}
+
+/* --- inject the config colors into CSS custom properties + wire assets --- */
+function applyConfig(){
+  const r = document.documentElement.style;
+  r.setProperty("--primary",   SCHEME_CONFIG.primaryColor);
+  r.setProperty("--secondary", SCHEME_CONFIG.secondaryColor);
+  r.setProperty("--cream",     SCHEME_CONFIG.cream);
+  r.setProperty("--gold",      SCHEME_CONFIG.gold);
+
+  // background video + poster (graceful fallback to poster if video fails)
+  const v = $("#bg-video");
+  v.poster = assetUrl(SCHEME_CONFIG.backgroundPoster);
+  v.muted = true;                 // required for muted autoplay on every browser
+  v.src = assetUrl(SCHEME_CONFIG.backgroundVideo);
+  v.addEventListener("error", () => { v.style.display = "none"; });
+  // nudge autoplay; if a browser still blocks it, resume on the first user
+  // gesture so the background never sits frozen on a real device.
+  const tryPlay = () => { const pr = v.play(); if(pr && pr.catch) pr.catch(()=>{}); };
+  tryPlay();
+  const kickPlay = () => {
+    if(v.paused) tryPlay();
+    ["pointerdown","touchstart","keydown","scroll"].forEach(ev =>
+      window.removeEventListener(ev, kickPlay));
+  };
+  ["pointerdown","touchstart","keydown","scroll"].forEach(ev =>
+    window.addEventListener(ev, kickPlay, { passive:true }));
+
+  // cover
+  $("#cover-series").textContent = SCHEME_CONFIG.seriesLabel;
+  $("#cover-title").textContent  = SCHEME_CONFIG.schemeName;
+  $("#cover-sub").textContent    = SCHEME_CONFIG.schemeSubtitle;
+  $("#cover-logo").innerHTML  = logoMarkup(SCHEME_CONFIG.coverLogo, "100%");
+  $("#cover-stamp").innerHTML = CROWN + "<span>Scheme Kings · Premium Playbook</span>";
+
+  // top banner (hidden if no tagline)
+  const banner = $("#field-banner");
+  if(SCHEME_CONFIG.tagline){
+    banner.style.display = "";
+    banner.innerHTML =
+      `<span class="fb-crown">${CROWN}</span>
+       <span class="fb-1">${SCHEME_CONFIG.tagline}</span>
+       ${SCHEME_CONFIG.taglineSub ? `<span class="fb-2">${SCHEME_CONFIG.taglineSub}</span>` : ""}`;
+  } else { banner.style.display = "none"; }
+
+  // ambient field center: scheme initial as fallback, big team logo if present
+  $("#fw-letter").textContent = SCHEME_CONFIG.teamInitial || "";
+  const fwLogo = $("#fw-logo");
+  fwLogo.onload = () => { fwLogo.style.display = "block"; $("#fw-letter").style.display = "none"; };
+  fwLogo.src = assetUrl(SCHEME_CONFIG.coverLogo);   // the big per-scheme team logo
+
+  document.title = `${SCHEME_CONFIG.schemeName} · Scheme Kings`;
+}
+
+// Returns a logo block for a configured image path. The inline crown shows by
+// default (so the app always looks finished); if the real image loads, it
+// swaps in. If the file is missing the crown simply stays — no broken icon.
+function logoMarkup(src, size){
+  return `<span class="logo-wrap" style="width:${size};height:${size}">
+            <span class="logo-fallback">${CROWN}</span>
+            <img class="logo-img" src="${assetUrl(src)}" alt=""
+                 onload="this.style.display='block';this.previousElementSibling.style.display='none'">
+          </span>`;
+}
+
+// The pill emblem badge holds a LOGO (the scheme's team logo on most pills, or
+// a series team's own logo on series pills). Falls back to the inline gold
+// crown if the file is missing, so nothing ever looks broken.
+function badgeHTML(src){
+  return `<span class="badge">
+      <span class="badge-fb">${CROWN}</span>
+      ${src ? `<img class="badge-img" src="${assetUrl(src)}" alt=""
+           onload="this.previousElementSibling.style.display='none'; this.style.display='block'; this.parentNode.classList.add('has-img');">` : ``}
+    </span>`;
+}
+
+/* --- build the persistent top-left Scheme Kings CTA badge --- */
+function buildSkCta(){
+  const el = $("#sk-cta");
+  if(!el) return;
+  if(SCHEME_CONFIG.schemeKingsUrl) el.href = SCHEME_CONFIG.schemeKingsUrl;
+  const logo = SCHEME_CONFIG.schemeKingsLogo;
+  const logoHTML = logo
+    ? `<img class="scb-logo" src="${assetUrl(logo)}" alt="Scheme Kings">`
+    : `<span class="scb-logo-fb">${CROWN}</span>`;
+  el.innerHTML =
+    `${logoHTML}
+     <span class="scb-title">Full<br>Playbook</span>
+     <span class="scb-sub">Scheme Kings<br>10+ Exclusive Plays</span>`;
+}
+
+/* --- build the left navigation pills --- */
+function buildNav(){
+  const nav = $("#left-nav");
+  const items = [
+    { key:"about",      title:"About",            sub:"Scheme Philosophy" },
+    { key:"personnel",  title:"Personnel",        sub:"Who Runs It" },
+    { key:"formations", title:"Formations",       sub:"Base Sets" },
+    { key:"series",     title:SERIES.pillTitle,   sub:SERIES.pillSub },   // the write-up
+  ];
+  nav.innerHTML = items.map((it, i) =>
+    `<button class="patch" data-section="${it.key}" style="animation-delay:${i * 55}ms">
+       ${badgeHTML(SCHEME_CONFIG.teamLogo)}
+       <span class="patch-text">
+         <span class="patch-title">${it.title}</span>
+         <span class="patch-sub">${it.sub}</span>
+       </span>
+       <span class="crown">${CROWN}</span>
+     </button>`).join("");
+
+  nav.querySelectorAll("[data-section]").forEach(btn =>
+    btn.addEventListener("click", () => openSection(btn.dataset.section)));
+}
+
+/* --- build the right play-category pills (Run Game / Pass Game / Star Plays) */
+const CATEGORIES = [
+  { type:"Run Game",  sub:"Ground Attack" },
+  { type:"Pass Game", sub:"Through The Air" },
+  { type:"Star Play", title:"Star Plays", sub:"Money Calls" },
+];
+function buildRightNav(){
+  const nav = $("#right-nav");
+  nav.innerHTML = CATEGORIES.map((c, i) =>
+    `<button class="patch" data-category="${c.type}" style="animation-delay:${i * 55}ms">
+       ${badgeHTML(SCHEME_CONFIG.teamLogo)}
+       <span class="patch-text">
+         <span class="patch-title">${c.title || c.type}</span>
+         <span class="patch-sub">${c.sub}</span>
+       </span>
+       <span class="crown">${CROWN}</span>
+     </button>`).join("");
+  nav.querySelectorAll("[data-category]").forEach(btn =>
+    btn.addEventListener("click", () => openCategory(btn.dataset.category)));
+}
+
+/* --- build the bottom-center Call Sheet pill --- */
+function buildCallSheetPill(){
+  $("#callsheet-pill").innerHTML =
+    `${badgeHTML(SCHEME_CONFIG.teamLogo)}
+     <span class="patch-text">
+       <span class="patch-title">Call Sheet</span>
+       <span class="patch-sub">Tag Filters · All Plays</span>
+     </span>
+     <span class="crown">${CROWN}</span>`;
+  $("#callsheet-pill").addEventListener("click", openCallSheet);
+}
+
+/* --- MOBILE hub nav: two pills (About / Play Calls) that open sub-menus --- */
+function buildMobileNav(){
+  const nav = $("#mobile-nav");
+  const hubs = [
+    { key:"about", title:"About",      sub:"Scheme · Personnel · Series" },
+    { key:"plays", title:"Play Calls", sub:"Run · Pass · Star" },
+  ];
+  nav.innerHTML = hubs.map((h, i) =>
+    `<button class="patch" data-hub="${h.key}" style="animation-delay:${i * 70}ms">
+       ${badgeHTML(SCHEME_CONFIG.teamLogo)}
+       <span class="patch-text">
+         <span class="patch-title">${h.title}</span>
+         <span class="patch-sub">${h.sub}</span>
+       </span>
+       <span class="crown">${CROWN}</span>
+     </button>`).join("");
+  nav.querySelectorAll("[data-hub]").forEach(b =>
+    b.addEventListener("click", () => openHub(b.dataset.hub)));
+}
+
+/* --- one play row: a full varsity-patch "button" (scheme badge on the left,
+       play name + up to two two-tone tag pills, gold play button on the right).
+       Reused by the category lists and the call sheet. --- */
+function playItemHTML(p){
+  // up to two pills: an exclusive flag takes the first (gold) slot, then tags;
+  // pill index 0 renders gold, index 1 renders blue (the two-tone look).
+  const pills = [];
+  if(p.exclusive) pills.push("SK Exclusive");
+  (p.tags||[]).forEach(t => pills.push(tagLabel(t)));
+  const pillHTML = pills.slice(0,2).map((label,i) =>
+    `<span class="pp-tag ${i===0 ? "gold" : "blue"}">${label}</span>`).join("");
+  return `<button class="patch play-pill" data-play="${p.id}">
+    ${badgeHTML(SCHEME_CONFIG.teamLogo)}
+    <span class="pp-main">
+      <span class="pp-name">${p.name}</span>
+      ${pillHTML ? `<span class="pp-tags">${pillHTML}</span>` : ""}
+    </span>
+    <span class="pp-play">${PLAY_ICON}</span>
+  </button>`;
+}
+
+/* ==========================================================================
+   TAKEOVER — open / close, play cards, section cards, prev/next, lazy images
+   ========================================================================== */
+
+const takeover = $("#takeover");
+const inner = $("#takeover-inner");
+
+// Lazy-load: fill every <img data-src> inside the freshly-rendered card.
+function loadCardImages(){
+  inner.querySelectorAll("img[data-src]").forEach(img => {
+    img.addEventListener("load", () => img.closest(".imgslot")?.classList.add("loaded"));
+    img.addEventListener("error", () => img.closest(".imgslot")?.classList.add("img-missing"));
+    img.src = img.dataset.src;
+    img.removeAttribute("data-src");
+  });
+}
+
+// One lazy image slot (placeholder shown until the real screenshot paints)
+function imgSlot(src, label){
+  return `<div class="imgslot">
+    <span class="img-ph">${label}</span>
+    <img data-src="${assetUrl(src)}" alt="${label}">
+  </div>`;
+}
+
+// The field-view slot doubles as the video: a large lazy thumbnail with a gold
+// play button + "Watch Breakdown" label. Clicking it EMBEDS the breakdown video
+// in place (see embedVideo) so the viewer never leaves the playbook.
+function videoSlot(src, label){
+  return `<div class="imgslot video-slot" data-video role="button" tabindex="0" aria-label="Watch breakdown">
+    <span class="img-ph">${label}</span>
+    <img data-src="${assetUrl(src)}" alt="${label}">
+    <span class="video-ov">
+      <span class="video-play">${PLAY_ICON}</span>
+      <span class="video-label">Watch Breakdown</span>
+    </span>
+  </div>`;
+}
+
+// Extract an 11-char YouTube id from any common URL shape (null if none).
+// The trailing (?![\w-]) boundary rejects placeholders like "UNLISTED_LINK".
+function ytId(url){
+  const m = (url||"").match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|v\/|shorts\/))([\w-]{11})(?![\w-])/);
+  return m ? m[1] : null;
+}
+
+// Swap the field-view thumbnail for the embedded breakdown video, in place.
+function embedVideo(slot, url){
+  if(slot.classList.contains("playing")) return;
+  slot.classList.add("playing");
+  const id = ytId(url);
+  slot.innerHTML = id
+    ? `<iframe class="video-frame"
+         src="https://www.youtube-nocookie.com/embed/${id}?autoplay=1&rel=0&modestbranding=1&playsinline=1"
+         title="Play breakdown" allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
+         allowfullscreen></iframe>`
+    : `<div class="video-pending">
+         <span class="video-play">${PLAY_ICON}</span>
+         <p>Your breakdown video plays here.<br>
+           <small>Add this play's YouTube link as <code>videoUrl</code>.</small></p>
+       </div>`;
+}
+
+const prefersReducedMotion = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+// Stagger the inner content blocks — each container's direct children rise in
+// one after another, so the card lays itself out in sequence after it lands.
+function staggerReveal(root){
+  if(prefersReducedMotion()) return;
+  root.querySelectorAll(".card-right, .card-left, .overlay-list, .menu-list, .pillars, .card-grid, .form-list, .team-list")
+    .forEach(group => Array.from(group.children).forEach((el, i) => {
+      el.style.animation = "contentRise .42s var(--ease) both";
+      el.style.animationDelay = (0.06 + i * 0.045) + "s";
+    }));
+}
+
+// Records where the user last clicked a pill/row so the takeover can "whoosh"
+// out of that exact spot. Capture phase runs before the open handler fires.
+let lastClickOrigin = null;
+document.addEventListener("click", (e) => {
+  const el = e.target.closest(".patch, .play-item, .callsheet-pill");
+  if(el){ const r = el.getBoundingClientRect();
+    lastClickOrigin = { x:r.left + r.width/2, y:r.top + r.height/2, t:Date.now() }; }
+}, true);
+
+// enter: "scale" (play card, default) | "left" | "right" | "bottom" (panels)
+function openTakeover(html, enter){
+  inner.innerHTML = html;
+  const card = inner.querySelector(".card");
+  if(card){
+    // if this open came from a fresh pill/row click, balloon out of that spot;
+    // otherwise use the directional entrance.
+    const o = lastClickOrigin;
+    if(o && Date.now() - o.t < 450 && !prefersReducedMotion()){
+      const r = card.getBoundingClientRect();
+      card.style.transformOrigin = `${(o.x - r.left).toFixed(0)}px ${(o.y - r.top).toFixed(0)}px`;
+      card.classList.add("in-morph");
+    } else {
+      card.classList.add("in-" + (enter || "scale"));
+    }
+  }
+  lastClickOrigin = null;
+  loadCardImages();
+  staggerReveal(inner);
+  takeover.classList.add("open");
+  document.body.classList.add("overlay-on");        // hide the field banner behind
+  document.removeEventListener("keydown", onKey);   // never stack listeners
+  document.addEventListener("keydown", onKey);
+}
+
+function closeTakeover(){
+  const card = inner.querySelector(".card");
+  if(card){ card.style.animation = ""; card.classList.add("out"); }  // play exit anim
+  takeover.classList.remove("open");
+  document.body.classList.remove("overlay-on");      // restore the field banner
+  document.removeEventListener("keydown", onKey);
+  state.view = null;
+}
+
+function onKey(e){
+  if(e.key === "Escape") closeTakeover();
+  else if(e.key === "ArrowRight" && state.view?.kind==="play") stepPlay(1);
+  else if(e.key === "ArrowLeft"  && state.view?.kind==="play") stepPlay(-1);
+}
+
+/* ----- PLAY CARD ----- */
+// mode: undefined (grow from center) | "next" (slide in from right) | "prev" (from left)
+function openPlay(id, mode){
+  const p = PLAYS.find(x => x.id === id);
+  if(!p) return;
+  // make sure prev/next cycles the list the play actually belongs to
+  if(!state.list.includes(id)) state.list = PLAYS.map(x=>x.id);
+  state.view = { kind:"play", id };
+  const enter = mode === "next" ? "right" : mode === "prev" ? "left" : "scale";
+
+  const typeLabel = (p.type==="Star Play" ? `<span class="star">${STAR_ICON}</span>` : "")
+    + p.type + (p.subtype ? ` · ${p.subtype}` : "");
+
+  const reads = p.reads.map(r =>
+    `<li><span class="num"></span>
+       <span class="read-text"><b>${r.label}</b><br><span>${r.text}</span></span></li>`).join("");
+
+  const adjustments = (p.adjustments||[]).map(a => `<li>${a}</li>`).join("");
+
+  const tags = (p.tags||[]).map(t =>
+    `<button class="chip" data-tag="${t}">${tagLabel(t)}</button>`).join("");
+
+  openTakeover(`
+    <div class="card cream-patch play-card">
+      <button class="card-close" title="Close (Esc)">&times;</button>
+
+      <!-- full-width header: identity on the left, tag pills on the right -->
+      <div class="card-head">
+        <div class="card-head-id">
+          <div class="card-type eyebrow">${typeLabel}</div>
+          <h2 class="display card-name">${p.name}</h2>
+          <div class="card-form">${p.formation}</div>
+          ${p.exclusive ? `<div class="excl excl-lg">${CROWN} Scheme Kings Exclusive Play</div>` : ""}
+        </div>
+        ${tags ? `<div class="card-head-tags">${tags}</div>` : ""}
+      </div>
+
+      <div class="card-body">
+        <!-- left: field-view video + formation/play-call + when-to-use -->
+        <div class="card-left">
+          ${videoSlot(p.images.fieldView, "FIELD VIEW")}
+          <div class="thumb-row">
+            ${imgSlot(p.images.formation, "FORMATION")}
+            ${imgSlot(p.images.playCall, "PLAY CALL")}
+          </div>
+          ${p.whenToUse ? `<div class="sec-head">When To Use</div><div class="whentouse">${p.whenToUse}</div>` : ""}
+        </div>
+
+        <!-- right: setup + reads + adjustments -->
+        <div class="card-right">
+          ${p.setup ? `<div class="sec-head">Setup</div><div class="setup-note">${p.setup}</div>` : ""}
+          <div class="sec-head">Reads</div>
+          <ol class="reads">${reads}</ol>
+          ${adjustments ? `<div class="sec-head">Adjustments</div><ul class="adjust">${adjustments}</ul>`:""}
+          <div class="card-footer">
+            <div class="foot-label">${SCHEME_CONFIG.schemeName} <span>· ${p.formation}</span></div>
+            <div class="nav-btns">
+              <button data-step="-1">&larr; Prev</button>
+              <button data-step="1">Next &rarr;</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>`, enter);
+
+  // wire interactions
+  inner.querySelector(".card-close").addEventListener("click", closeTakeover);
+  // field-view → embed the breakdown video in place (click or Enter/Space)
+  const vslot = inner.querySelector("[data-video]");
+  if(vslot){
+    const go = () => embedVideo(vslot, p.videoUrl);
+    vslot.addEventListener("click", go);
+    vslot.addEventListener("keydown", e => {
+      if(e.key === "Enter" || e.key === " "){ e.preventDefault(); go(); }
+    });
+  }
+  inner.querySelectorAll("[data-step]").forEach(b =>
+    b.addEventListener("click", () => stepPlay(+b.dataset.step)));
+  // clicking a tag jumps to the call sheet filtered to that tag
+  inner.querySelectorAll("[data-tag]").forEach(b =>
+    b.addEventListener("click", () => { state.filter = b.dataset.tag; openCallSheet(); }));
+}
+
+// Prev/Next: slide the current card out one way, bring the next in from the other.
+let stepping = false;
+function stepPlay(dir){
+  if(!state.view || state.view.kind!=="play" || stepping) return;
+  const list = state.list.length ? state.list : PLAYS.map(p=>p.id);
+  let i = list.indexOf(state.view.id);
+  i = (i + dir + list.length) % list.length;
+
+  const card = inner.querySelector(".card");
+  stepping = true;
+  if(card){
+    card.style.animation = "none";          // cancel the entrance animation
+    card.classList.add("stepping");
+    // next → old slides left; prev → old slides right
+    card.style.transform = `translateX(${dir>0 ? -64 : 64}px) scale(.98)`;
+    card.style.opacity = "0";
+  }
+  setTimeout(() => {
+    openPlay(list[i], dir>0 ? "next" : "prev");   // new card enters from opposite side
+    stepping = false;
+  }, 165);
+}
+
+/* ----- SECTION CARDS (About / Personnel / Formations) ----- */
+function openSection(key){
+  state.view = { kind:"section", key };
+  let body = "", eyebrow = "", title = "";
+
+  if(key === "about"){
+    eyebrow = "Scheme Philosophy"; title = ABOUT.title;
+    body = `<div class="pillars">` + ABOUT.pillars.map(p =>
+      `<div class="pillar cream-patch"><span class="crown-stamp">${CROWN}</span><div class="p-head">${p.head}</div><p>${p.text}</p></div>`).join("") + `</div>`
+      + (ABOUT.youtube ? `<a class="yt-link about-yt" href="${ABOUT.youtube}" target="_blank" rel="noopener">${PLAY_ICON} Watch the Full YouTube Breakdown</a>` : "");
+  }
+  else if(key === "personnel"){
+    eyebrow = "Key Positions"; title = "Personnel";
+    body = `<div class="card-grid">` + PERSONNEL.map(p =>
+      `<div class="mini-card cream-patch">
+         <span class="crown-stamp">${CROWN}</span>
+         <div class="mc-pos">${p.pos || p.title}</div>
+         <div class="mc-role">${p.role}</div>
+         <div class="mc-pills">
+           <span class="mc-pill"><b>Inspiration</b><i>${p.inspo}</i></span>
+           <span class="mc-pill"><b>Card</b><i>${p.card}</i></span>
+         </div>
+       </div>`).join("") + `</div>`;
+  }
+  else if(key === "formations"){
+    eyebrow = "3 Formations"; title = "Base Sets";
+    body = `<div class="form-list">` + FORMATIONS.map(f =>
+      `<div class="form-row cream-patch">
+         <span class="crown-stamp">${CROWN}</span>
+         ${imgSlot(f.img, "FORMATION")}
+         <div class="f-text">
+           <div class="f-name">${f.name}</div>
+           <div class="f-desc">${f.desc}</div>
+           ${(f.tags||[]).length ? `<div class="f-tags">${f.tags.map(t => {
+             const match = PLAYS.find(x => x.name.toLowerCase() === t.toLowerCase());
+             return match
+               ? `<button class="ftag" data-play="${match.id}">${t}</button>`
+               : `<span class="ftag">${t}</span>`;
+           }).join("")}</div>` : ""}
+         </div>
+       </div>`).join("") + `</div>`;
+  }
+  else if(key === "series"){
+    eyebrow = SERIES.eyebrow; title = SERIES.title;
+    body = `<p class="series-intro">${SERIES.intro}</p>
+      <div class="team-list">` + SERIES.teams.map(t =>
+        `<div class="team-row cream-patch">
+           <span class="crown-stamp">${CROWN}</span>
+           <div class="t-shield">${t.logo ? `<img src="${assetUrl(t.logo)}" alt="">` : CROWN}</div>
+           <div class="t-era">${t.era}</div>
+           <div class="t-name">${t.name}</div>
+           <p class="t-blurb">${t.blurb}</p>
+           <div class="t-actions">
+             ${t.youtube ? `<a class="yt-link" href="${t.youtube}" target="_blank" rel="noopener">${PLAY_ICON} Watch YouTube Breakdown</a>` : ""}
+             <span class="sk-badge">${CROWN} Full Playbook on Scheme Kings</span>
+           </div>
+         </div>`).join("") + `</div>
+      <p class="series-outro">${SERIES.outro}</p>`;
+  }
+
+  openTakeover(`
+    <div class="card section-card">
+      <button class="card-close" title="Close (Esc)">&times;</button>
+      <div class="sc-eyebrow eyebrow">${eyebrow}</div>
+      <h2 class="display sc-title">${title}</h2>
+      <div class="sc-divider"></div>
+      ${body}
+    </div>`, "left");
+
+  inner.querySelector(".card-close").addEventListener("click", closeTakeover);
+  if(key === "formations"){
+    inner.querySelectorAll(".ftag[data-play]").forEach(b =>
+      b.addEventListener("click", () => openPlay(b.dataset.play)));
+  }
+}
+
+/* ----- CATEGORY LIST (opened by a right-side category pill) ----- */
+function openCategory(type){
+  const plays = PLAYS.filter(p => p.type === type);
+  state.view = { kind:"category", type };
+  state.list = plays.map(p => p.id);     // prev/next cycles within this category
+
+  const sub = (CATEGORIES.find(c => c.type === type) || {}).sub || "Play Category";
+  const title = (CATEGORIES.find(c => c.type === type) || {}).title || type;
+  const items = plays.length
+    ? plays.map(playItemHTML).join("")
+    : `<div class="empty">No plays in this category yet.</div>`;
+
+  openTakeover(`
+    <div class="card section-card list-card">
+      <button class="card-close" title="Close (Esc)">&times;</button>
+      <div class="sc-eyebrow eyebrow">${sub}</div>
+      <h2 class="display sc-title">${title}</h2>
+      <div class="sc-divider"></div>
+      <div class="overlay-list">${items}</div>
+    </div>`, "right");
+
+  inner.querySelector(".card-close").addEventListener("click", closeTakeover);
+  inner.querySelectorAll("[data-play]").forEach(b =>
+    b.addEventListener("click", () => openPlay(b.dataset.play)));
+}
+
+/* ----- FULL CALL SHEET (opened by the bottom-center pill) — tag filtering ----- */
+function openCallSheet(){
+  state.view = { kind:"callsheet" };
+  openTakeover(`
+    <div class="card section-card list-card">
+      <button class="card-close" title="Close (Esc)">&times;</button>
+      <div class="sc-eyebrow eyebrow">Tag Filters</div>
+      <h2 class="display sc-title">Call Sheet</h2>
+      <div class="sc-divider"></div>
+      <div class="filter-row" id="ov-filter-row"></div>
+      <div class="overlay-list" id="ov-list"></div>
+    </div>`, "bottom");
+  inner.querySelector(".card-close").addEventListener("click", closeTakeover);
+  renderCallSheetBody();
+}
+
+// (Re)render the call sheet filter chips + grouped list for the active filter.
+function renderCallSheetBody(){
+  const match = (p) => state.filter === "all" || (p.tags||[]).includes(state.filter);
+
+  // filter chips
+  const fr = $("#ov-filter-row");
+  fr.innerHTML = filterChipIds().map(id =>
+    `<button class="chip ${id===state.filter?'active':''}" data-filter="${id}">${id==="all" ? "All" : tagLabel(id)}</button>`).join("");
+  fr.querySelectorAll("[data-filter]").forEach(b =>
+    b.addEventListener("click", () => { state.filter = b.dataset.filter; renderCallSheetBody(); }));
+
+  // grouped play list (also records the order for prev/next)
+  const filtered = PLAYS.filter(match);
+  state.list = filtered.map(p => p.id);
+  const groups = [
+    { type:"Run Game",  label:"Run Game" },
+    { type:"Pass Game", label:"Pass Game" },
+    { type:"Star Play", label:"Star Plays" },
+  ];
+  let html = "";
+  groups.forEach(g => {
+    const ps = filtered.filter(p => p.type === g.type);
+    if(!ps.length) return;
+    html += `<div class="group-label">${g.label}</div>` + ps.map(playItemHTML).join("");
+  });
+  if(!html) html = `<div class="empty">No plays match this filter.</div>`;
+
+  const list = $("#ov-list");
+  list.innerHTML = html;
+  list.querySelectorAll("[data-play]").forEach(b =>
+    b.addEventListener("click", () => openPlay(b.dataset.play)));
+  staggerReveal(inner);   // re-cascade the rows on open + each filter change
+}
+
+/* ----- HUB MENUS (mobile) — a hub pill opens a menu of destinations ----- */
+function openHub(key){
+  if(key === "about"){
+    // About content + secondary sections + the series write-up
+    openMenu("About", "Scheme · Personnel · Series", [
+      { kind:"section", val:"about",      title:"About",            sub:"Scheme Philosophy" },
+      { kind:"section", val:"personnel",  title:"Personnel",        sub:"Who Runs It" },
+      { kind:"section", val:"formations", title:"Formations",       sub:"Base Sets" },
+      { kind:"section", val:"series",     title:SERIES.pillTitle,   sub:SERIES.pillSub },
+    ], "left");
+  } else { // "plays"
+    openMenu("Play Calls", "Choose A Category",
+      CATEGORIES.map(c => ({ kind:"category", val:c.type, title:c.title||c.type, sub:c.sub })), "right");
+  }
+}
+
+// Renders a list of patch-pill destinations inside the takeover overlay.
+function openMenu(title, eyebrow, items, enter){
+  state.view = { kind:"menu" };
+  const pill = (it, attr) =>
+    `${attr ? `<button class="patch menu-row" ${attr}>` : `<a class="patch menu-row" href="${it.val}" target="_top">`}
+       ${badgeHTML(it.logo || SCHEME_CONFIG.teamLogo)}
+       <span class="patch-text">
+         <span class="patch-title">${it.title}</span>
+         <span class="patch-sub">${it.sub}</span>
+       </span>
+       <span class="crown">${CROWN}</span>
+     ${attr ? `</button>` : `</a>`}`;
+
+  const rows = items.map((it, i) => {
+    if(it.kind === "divider") return `<div class="menu-divider"></div>`;
+    if(it.kind === "link")    return pill(it, null);
+    return pill(it, `data-i="${i}"`);
+  }).join("");
+
+  openTakeover(`
+    <div class="card section-card list-card menu-card">
+      <button class="card-close" title="Close (Esc)">&times;</button>
+      <div class="sc-eyebrow eyebrow">${eyebrow}</div>
+      <h2 class="display sc-title">${title}</h2>
+      <div class="sc-divider"></div>
+      <div class="menu-list">${rows}</div>
+    </div>`, enter || "bottom");
+
+  inner.querySelector(".card-close").addEventListener("click", closeTakeover);
+  inner.querySelectorAll("[data-i]").forEach(b => {
+    const it = items[+b.dataset.i];
+    b.addEventListener("click", () => {
+      if(it.kind === "section")  openSection(it.val);
+      else if(it.kind === "category") openCategory(it.val);
+    });
+  });
+}
+
+// Close the takeover by clicking the dark overlay (outside the card).
+takeover.addEventListener("click", (e) => { if(e.target === takeover) closeTakeover(); });
+
+/* ==========================================================================
+   COVER → FIELD transition + boot
+   ========================================================================== */
+function openPlaybook(){
+  const cover = $("#cover");
+  cover.classList.add("lift");
+  $("#field").classList.add("show");
+  setTimeout(() => cover.classList.add("hidden"), 520);
+}
+
+function init(){
+  applyConfig();
+  buildSkCta();         // top-left persistent Scheme Kings CTA badge
+  buildNav();           // desktop left pills: About / Personnel / Formations + series
+  buildRightNav();      // desktop right pills: play categories
+  buildMobileNav();     // mobile hub pills: About / Play Calls
+  buildCallSheetPill(); // bottom-center call sheet pill (both layouts)
+  $("#open-btn").addEventListener("click", openPlaybook);
+}
+init();
+</script>
+</body>
+</html>
