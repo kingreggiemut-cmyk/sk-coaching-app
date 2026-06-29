@@ -9,6 +9,8 @@ const SUPABASE_URL      = process.env.SUPABASE_URL;
 const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY;
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 const SESSIONS_PER_MONTH = 10;
+// Owner account (kingreggiemut) — unlimited AI for testing, bypasses the monthly cap.
+const OWNER_ID = '80498288-8171-4d65-af9f-20648b279041';
 
 // King Reggie's distilled football understanding + voice — rides every "coach" call.
 // (Condensed from FOOTBALL-BRAIN.md. The installed-scheme play data layers in on top of this later.)
@@ -31,6 +33,62 @@ const CORS = {
 
 function json(status, body) {
   return { statusCode: status, headers: CORS, body: JSON.stringify(body) };
+}
+
+// Deterministic scheme_key -> uuid (mirror of the app's lwSchemeUuid) so a game's
+// scheme_id (stored as either the raw key OR this uuid) resolves back to a key.
+function schemeUuid(key) {
+  if (!key) return null;
+  const lanes = [0x811c9dc5, 0x1000193, 0xcafef00d, 0xdeadbeef];
+  for (let i = 0; i < key.length; i++) { const l = i & 3; lanes[l] = ((lanes[l] ^ key.charCodeAt(i)) * 16777619) >>> 0; }
+  const hex = lanes.map(x => ('00000000' + x.toString(16)).slice(-8)).join('');
+  return `${hex.slice(0,8)}-${hex.slice(8,12)}-${hex.slice(12,16)}-${hex.slice(16,20)}-${hex.slice(20,32)}`;
+}
+
+// Pull the member's REAL schemes + plays from Supabase so the AI coaches from the
+// actual installed playbooks. Returns { arsenal, schemeCatalog } (strings; '' if none).
+async function buildArsenal(sbHeaders, scheme_id, scheme_name, fallbackKey) {
+  let arsenal = '', schemeCatalog = '';
+  try {
+    const pbRes = await fetch(`${SUPABASE_URL}/rest/v1/playbooks?select=scheme_key,name&order=published_at.desc`, { headers: sbHeaders });
+    const books = await pbRes.json();
+    if (Array.isArray(books) && books.length) {
+      schemeCatalog = books.map(b => b.name).filter(Boolean).join(', ');
+      const byAny = {};
+      books.forEach(b => {
+        if (!b.scheme_key) return;
+        byAny[b.scheme_key] = b.scheme_key;
+        byAny[schemeUuid(b.scheme_key)] = b.scheme_key;
+        if (b.name) byAny[b.name.toLowerCase()] = b.scheme_key;
+      });
+      let targetKey = byAny[scheme_id] || byAny[(scheme_name || '').toLowerCase()] || null;
+      if (!targetKey && fallbackKey) targetKey = byAny[fallbackKey] || null;
+      const keys = targetKey ? [targetKey] : books.map(b => b.scheme_key).filter(Boolean);
+      const detailed = !!targetKey;
+      if (keys.length) {
+        const inList = keys.map(k => `"${k}"`).join(',');
+        const sel = detailed ? 'scheme_key,name,formation,type,subtype,tags,reads,when_to_use'
+                             : 'scheme_key,name,formation,type,tags';
+        const plRes = await fetch(`${SUPABASE_URL}/rest/v1/plays?scheme_key=in.(${inList})&select=${sel}&limit=120`, { headers: sbHeaders });
+        const plays = await plRes.json();
+        const nameByKey = {}; books.forEach(b => { nameByKey[b.scheme_key] = b.name; });
+        if (Array.isArray(plays) && plays.length) {
+          const lines = plays.slice(0, detailed ? 60 : 90).map(p => {
+            const tags = Array.isArray(p.tags) && p.tags.length ? ` [${p.tags.slice(0, 4).join(', ')}]` : '';
+            const meta = [p.formation, p.type, p.subtype].filter(Boolean).join(' · ');
+            const read = detailed && Array.isArray(p.reads) && p.reads[0]
+              ? ` — 1st read: ${p.reads[0].label || p.reads[0]}` : '';
+            const book = detailed ? '' : `(${nameByKey[p.scheme_key] || p.scheme_key}) `;
+            return `- ${book}${p.name}${meta ? ` (${meta})` : ''}${tags}${read}`;
+          }).join('\n');
+          arsenal = (detailed
+            ? `THE ACTUAL PLAYS IN ${(scheme_name || nameByKey[targetKey] || 'this scheme').toUpperCase()} (coach ONLY from these):`
+            : `THE FULL PLAY LIBRARY ACROSS ALL SCHEMES (coach ONLY from these):`) + '\n' + lines;
+        }
+      }
+    }
+  } catch (_) { /* non-fatal */ }
+  return { arsenal, schemeCatalog };
 }
 
 exports.handler = async (event) => {
@@ -218,6 +276,58 @@ ${statsLine ? '\n' + statsLine : ''}`;
     return json(200, { response: cText, cost });
   }
 
+  // ── Session follow-up: continue an existing coaching session. Grounded in the
+  //    same member data + playbook arsenal, capped at 2 follow-ups, and does NOT
+  //    consume a monthly session credit. ────────────────────────────────────────
+  if (obBody.mode === 'session_followup' && Array.isArray(obBody.messages)) {
+    const convo = obBody.messages
+      .filter(m => m && m.content && (m.role === 'user' || m.role === 'assistant'))
+      .map(m => ({ role: m.role, content: String(m.content).slice(0, 4000) }))
+      .slice(-7);
+    if (!convo.length || convo[convo.length - 1].role !== 'user') return json(400, { error: 'No follow-up question' });
+    if (convo.filter(m => m.role === 'user').length > 3) return json(429, { error: 'Follow-up limit reached', limit: 2 });
+
+    let fName = 'Coach', fStats = '';
+    try {
+      const [mRes, gRes] = await Promise.all([
+        fetch(`${SUPABASE_URL}/rest/v1/members?member_id=eq.${userId}&select=display_name&limit=1`, { headers: sbHeaders }),
+        fetch(`${SUPABASE_URL}/rest/v1/performance_cards?member_id=eq.${userId}&select=result&order=created_at.desc&limit=20`, { headers: sbHeaders })
+      ]);
+      fName = ((await mRes.json())[0] || {}).display_name || 'Coach';
+      const gs = await gRes.json();
+      if (Array.isArray(gs) && gs.length) {
+        const w = gs.filter(g => g.result === 'Win').length;
+        const recent = gs.slice(0, 5).map(g => g.result === 'Win' ? 'W' : 'L').join('-');
+        fStats = `Record ${w}W-${gs.length - w}L, recent ${recent}.`;
+      }
+    } catch (_) {}
+
+    const { arsenal: fArsenal, schemeCatalog: fCatalog } =
+      await buildArsenal(sbHeaders, obBody.scheme_id || '', obBody.scheme_name || '', null);
+
+    const fSystem = `You are an elite CFB 26 / Madden coach continuing a live coaching conversation with ${fName}, like a real coach on the headset. Answer their follow-up directly and specifically, no bullet points, under 200 words.${fStats ? ` Their form: ${fStats}` : ''}
+CRITICAL: only reference schemes and plays that appear below. NEVER invent play or scheme names — name a real play from their playbook.${fCatalog ? `\n\nSCHEMES IN THE LIBRARY: ${fCatalog}` : ''}${fArsenal ? `\n\n${fArsenal}` : ''}`;
+
+    let fText = '';
+    try {
+      const ar = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-api-key': ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01' },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-6',
+          max_tokens: 500,
+          system: [{ type: 'text', text: fSystem, cache_control: { type: 'ephemeral' } }],
+          messages: convo
+        })
+      });
+      const ad = await ar.json();
+      fText = ad.content?.[0]?.text || '';
+    } catch (_) { fText = ''; }
+    if (!fText) return json(500, { error: 'AI service unavailable' });
+    const used = convo.filter(m => m.role === 'user').length - 1;
+    return json(200, { response: fText, followupsLeft: Math.max(0, 2 - used) });
+  }
+
   // ── Session limit ────────────────────────────────────────────────────────────
   const monthStart = new Date();
   monthStart.setUTCDate(1); monthStart.setUTCHours(0, 0, 0, 0);
@@ -232,7 +342,7 @@ ${statsLine ? '\n' + statsLine : ''}`;
     usedThisMonth = parseInt(range.split('/')[1]) || 0;
   } catch (_) { /* table may not exist yet — allow */ }
 
-  if (usedThisMonth >= SESSIONS_PER_MONTH) {
+  if (userId !== OWNER_ID && usedThisMonth >= SESSIONS_PER_MONTH) {
     return json(429, { error: 'Monthly session limit reached', limit: SESSIONS_PER_MONTH });
   }
 
@@ -318,13 +428,17 @@ ${sWorked   ? `What's worked in this scheme: ${sWorked}`   : ''}
 ${sStruggle ? `Struggles in this scheme: ${sStruggle}` : ''}`.trim();
   }
 
+  // Playbook arsenal (real schemes + plays). Module-level helper, shared with the
+  // follow-up handler so both stay grounded in the same installed-playbook data.
+  const { arsenal, schemeCatalog } = await buildArsenal(sbHeaders, scheme_id, scheme_name, topScheme ? topScheme[0] : null);
+
   // ── Coach identity ─────────────────────────────────────────────────────────────
   const cp    = member.coach_profile || {};
   const name  = member.display_name  || 'Coach';
   const title = member.coach_title   || '';
 
   // ── Build prompts ─────────────────────────────────────────────────────────────
-  const system = `You are an elite video game football coach specializing in CFB 26 and Madden 27. You give sharp, personalized coaching advice grounded entirely in each member's real logged game data. You write like a real football coach talking to a player — direct, specific, encouraging. Never use bullet points or generic advice. Keep responses between 160 and 240 words.`;
+  const system = `You are an elite video game football coach specializing in CFB 26 and Madden 27. You give sharp, personalized coaching advice grounded entirely in each member's real logged game data AND their actual Scheme Kings playbooks. You write like a real football coach talking to a player — direct, specific, encouraging. Never use bullet points or generic advice. Keep responses between 160 and 240 words. CRITICAL: only reference schemes and plays that appear in the data below (the scheme library and the play list). NEVER invent play names, scheme names, or concepts the member doesn't actually have — when you recommend a call, name a real play from their playbook. If the perfect tool isn't in their playbook, say so and point to the closest play that is.`;
 
   const userPrompt = `You are coaching ${name}${title ? `, the ${title}` : ''}.
 
@@ -338,6 +452,8 @@ ${topScheme ? `Most used scheme: ${topScheme[0]} — ${topScheme[1].w}W-${topSch
 ${topWorked   ? `What's been working overall: ${topWorked}`   : ''}
 ${topStruggle ? `Recurring struggles overall: ${topStruggle}` : ''}
 ${schemeContext ? `\n${schemeContext}` : ''}
+${schemeCatalog ? `\nSCHEMES IN THE SCHEME KINGS LIBRARY: ${schemeCatalog}` : ''}
+${arsenal ? `\n${arsenal}\n` : ''}
 
 TODAY'S SESSION:
 Side of the ball: ${side || 'General'}
@@ -359,7 +475,7 @@ IMPORTANT: Open with 1-2 sentences that prove you know their specific data — m
         'anthropic-version': '2023-06-01'
       },
       body: JSON.stringify({
-        model:      'claude-haiku-4-5-20251001',
+        model:      'claude-sonnet-4-6',
         max_tokens: 450,
         system,
         messages: [{ role: 'user', content: userPrompt }]
