@@ -8858,13 +8858,16 @@ function init(){
   $("#open-btn").addEventListener("click", openPlaybook);
   buildCoverTour();
 
-  // Background sync - owner-only write guard (anon key is public; gate the write)
-  if (SK_AUTH.memberId === '80498288-8171-4d65-af9f-20648b279041') syncPlaybookToSupabase();
   fetchPlayRatings();
 
   // Shared sign-in bridge - silent; anonymous browsing is unaffected
   skInjectAuthCSS();   // so Save-Play buttons are styled the moment a card opens
-  initAuth();
+  // initAuth resolves async; only AFTER it does is the member known. Run the
+  // owner-only background sync THERE - the old call fired before login, so
+  // memberId was null and the sync never actually ran.
+  initAuth().then(() => {
+    if (SK_AUTH.memberId === '80498288-8171-4d65-af9f-20648b279041') syncPlaybookToSupabase();
+  });
 
   // Deep-link: ?play=<id> opens that play's breakdown directly (coaching-app saved plays)
   try {
