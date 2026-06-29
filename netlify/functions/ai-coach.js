@@ -491,11 +491,13 @@ IMPORTANT: Open with 1-2 sentences that prove you know their specific data — m
     return json(500, { error: 'AI service unavailable' });
   }
 
-  // ── Record session (best-effort) ──────────────────────────────────────────────
+  // ── Record session (best-effort). Return the row id so follow-ups can be
+  //    appended to the same saved session for the Film Room history. ─────────────
+  let sessionId = null;
   try {
-    await fetch(`${SUPABASE_URL}/rest/v1/coaching_sessions`, {
+    const ins = await fetch(`${SUPABASE_URL}/rest/v1/coaching_sessions`, {
       method:  'POST',
-      headers: { ...sbHeaders, Prefer: 'return=minimal' },
+      headers: { ...sbHeaders, Prefer: 'return=representation' },
       body:    JSON.stringify({
         member_id:        userId,
         topic:            side     || null,
@@ -504,10 +506,13 @@ IMPORTANT: Open with 1-2 sentences that prove you know their specific data — m
         response_preview: response.slice(0, 8000)
       })
     });
+    const rows = await ins.json();
+    sessionId = Array.isArray(rows) && rows[0] ? rows[0].id : null;
   } catch (_) { /* non-fatal */ }
 
   return json(200, {
     response,
+    sessionId,
     sessionsUsed: usedThisMonth + 1,
     sessionsLeft: SESSIONS_PER_MONTH - usedThisMonth - 1
   });
