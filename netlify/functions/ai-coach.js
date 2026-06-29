@@ -501,7 +501,7 @@ IMPORTANT: Open with 1-2 sentences that prove you know their specific data — m
         topic:            side     || null,
         tags:             { side, scheme_id, scheme_name, area, help_type },
         notes:            notes    || null,
-        response_preview: response.slice(0, 400)
+        response_preview: response.slice(0, 8000)
       })
     });
   } catch (_) { /* non-fatal */ }

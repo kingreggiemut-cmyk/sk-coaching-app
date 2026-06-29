@@ -720,6 +720,13 @@ body.ccweb-on #bg-vid-b {
   font-family:var(--font-display); font-size:13px; color:var(--cream-muted); line-height:1.7;
 }
 .fr-ai-empty strong { font-family:var(--font-display); font-weight:900; text-transform:uppercase; letter-spacing:1px; font-size:14px; color:var(--cream); display:block; margin-bottom:8px; }
+.frai-list { max-width:680px; margin:0 auto; text-align:left; }
+.frai-card { background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.1); border-radius:12px; padding:14px 16px; margin-bottom:12px; }
+.frai-top { display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; }
+.frai-date { font-family:var(--font-display); font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:1px; color:var(--gold); }
+.frai-chips { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:10px; }
+.frai-chip { font-size:10px; text-transform:uppercase; letter-spacing:.08em; color:rgba(240,231,203,.6); background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.1); border-radius:99px; padding:3px 9px; }
+.frai-text { font-size:14px; line-height:1.7; color:var(--cream,#f4ead2); white-space:pre-wrap; }
 
 /* ==========================================================================
    ABOUT CAROUSEL
@@ -989,7 +996,7 @@ body.ccweb-on #bg-vid-b {
   grid-column: 2; grid-row: 1;
   display: flex; flex-direction: column;
   align-items: center; justify-content: flex-start;
-  padding: 24px; overflow-y: auto; z-index: 2;
+  padding: 24px; overflow-y: auto; min-height: 0; z-index: 2;
 }
 
 /* Right panel */
@@ -9817,8 +9824,43 @@ function wireYourDNA() {
       const key = btn.dataset.fr;
       document.querySelectorAll('#fr-sub-tabs .fr-sub-tab').forEach(b => b.classList.toggle('on', b.dataset.fr === key));
       document.querySelectorAll('.fr-sub-pane').forEach(p => p.classList.toggle('on', p.dataset.frpane === key));
+      if (key === 'ai') loadFilmAISessions();
     });
   });
+}
+
+// Load past AI coaching sessions into the Film Room "AI Sessions" pane.
+async function loadFilmAISessions() {
+  const pane = document.getElementById('fr-pane-ai');
+  if (!pane || !db || !currentUser) return;
+  pane.innerHTML = `<div class="fr-ai-empty"><strong>AI Sessions</strong>Loading your sessions…</div>`;
+  try {
+    const { data, error } = await db.from('coaching_sessions')
+      .select('created_at, topic, tags, response_preview, notes')
+      .eq('member_id', currentUser.id)
+      .order('created_at', { ascending: false })
+      .limit(50);
+    if (error) throw error;
+    if (!data || !data.length) {
+      pane.innerHTML = `<div class="fr-ai-empty"><strong>AI Sessions</strong>Your past coaching conversations will be saved here. Start a session from the AI Coaching node to build your history.</div>`;
+      return;
+    }
+    pane.innerHTML = `<div class="frai-list">` + data.map(s => {
+      const d = new Date(s.created_at);
+      const date = isNaN(d) ? '' : d.toLocaleDateString(undefined, { month:'short', day:'numeric', year:'numeric' });
+      const t = s.tags || {};
+      const chips = [t.scheme_name, t.side, t.area, t.help_type].filter(Boolean)
+        .map(c => `<span class="frai-chip">${achEsc(c)}</span>`).join('');
+      const body = achEsc((s.response_preview || s.notes || '').trim());
+      return `<div class="frai-card">
+        <div class="frai-top"><span class="frai-date">${date}</span></div>
+        ${chips ? `<div class="frai-chips">${chips}</div>` : ''}
+        <div class="frai-text">${body}</div>
+      </div>`;
+    }).join('') + `</div>`;
+  } catch (_) {
+    pane.innerHTML = `<div class="fr-ai-empty"><strong>AI Sessions</strong>Couldn't load your sessions right now. Try again in a moment.</div>`;
+  }
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
