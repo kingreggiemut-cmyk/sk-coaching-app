@@ -5534,7 +5534,8 @@ const HUB_NODES = [
 ];
 // Owner account (kingreggiemut) bypasses the game gates + AI session cap for testing.
 const SK_OWNER_ID = '80498288-8171-4d65-af9f-20648b279041';
-function skIsOwner(){ return !!(currentUser && currentUser.id === SK_OWNER_ID); }
+const SK_OWNER_EMAIL = 'kingreggiemut@gmail.com';
+function skIsOwner(){ return !!(currentUser && (currentUser.id === SK_OWNER_ID || String(currentUser.email||'').toLowerCase() === SK_OWNER_EMAIL)); }
 const AI_GATE_GAMES       = 15;   // unlock threshold
 const AI_COACHING_SESSIONS = 10;  // sessions per member per month
 let hubGamesTotal = 0;
@@ -6188,6 +6189,7 @@ function achNotesDone() {
   lw2Commit(lw.nodes['notes']);
 }
 
+let achFU = null;   // follow-up conversation state for the active Coach's Corner answer
 async function achSubmit() {
   const fx = document.getElementById('lw-fx');
   if (fx) fx.innerHTML = `<div style="display:flex;flex-direction:column;align-items:center;gap:18px;padding:72px 0"><div class="aic-thinking-ring"></div><div class="aic-thinking-label">Pulling your film...</div></div>`;
@@ -6224,6 +6226,16 @@ async function achSubmit() {
 
     const chips = [lw._achSide, lw._achSchemeName, lw._achArea, lw._achHelp].filter(Boolean);
     const left  = payload.sessionsLeft;
+    // capture the conversation for follow-ups BEFORE closeAICoachWeb() nulls `lw`
+    const seedParts = [lw._achSide, lw._achSchemeName && `scheme: ${lw._achSchemeName}`,
+                       lw._achArea && `focus: ${lw._achArea}`, lw._achHelp && `need: ${lw._achHelp}`].filter(Boolean);
+    let seed = `Coaching session — ${seedParts.join(', ') || 'general'}.`;
+    if (lw._achNotes) seed += ` ${lw._achNotes}`;
+    achFU = {
+      schemeId: lw._achSchemeId || '', schemeName: lw._achSchemeName || '',
+      convo: [ { role:'user', content: seed }, { role:'assistant', content: payload.response } ],
+      left: 2
+    };
     closeAICoachWeb();
 
     showInCenter(`<div class="ach-resp-wrap">
@@ -6234,6 +6246,14 @@ async function achSubmit() {
       </div>
       ${chips.length ? `<div class="ach-resp-chips">${chips.map(c=>`<span class="ach-resp-chip">${c}</span>`).join('')}</div>` : ''}
       <div class="ach-resp-text">${(payload.response||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>
+      <div id="ach-fu-thread"></div>
+      <div class="aic-fu-box" id="ach-fu-box">
+        <textarea id="ach-fu-input" class="aic-fu-input" rows="2" maxlength="500" placeholder="Ask a follow-up..."></textarea>
+        <div class="aic-fu-row">
+          <span class="aic-fu-left" id="ach-fu-left">2 follow-ups left</span>
+          <button class="aic-fu-send" id="ach-fu-send" onclick="achSubmitFollowup()">Ask &#9889;</button>
+        </div>
+      </div>
       <button class="ach-resp-again" onclick="openAICoach()">New Session &#9889;</button>
     </div>`);
 
@@ -6248,6 +6268,53 @@ function achError(msg) {
     <div class="aic-error" style="display:block;max-width:400px">${msg}</div>
     <button class="ach-resp-again" onclick="closeAICoachWeb()">Close</button>
   </div>`;
+}
+
+function achEsc(s){ return String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+
+// Continue the Coach's Corner answer with up to 2 follow-ups (grounded server-side,
+// no new session credit). State lives in `achFU` captured at answer time.
+async function achSubmitFollowup() {
+  const input = document.getElementById('ach-fu-input');
+  const q = (input?.value || '').trim();
+  if (!q || !achFU || (achFU.left || 0) <= 0) return;
+  const sendBtn = document.getElementById('ach-fu-send');
+  const thread  = document.getElementById('ach-fu-thread');
+  if (sendBtn) { sendBtn.disabled = true; sendBtn.textContent = '...'; }
+  if (input)   { input.value = ''; input.disabled = true; }
+  if (thread)  thread.insertAdjacentHTML('beforeend',
+    `<div class="aic-fu-q">${achEsc(q)}</div><div class="aic-fu-a aic-fu-pending">Coach is thinking…</div>`);
+  achFU.convo.push({ role: 'user', content: q });
+  try {
+    const { data: { session } } = await db.auth.getSession();
+    const token = session?.access_token;
+    if (!token) throw new Error('no token');
+    const res = await fetch(AI_PROXY, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body:    JSON.stringify({ mode: 'session_followup', messages: achFU.convo, scheme_id: achFU.schemeId, scheme_name: achFU.schemeName })
+    });
+    const payload = await res.json();
+    const pending = thread ? thread.querySelector('.aic-fu-pending') : null;
+    if (res.ok && payload.response) {
+      if (pending) { pending.textContent = payload.response; pending.classList.remove('aic-fu-pending'); }
+      achFU.convo.push({ role: 'assistant', content: payload.response });
+      achFU.left = (payload.followupsLeft !== undefined) ? payload.followupsLeft : Math.max(0, (achFU.left || 1) - 1);
+    } else {
+      if (pending) { pending.textContent = payload.error || 'Something went wrong. Try again.'; pending.classList.remove('aic-fu-pending'); }
+      achFU.convo.pop();
+    }
+  } catch (_) {
+    const pending = thread ? thread.querySelector('.aic-fu-pending') : null;
+    if (pending) { pending.textContent = 'Connection error. Try again.'; pending.classList.remove('aic-fu-pending'); }
+    achFU.convo.pop();
+  }
+  if (input)   input.disabled = false;
+  if (sendBtn) { sendBtn.disabled = false; sendBtn.innerHTML = 'Ask &#9889;'; }
+  const left = document.getElementById('ach-fu-left');
+  if (left) left.textContent = `${achFU.left} follow-up${achFU.left!==1?'s':''} left`;
+  const box = document.getElementById('ach-fu-box');
+  if (box && achFU.left <= 0) box.style.display = 'none';
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════

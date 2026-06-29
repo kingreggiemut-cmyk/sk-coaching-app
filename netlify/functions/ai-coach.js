@@ -10,7 +10,9 @@ const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY;
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 const SESSIONS_PER_MONTH = 10;
 // Owner account (kingreggiemut) — unlimited AI for testing, bypasses the monthly cap.
-const OWNER_ID = '80498288-8171-4d65-af9f-20648b279041';
+// Matched by member id OR email so it's never locked for the owner.
+const OWNER_ID    = '80498288-8171-4d65-af9f-20648b279041';
+const OWNER_EMAIL = 'kingreggiemut@gmail.com';
 
 // King Reggie's distilled football understanding + voice — rides every "coach" call.
 // (Condensed from FOOTBALL-BRAIN.md. The installed-scheme play data layers in on top of this later.)
@@ -110,6 +112,7 @@ exports.handler = async (event) => {
   const userData = await userRes.json();
   if (!userData.id) return json(401, { error: 'Invalid or expired session' });
   const userId = userData.id;
+  const isOwner = userId === OWNER_ID || String(userData.email || '').toLowerCase() === OWNER_EMAIL;
 
   // ── Onboarding welcome recommendation ────────────────────────────────────────
   // Runs during profile setup, before any games are logged. Does NOT count against
@@ -342,7 +345,7 @@ CRITICAL: only reference schemes and plays that appear below. NEVER invent play 
     usedThisMonth = parseInt(range.split('/')[1]) || 0;
   } catch (_) { /* table may not exist yet — allow */ }
 
-  if (userId !== OWNER_ID && usedThisMonth >= SESSIONS_PER_MONTH) {
+  if (!isOwner && usedThisMonth >= SESSIONS_PER_MONTH) {
     return json(429, { error: 'Monthly session limit reached', limit: SESSIONS_PER_MONTH });
   }
 
