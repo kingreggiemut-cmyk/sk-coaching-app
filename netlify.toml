@@ -1,2 +1,9 @@
 [build]
   functions = "netlify/functions"
+
+# Supabase URL + anon key are PUBLIC client keys (they ship in the browser code by
+# design; access is protected by row-level security). Tell Netlify's secret scanner
+# not to flag them. The real secret, ANTHROPIC_API_KEY, is never in the code, so it
+# stays fully scanned/protected.
+[build.environment]
+  SECRETS_SCAN_OMIT_KEYS = "SUPABASE_URL,SUPABASE_ANON_KEY"
