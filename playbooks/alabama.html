@@ -3903,6 +3903,15 @@ button.ftag:hover{background:var(--secondary); color:var(--ink); transform:trans
    The ONLY block you edit to reskin a playbook for a different team.
    Colors here are injected into CSS custom properties on load.
    ========================================================================== */
+/* ===========================================================================
+   NEW PLAYBOOK NAMING RULE  (so saved plays auto-link to the coaching app)
+   The FIRST WORD of schemeKey MUST match the deployed file name:
+     schemeKey "oregon-prostyle-cfb26"   ->   deploy as   playbooks/oregon.html
+   NOTE: THIS Alabama file is the naming exception (schemeKey "bama-..." but file
+   "alabama.html") — if you duplicate THIS one, set the new schemeKey's first word
+   to match your new file name (e.g. "oregon-...") and you're fine.
+   Full steps: see "NEW PLAYBOOK CHECKLIST.md" in the project folder.
+   =========================================================================== */
 const SCHEME_CONFIG = {
   // Identity
   schemeName: "Alabama Pro-Style Offense",
@@ -8807,6 +8816,12 @@ function init(){
   // Shared sign-in bridge - silent; anonymous browsing is unaffected
   skInjectAuthCSS();   // so Save-Play buttons are styled the moment a card opens
   initAuth();
+
+  // Deep-link: ?play=<id> opens that play's breakdown directly (coaching-app saved plays)
+  try {
+    const _pid = new URLSearchParams(location.search).get('play');
+    if (_pid && PLAYS.some(x => x.id === _pid)) requestAnimationFrame(() => openPlay(_pid));
+  } catch(_){}
 }
 init();
 
