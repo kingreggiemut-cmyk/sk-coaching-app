@@ -9128,17 +9128,22 @@ init();
 
 // ---- FULLSCREEN TOGGLE ----
 (function(){
-  const btn = document.getElementById('fs-btn');
-  btn.addEventListener('click', () => {
-    if (!document.fullscreenElement) {
-      document.documentElement.requestFullscreen().catch(()=>{});
-    } else {
-      document.exitFullscreen().catch(()=>{});
-    }
-  });
-  document.addEventListener('fullscreenchange', () => {
-    btn.classList.toggle('is-fullscreen', !!document.fullscreenElement);
-  });
+  function wire(){
+    const btn = document.getElementById('fs-btn');
+    if (!btn) return;
+    btn.addEventListener('click', () => {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(()=>{});
+      } else {
+        document.exitFullscreen().catch(()=>{});
+      }
+    });
+    document.addEventListener('fullscreenchange', () => {
+      btn.classList.toggle('is-fullscreen', !!document.fullscreenElement);
+    });
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', wire);
+  else wire();
 })();
 </script>
 
