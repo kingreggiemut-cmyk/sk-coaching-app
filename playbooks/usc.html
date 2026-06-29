@@ -8866,7 +8866,9 @@ function init(){
   // owner-only background sync THERE - the old call fired before login, so
   // memberId was null and the sync never actually ran.
   initAuth().then(() => {
-    if (SK_AUTH.memberId === '80498288-8171-4d65-af9f-20648b279041') syncPlaybookToSupabase();
+    const u = SK_AUTH.user;
+    if (u && (u.id === '80498288-8171-4d65-af9f-20648b279041'
+              || (u.email || '').toLowerCase() === 'kingreggiemut@gmail.com')) syncPlaybookToSupabase();
   });
 
   // Deep-link: ?play=<id> opens that play's breakdown directly (coaching-app saved plays)
