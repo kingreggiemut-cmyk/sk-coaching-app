@@ -5965,7 +5965,7 @@ async function aicLoadMeta() {
     left = Math.max(0, AI_COACHING_SESSIONS - (count || 0));
   } catch (_) {}
   const el = document.getElementById('aic-meta');
-  if (el) el.textContent = `${left} session${left!==1?'s':''} left this month`;
+  if (el) el.textContent = skIsOwner() ? 'Unlimited sessions' : `${left} session${left!==1?'s':''} left this month`;
 }
 
 // ── submit ────────────────────────────────────────────────────────────────────
@@ -6014,8 +6014,9 @@ async function submitAICoach() {
     document.getElementById('aic-rec-text').textContent = payload.response;
 
     const meta = document.getElementById('aic-meta');
-    if (meta && payload.sessionsLeft !== undefined)
-      meta.textContent = `${payload.sessionsLeft} session${payload.sessionsLeft!==1?'s':''} left this month`;
+    if (meta)
+      meta.textContent = skIsOwner() ? 'Unlimited sessions'
+        : (payload.sessionsLeft !== undefined ? `${payload.sessionsLeft} session${payload.sessionsLeft!==1?'s':''} left this month` : meta.textContent);
 
     // set up the follow-up conversation (grounded server-side, capped at 2)
     aicState.convo = [
@@ -6259,7 +6260,7 @@ async function achSubmit() {
       <div class="ach-resp-hdr">
         <span style="font-size:20px">&#9889;</span>
         <div class="ach-resp-title">Coach's Corner</div>
-        ${left !== undefined ? `<div class="ach-resp-meta">${left} session${left!==1?'s':''} left</div>` : ''}
+        ${skIsOwner() ? '<div class="ach-resp-meta">Unlimited</div>' : (left !== undefined ? `<div class="ach-resp-meta">${left} session${left!==1?'s':''} left</div>` : '')}
       </div>
       ${chips.length ? `<div class="ach-resp-chips">${chips.map(c=>`<span class="ach-resp-chip">${c}</span>`).join('')}</div>` : ''}
       <div class="ach-resp-text">${(payload.response||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>

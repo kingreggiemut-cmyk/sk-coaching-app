@@ -8426,9 +8426,16 @@ async function syncPlaybookToSupabase() {
       video_url:    p.videoUrl || '',
     }));
 
+    // Replace all plays — delete stale rows first, then insert fresh, so a rebuilt
+    // playbook never leaves ghost plays behind (matches the Alabama sync).
+    await fetch(`${supabaseUrl}/rest/v1/plays?scheme_key=eq.${encodeURIComponent(schemeKey)}`, {
+      method: 'DELETE',
+      headers: sbHeaders(),
+    });
+
     await fetch(`${supabaseUrl}/rest/v1/plays`, {
       method: 'POST',
-      headers: sbHeaders({ 'Prefer': 'resolution=merge-duplicates' }),
+      headers: sbHeaders(),
       body: JSON.stringify(playsPayload),
     });
   } catch (e) {
