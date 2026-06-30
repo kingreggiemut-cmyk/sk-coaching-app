@@ -2610,6 +2610,20 @@ body.game-madden .game-badge-madden { opacity: 1; }
 .pl-rename { flex: 0 0 auto; width: 22px; height: 22px; border-radius: 50%; cursor: pointer; background: rgba(255,255,255,.06); border: 1.5px solid rgba(255,255,255,.15); color: var(--cream-muted); font-size: 11px; line-height: 1; }
 .pl-rename:hover { border-color: var(--gold); color: var(--gold); }
 .pl-name-edit { font-family: var(--font-display); font-weight: 900; text-transform: uppercase; letter-spacing: .3px; font-size: 15px; color: var(--cream); line-height: 1.1; background: rgba(0,0,0,.3); border: 1.5px solid var(--gold); border-radius: 6px; padding: 2px 8px; width: min(60vw, 320px); outline: none; }
+/* Owner analytics dashboard */
+.oan-wrap { max-width: 920px; margin: 0 auto; padding: 8px 0 48px; width: 100%; }
+.oan-h { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding: 14px 0 18px; border-bottom: 1px solid rgba(201,162,39,.18); margin-bottom: 20px; flex-wrap: wrap; }
+.oan-title { font-family: var(--font-display); font-size: 26px; font-weight: 900; color: var(--cream); letter-spacing: .06em; text-transform: uppercase; }
+.oan-when { font-family: var(--font-display); font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: .1em; color: var(--gold); }
+.oan-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; margin-bottom: 26px; }
+.oan-card { background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.1); border-radius: 14px; padding: 18px 18px 16px; }
+.oan-num { font-family: var(--font-display); font-size: 40px; font-weight: 900; color: var(--gold); line-height: 1; }
+.oan-lbl { font-family: var(--font-display); font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: .1em; color: var(--cream); margin-top: 8px; }
+.oan-sub { font-size: 12px; color: var(--cream-muted); margin-top: 6px; line-height: 1.4; }
+.oan-sec-h { font-family: var(--font-display); font-size: 13px; font-weight: 800; text-transform: uppercase; letter-spacing: .1em; color: var(--cream); margin-bottom: 10px; }
+.oan-list { display: flex; flex-direction: column; gap: 6px; }
+.oan-row { display: flex; justify-content: space-between; gap: 12px; padding: 10px 14px; background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.08); border-radius: 10px; color: var(--cream); font-size: 14px; }
+.oan-row-n { color: var(--gold); font-weight: 700; white-space: nowrap; }
 .pl-meta { display: flex; flex-wrap: wrap; gap: 5px; }
 .pl-tag { font-family: var(--font-display); font-weight: 700; text-transform: uppercase; letter-spacing: .5px; font-size: 9px; padding: 3px 8px; border-radius: 999px; background: rgba(255,255,255,.07); color: var(--cream-muted); }
 .pl-tag.form { background: color-mix(in srgb, var(--primary) 30%, transparent); color: var(--cream); }
@@ -3694,6 +3708,7 @@ html, body { background:#05070d; }
       </svg>
       <span id="fs-label">Full Screen</span>
     </button>
+    <button class="signout-btn" id="owner-analytics-btn" onclick="loadOwnerAnalytics()" title="Owner analytics" style="display:none;align-items:center;gap:5px">&#128202; Analytics</button>
     <button class="signout-btn" onclick="handleSignOut()">Sign Out</button>
   </div>
 
@@ -4486,6 +4501,8 @@ function enterApp() {
   const used = currentMember.ai_sessions_used || 0;
   document.getElementById('ai-sessions-display').textContent = Math.max(0, 10 - used);
   showScreen('screen-app');
+  // owner-only Analytics button (kingreggiemut) - hidden for everyone else
+  if (skIsOwner()) { const oab = document.getElementById('owner-analytics-btn'); if (oab) oab.style.display = 'flex'; }
   showDefaultCenter();
   showChatWidget();
   document.getElementById('toggle-cfb').addEventListener('click', () => setTimeout(loadSchemeProgress, 100));
@@ -10068,6 +10085,52 @@ async function renameSavedDrive(id, btn) {
     else if (e.key === 'Escape') { e.preventDefault(); commit(false); }
   });
   input.addEventListener('blur', () => commit(true));
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   OWNER ANALYTICS (private dashboard, kingreggiemut only). Aggregates live in a
+   SECURITY DEFINER Postgres function `owner_analytics()` that bypasses RLS and
+   self-gates on the caller's email, so no member can ever read these numbers and
+   no service key is exposed client-side. Renders into the (now scrollable) center.
+   ═══════════════════════════════════════════════════════════════════════════ */
+async function loadOwnerAnalytics() {
+  if (!skIsOwner()) return;
+  showInCenter('<div class="loading-msg">Loading analytics…</div>', true);
+  try {
+    await ensureSchemeNameMap();
+    const { data, error } = await db.rpc('owner_analytics');
+    if (error) throw error;
+    showInCenter(oanRender(data || {}), true);
+  } catch (e) {
+    showInCenter(`<div class="pl-empty">Couldn't load analytics.<br><span>${(e && e.message) || e}</span><br><br><span>If this is the first run, install the <b>owner_analytics()</b> function in the Supabase SQL editor.</span></div>`, true);
+  }
+}
+function oanStat(num, label, sub) {
+  return `<div class="oan-card"><div class="oan-num">${num}</div><div class="oan-lbl">${label}</div>${sub ? `<div class="oan-sub">${sub}</div>` : ''}</div>`;
+}
+function oanRender(a) {
+  const n = v => (v == null ? 0 : v);
+  const schemes = (a.top_schemes || []).map(s => {
+    const nm = schemeNameFor(s.scheme_id) || schemeNameFor(lwSchemeUuid(s.scheme_id)) || 'Scheme';
+    return `<div class="oan-row"><span>${nm}</span><span class="oan-row-n">${s.games} game${s.games !== 1 ? 's' : ''}</span></div>`;
+  }).join('') || '<div class="oan-row"><span>No games logged yet</span></div>';
+  const when = a.generated_at ? new Date(a.generated_at).toLocaleString() : '';
+  return `<div class="oan-wrap">
+    <div class="oan-h"><span class="oan-title">&#128202; Analytics</span><span class="oan-when">Owner only${when ? ' · ' + when : ''}</span></div>
+    <div class="oan-grid">
+      ${oanStat(n(a.members_total), 'Members', `+${n(a.signups_7d)} this week · +${n(a.signups_30d)} this month`)}
+      ${oanStat(n(a.active_7d), 'Logged in · 7 days', `${n(a.active_30d)} in last 30 days`)}
+      ${oanStat(n(a.sessions_total), 'AI Coaching Sessions', `${n(a.sessions_30d)} this month · ${n(a.sessions_members)} members`)}
+      ${oanStat(n(a.games_total), 'Games Logged', `${n(a.games_members)} players`)}
+      ${oanStat(n(a.drives_total), 'Drives Saved', `${n(a.drives_members)} members`)}
+      ${oanStat(n(a.plays_saved_total), 'Plays Saved', '')}
+    </div>
+    <div class="oan-sec">
+      <div class="oan-sec-h">Most-Played Schemes</div>
+      <div class="oan-list">${schemes}</div>
+    </div>
+    <button class="ach-resp-again" onclick="loadOwnerAnalytics()">Refresh &#8635;</button>
+  </div>`;
 }
 /* ═══════════════════════════════════════════════════════════════════════════
    DRIVE BUILDER (coaching app) - the EXACT build-mode node-web engine lifted from
