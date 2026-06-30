@@ -8228,6 +8228,10 @@ takeover.addEventListener("click", (e) => { if(e.target === takeover) closeTakeo
    COVER → FIELD transition + boot
    ========================================================================== */
 function openPlaybook(){
+  // Returning to the hub must clear any open takeover view (Drive Builder, a play,
+  // a section, etc). Otherwise the full-screen #takeover stays pointer-events:auto
+  // on top of the hub and silently eats every click until a page refresh.
+  if(takeover.classList.contains("open")) hardCloseTakeover();
   const cover = $("#cover");
   cover.classList.add("lift");
   $("#field").classList.add("show");

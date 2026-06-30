@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Scheme Kings · Coaching Platform</title>
+<title>Scheme Kings · The Coaching Coordinator</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@500;600;700;800;900&display=swap" rel="stylesheet">
@@ -1005,8 +1005,14 @@ body.ccweb-on #bg-vid-b {
   grid-column: 2; grid-row: 1;
   display: flex; flex-direction: column;
   align-items: center; justify-content: flex-start;
-  padding: 24px; overflow-y: auto; min-height: 0; z-index: 2;
+  padding: 24px; overflow-y: auto; min-height: 0; height: 100%; z-index: 2;
 }
+/* app-center must FILL its grid track (height:100%), not grow to content height.
+   Without this, a tall view (coaching answers + follow-ups, drive lists) overflowed
+   #screen-app (overflow:hidden) and got clipped top+bottom with no scroll. While on
+   the hub it's an empty full-height layer, so make it click-through or it blocks the
+   hub nodes behind it. (The mobile media query already did both; desktop was missing it.) */
+body:not(.view-open) .app-center { pointer-events: none; }
 
 /* Right panel */
 .app-right {
@@ -2600,6 +2606,10 @@ body.game-madden .game-badge-madden { opacity: 1; }
 .pl-name { font-family: var(--font-display); font-weight: 900; text-transform: uppercase; letter-spacing: .3px; font-size: 15px; color: var(--cream); line-height: 1.1; }
 .pl-unsave { flex: 0 0 auto; width: 22px; height: 22px; border-radius: 50%; cursor: pointer; background: rgba(255,255,255,.06); border: 1.5px solid rgba(255,255,255,.15); color: var(--cream-muted); font-size: 14px; line-height: 1; }
 .pl-unsave:hover { border-color: #e8736a; color: #e8736a; }
+.pl-card-actions { display: flex; align-items: center; gap: 6px; flex: 0 0 auto; }
+.pl-rename { flex: 0 0 auto; width: 22px; height: 22px; border-radius: 50%; cursor: pointer; background: rgba(255,255,255,.06); border: 1.5px solid rgba(255,255,255,.15); color: var(--cream-muted); font-size: 11px; line-height: 1; }
+.pl-rename:hover { border-color: var(--gold); color: var(--gold); }
+.pl-name-edit { font-family: var(--font-display); font-weight: 900; text-transform: uppercase; letter-spacing: .3px; font-size: 15px; color: var(--cream); line-height: 1.1; background: rgba(0,0,0,.3); border: 1.5px solid var(--gold); border-radius: 6px; padding: 2px 8px; width: min(60vw, 320px); outline: none; }
 .pl-meta { display: flex; flex-wrap: wrap; gap: 5px; }
 .pl-tag { font-family: var(--font-display); font-weight: 700; text-transform: uppercase; letter-spacing: .5px; font-size: 9px; padding: 3px 8px; border-radius: 999px; background: rgba(255,255,255,.07); color: var(--cream-muted); }
 .pl-tag.form { background: color-mix(in srgb, var(--primary) 30%, transparent); color: var(--cream); }
@@ -3619,7 +3629,7 @@ html, body { background:#05070d; }
       </svg>
     </div>
     <h2 class="auth-title">Scheme Kings</h2>
-    <p class="auth-sub">Coaching Platform - Member Access</p>
+    <p class="auth-sub">The Coaching Coordinator - Member Access</p>
     <div class="auth-tabs">
       <button class="auth-tab active" id="tab-login" onclick="switchAuthTab('login')">Sign In</button>
       <button class="auth-tab" id="tab-signup" onclick="switchAuthTab('signup')">Create Account</button>
@@ -3706,7 +3716,7 @@ html, body { background:#05070d; }
   <!-- Top banner - click to return home -->
   <div class="app-banner" onclick="showDefaultCenter()" style="cursor:pointer" title="Back to home">
     <div class="app-banner-title">Scheme Kings</div>
-    <div class="app-banner-sub">Coaching Platform</div>
+    <div class="app-banner-sub">The Coaching Coordinator</div>
   </div>
 
   <!-- STAT CHIPS - broadcast overlay; shown once logged in, fed by loadStreakBadge -->
@@ -6350,6 +6360,11 @@ async function achSubmitFollowup() {
    ═══════════════════════════════════════════════════════════════════════════ */
 function showDefaultCenter() {
   document.body.classList.remove('view-open');
+  // Safety net: never return to the hub with an overlay still blocking clicks.
+  // logweb-on / ccweb-on / srweb-on each set #screen-app pointer-events:none, so a
+  // lingering one would silently freeze every click until a refresh.
+  if (document.body.classList.contains('logweb-on')) { try { closeAICoachWeb(); } catch (_) {} }
+  document.body.classList.remove('logweb-on', 'ccweb-on', 'srweb-on');
   document.getElementById('screen-app').classList.add('hub-mode');
   // clear any active left-rail pill - otherwise re-clicking a hub node hits the
   // "clicking the active pill closes it" branch and bounces straight back home.
@@ -10005,8 +10020,11 @@ async function loadSavedDrives() {
       const branchN = main.reduce((a, n) => a + ((n.left && n.left.length ? 1 : 0) + (n.right && n.right.length ? 1 : 0)), 0);
       const date = d.created_at ? new Date(d.created_at).toLocaleDateString('en-US', {month:'short', day:'numeric', year:'numeric'}) : '';
       return `<div class="pl-card pl-drive-card" style="grid-column:1/-1;cursor:pointer" onclick="openSavedDrive('${d.id}')">
-        <div class="pl-card-top"><span class="pl-name">${d.title || 'Drive'}</span>
-          <button class="pl-unsave" onclick="event.stopPropagation();deleteSavedDrive('${d.id}')" title="Delete drive">&times;</button></div>
+        <div class="pl-card-top"><span class="pl-name">${achEsc(d.title || 'Drive')}</span>
+          <div class="pl-card-actions">
+            <button class="pl-rename" onclick="event.stopPropagation();renameSavedDrive('${d.id}',this)" title="Rename drive">&#9998;</button>
+            <button class="pl-unsave" onclick="event.stopPropagation();deleteSavedDrive('${d.id}')" title="Delete drive">&times;</button>
+          </div></div>
         <div class="pl-meta" style="margin-bottom:7px">${main.length} play${main.length !== 1 ? 's' : ''}${branchN ? ` · ${branchN} branch${branchN !== 1 ? 'es' : ''}` : ''}${date ? ` · ${date}` : ''} · <span style="color:var(--gold)">Open ▸</span></div>
         <div class="pl-meta" style="flex-wrap:wrap">${steps || '<span class="pl-tag">Empty drive</span>'}</div>
       </div>`;
@@ -10018,6 +10036,38 @@ async function loadSavedDrives() {
 async function deleteSavedDrive(id) {
   await db.from('saved_drives').delete().eq('member_id', currentUser.id).eq('id', id);
   loadSavedDrives();
+}
+// Inline-rename a saved drive. Click the pencil → the name becomes an editable
+// field; Enter or click-away saves to saved_drives.title, Esc cancels.
+async function renameSavedDrive(id, btn) {
+  const card = btn.closest('.pl-drive-card'); if (!card) return;
+  const nameEl = card.querySelector('.pl-name'); if (!nameEl) return;
+  const rec = (window._savedDrives || []).find(x => String(x.id) === String(id));
+  const old = rec ? (rec.title || 'Drive') : (nameEl.textContent || 'Drive');
+  const input = document.createElement('input');
+  input.type = 'text'; input.className = 'pl-name-edit'; input.value = old; input.maxLength = 60;
+  input.onclick = e => e.stopPropagation();
+  nameEl.replaceWith(input);
+  input.focus(); input.select();
+  let done = false;
+  async function commit(save) {
+    if (done) return; done = true;
+    const val = ((save ? input.value.trim() : old) || 'Drive');
+    const span = document.createElement('span');
+    span.className = 'pl-name'; span.textContent = val;
+    input.replaceWith(span);
+    if (save && val !== old) {
+      try {
+        await db.from('saved_drives').update({ title: val }).eq('member_id', currentUser.id).eq('id', id);
+        if (rec) rec.title = val;
+      } catch (_) {}
+    }
+  }
+  input.addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.preventDefault(); commit(true); }
+    else if (e.key === 'Escape') { e.preventDefault(); commit(false); }
+  });
+  input.addEventListener('blur', () => commit(true));
 }
 /* ═══════════════════════════════════════════════════════════════════════════
    DRIVE BUILDER (coaching app) - the EXACT build-mode node-web engine lifted from
