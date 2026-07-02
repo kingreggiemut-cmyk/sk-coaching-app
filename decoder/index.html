@@ -353,6 +353,13 @@
   .dd-corner-chip:hover { border-color: var(--gold); transform: translateY(-1px); }
   .dd-corner-chip b { font-family: var(--font-display); font-weight: 900; text-transform: uppercase; letter-spacing: .06em; font-size: 15px; color: var(--cream); }
   .dd-corner-chip em { font-style: normal; font-family: var(--font-display); font-weight: 700; text-transform: uppercase; letter-spacing: .04em; font-size: 9.5px; color: var(--gold); }
+  .dd-fs-chip { position: absolute; top: 22px; right: 22px; z-index: 5; display: flex; align-items: center; gap: 9px;
+    cursor: pointer; background: rgba(6,10,20,.6); border: 1.5px solid rgba(245,166,35,.35); border-radius: 12px;
+    padding: 10px 15px; color: var(--cream); font-family: var(--font-display); font-weight: 800; text-transform: uppercase;
+    letter-spacing: .06em; font-size: 13px; transition: border-color .15s, transform .15s, background .15s; }
+  .dd-fs-chip:hover { border-color: var(--gold); transform: translateY(-1px); background: rgba(14,24,48,.78); }
+  .dd-fs-ico { display: inline-flex; color: var(--gold); } .dd-fs-ico svg { width: 16px; height: 16px; }
+  @media (max-width: 720px) { .dd-fs-chip { top: 16px; right: 14px; padding: 8px 11px; font-size: 11px; gap: 7px; } .dd-fs-ico svg { width: 14px; height: 14px; } }
 
   .dd-hub { position: relative; width: min(94vw, 82vh); height: min(82vh, 94vw); margin: 0 auto; --r: min(33vh, 31vw); --sx: 1.5; }
   /* Widen the ellipse on roomy widescreens, keep it near-circular on phones so it never runs off the sides. */
@@ -525,6 +532,10 @@
 <div id="hub">
   <div class="dd-toplabel">Scheme Kings Tool</div>
   <button class="dd-corner-chip" id="btn-keys"><b>The Read</b><em>Pre-snap keys · start here</em></button>
+  <button class="dd-fs-chip" id="btn-fullscreen" title="Full screen">
+    <span class="dd-fs-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3M21 8V5a2 2 0 0 0-2-2h-3M3 16v3a2 2 0 0 0 2 2h3M16 21h3a2 2 0 0 0 2-2v-3"/></svg></span>
+    <span class="dd-fs-label">Full Screen</span>
+  </button>
 
   <div class="dd-hub">
     <div class="dd-orbit"><div class="dd-ring" id="dd-ring"></div></div>
@@ -1112,6 +1123,24 @@ function buildHub(){
   $('#btn-game').addEventListener('click', openGameMode);
   $('#btn-attack').addEventListener('click', openAttackMode);
   $('#btn-keys').addEventListener('click', openInitialKeys);
+  $('#btn-fullscreen').addEventListener('click', toggleFullscreen);
+  document.addEventListener('fullscreenchange', syncFullscreenLabel);
+  document.addEventListener('webkitfullscreenchange', syncFullscreenLabel);
+}
+
+/* Full-screen toggle (works inside the Squarespace iframe via allow="fullscreen") */
+function toggleFullscreen(){
+  const el = document.documentElement;
+  const inFs = document.fullscreenElement || document.webkitFullscreenElement;
+  if(!inFs){
+    (el.requestFullscreen || el.webkitRequestFullscreen || el.msRequestFullscreen || (()=>{})).call(el);
+  } else {
+    (document.exitFullscreen || document.webkitExitFullscreen || document.msExitFullscreen || (()=>{})).call(document);
+  }
+}
+function syncFullscreenLabel(){
+  const lbl = document.querySelector('#btn-fullscreen .dd-fs-label');
+  if(lbl) lbl.textContent = (document.fullscreenElement || document.webkitFullscreenElement) ? 'Exit Full Screen' : 'Full Screen';
 }
 
 /* ============================================================================
