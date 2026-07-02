@@ -1,0 +1,1703 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Defense Decoder · Scheme Kings</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700;900&family=Barlow+Condensed:wght@400;600;700;800;900&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  /* ===== DESIGN TOKENS (lifted from the Alabama playbook so the look matches) ===== */
+  :root {
+    --primary:   #1E54B7;   /* Scheme Kings blue (was Alabama red) */
+    --secondary: #D4AF37;
+    --cream:     #F0EAD0;
+    --gold:      #F5A623;
+    --red:       #C8102E;
+    --ink0:      #040610;
+    --font-display: "Barlow Condensed", "Oswald", "Arial Narrow", sans-serif;
+    --ease: cubic-bezier(.2,.75,.2,1);
+    --gold-lt:  color-mix(in srgb, var(--gold) 52%, #fff);
+    --gold-dk:  color-mix(in srgb, var(--gold) 72%, #000);
+    --ink-gold: color-mix(in srgb, var(--gold) 24%, #000);
+    --ink:      color-mix(in srgb, var(--primary) 60%, #060b16);
+    --ink-soft: color-mix(in srgb, var(--ink) 76%, #8a7f5e);
+    --muted:    rgba(245,238,218,.45);
+    --border:   rgba(245,166,35,.2);
+    --ink2:     #0B0F22;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: #03040a;
+    color: var(--cream); font-family: 'Barlow', sans-serif; min-height: 100vh;
+    padding: 54px 24px 90px;
+  }
+  #dd-bg { position: fixed; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: -2; }
+  #dd-bg-veil { position: fixed; inset: 0; z-index: -1;
+    background: radial-gradient(120% 120% at 50% 18%, rgba(6,10,22,.55), rgba(2,4,10,.9)); }
+
+  /* ===== HUB (front page) ===== */
+  .hd { text-align: center; margin-bottom: 30px; }
+  .hd-label { font-family: var(--font-display); font-size: 11px; font-weight: 800; letter-spacing: 3px;
+    text-transform: uppercase; color: var(--gold); margin-bottom: 14px; }
+  .hd h1 { font-family: 'Cinzel', serif; font-size: clamp(36px, 6vw, 72px); font-weight: 900; line-height: 1;
+    background: linear-gradient(160deg, #fff 20%, var(--gold) 80%);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 18px; }
+  .hd-sub { font-family: var(--font-display); font-size: clamp(15px, 2vw, 21px); font-weight: 600;
+    color: var(--muted); max-width: 560px; margin: 0 auto; line-height: 1.5; }
+
+  .hub-modes { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; max-width: 820px; margin: 0 auto 40px; }
+  .hub-mode-btn { display: flex; align-items: center; gap: 12px; cursor: pointer; text-align: left;
+    background: linear-gradient(180deg, var(--gold-lt), var(--gold) 55%, var(--gold-dk)); color: var(--ink-gold);
+    border: 2px solid var(--gold-dk); border-radius: 16px; padding: 16px 24px;
+    box-shadow: 0 10px 26px rgba(0,0,0,.42); transition: transform .14s var(--ease), filter .14s; }
+  .hub-mode-btn.ghost { background: rgba(245,166,35,.06); color: var(--cream); border-color: rgba(245,166,35,.4); }
+  .hub-mode-btn:hover { transform: translateY(-2px); filter: brightness(1.05); }
+  .hub-mode-btn .hm-ico { display: inline-flex; } .hub-mode-btn .hm-ico svg { width: 26px; height: 26px; }
+  .hub-mode-btn b { display: block; font-family: var(--font-display); font-weight: 900; text-transform: uppercase;
+    letter-spacing: .04em; font-size: 18px; line-height: 1; }
+  .hub-mode-btn em { font-style: normal; font-family: var(--font-display); font-weight: 700; text-transform: uppercase;
+    letter-spacing: .03em; font-size: 10.5px; opacity: .75; }
+
+  .cov-label { font-family: var(--font-display); font-size: 11px; font-weight: 800; letter-spacing: 3px;
+    text-transform: uppercase; color: var(--gold); text-align: center; margin-bottom: 16px; }
+  .cov-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 14px;
+    max-width: 900px; margin: 0 auto; }
+  .cov-card { background: var(--ink2); border: 1.5px solid var(--border); border-radius: 12px; padding: 18px 18px;
+    display: flex; align-items: flex-start; gap: 14px; cursor: pointer;
+    transition: transform .14s var(--ease), border-color .14s, box-shadow .14s; }
+  .cov-card:hover { transform: translateY(-3px); border-color: var(--gold);
+    box-shadow: 0 12px 30px rgba(0,0,0,.5), 0 0 0 1px rgba(245,166,35,.3); }
+  .cov-num { font-family: 'Cinzel', serif; font-size: 22px; font-weight: 900; color: var(--gold);
+    flex-shrink: 0; line-height: 1; margin-top: 2px; width: 40px; }
+  .cov-info h4 { font-family: var(--font-display); font-size: 17px; font-weight: 900; text-transform: uppercase;
+    letter-spacing: .5px; color: var(--cream); margin-bottom: 4px; }
+  .cov-info p { font-size: 12.5px; color: var(--muted); line-height: 1.5; }
+  .cov-tag { display: inline-block; margin-top: 8px; font-family: var(--font-display); font-size: 10px;
+    font-weight: 800; letter-spacing: 1.5px; text-transform: uppercase; padding: 2px 8px; border-radius: 4px; }
+  .cov-tag.man  { background: rgba(200,16,46,.2);  color: #e04060; border: 1px solid rgba(200,16,46,.4); }
+  .cov-tag.zone { background: rgba(245,166,35,.12); color: var(--gold); border: 1px solid rgba(245,166,35,.3); }
+  .hub-hint { text-align: center; margin: 40px auto 0; max-width: 640px; font-family: var(--font-display);
+    font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: rgba(245,238,218,.3); }
+
+  /* ===== TAKEOVER (holds the coverage card / game mode) ===== */
+  #takeover { position: fixed; inset: 0; z-index: 60; display: flex; align-items: center; justify-content: center;
+    opacity: 0; pointer-events: none; transition: opacity .22s ease; padding: 2vh 2vw;
+    background: radial-gradient(120% 120% at 50% 40%, rgba(6,10,22,.55), rgba(2,4,10,.86));
+    backdrop-filter: blur(9px); }
+  #takeover.open { opacity: 1; pointer-events: auto; }
+  .card { position: relative; }
+  .card-close { position: absolute; top: 12px; right: 14px; width: 40px; height: 40px; border-radius: 50%;
+    border: 2px solid var(--gold); background: rgba(13,22,46,.9); color: var(--gold); font-size: 22px;
+    line-height: 1; cursor: pointer; z-index: 30; display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 6px 18px rgba(0,0,0,.5); transition: background .14s, color .14s; }
+  .card-close:hover { background: var(--gold); color: var(--ink-gold); }
+
+  /* ===== PLAY-SCREEN SYSTEM,copied verbatim from the Alabama playbook ===== */
+  .card.pw-card{ flex-direction:column; gap:0; max-width:none; width:93vw; height:91vh; max-height:91vh;
+    background:none; border:0; border-radius:0; box-shadow:none; padding:4px 6px 8px; overflow:hidden; display:flex; }
+  .pw-card .card-close{ z-index:30; }
+  @keyframes pwEnter{ 0%{opacity:0;transform:scale(.5);filter:blur(16px);} 50%{opacity:1;} 100%{opacity:1;transform:scale(1);filter:blur(0);} }
+  .pw-card.pw-enter{ animation:pwEnter .58s cubic-bezier(.16,1,.3,1) both; }
+  @keyframes pwFieldWipe{ from{opacity:.2;clip-path:inset(0 0 0 38%);} to{opacity:1;clip-path:inset(0 0 0 0);} }
+  .pw-card.pw-enter .pw-field-zone{ animation:pwFieldWipe .62s cubic-bezier(.16,1,.3,1) .08s both; }
+  @keyframes pwRailSlide{ from{opacity:0;transform:translateX(-30px);} to{opacity:1;transform:none;} }
+  .pw-card.pw-enter .pw-rail{ animation:pwRailSlide .56s cubic-bezier(.16,1,.3,1) .14s both; }
+
+  .pw-header{ flex:0 0 auto; display:flex; align-items:flex-end; justify-content:space-between; gap:18px; padding:0 50px 12px 4px; }
+  .pw-header .pw-eyebrow{ display:inline-flex; align-items:center; gap:6px; color:var(--gold); font-size:11px;
+    letter-spacing:.18em; font-family:var(--font-display); font-weight:800; text-transform:uppercase; }
+  .pw-title{ font-family:var(--font-display); font-weight:900; text-transform:uppercase; line-height:.9;
+    font-size:clamp(34px,4vw,60px); color:var(--cream); margin:6px 0 0; letter-spacing:.5px; text-shadow:0 3px 18px rgba(0,0,0,.7); }
+  .pw-header-meta{ display:flex; align-items:center; gap:13px; flex-wrap:wrap; padding-bottom:3px; }
+  .pw-form-inline{ font-family:var(--font-display); font-weight:700; text-transform:uppercase; letter-spacing:.12em;
+    font-size:13px; color:rgba(240,231,203,.78); }
+  .pw-nav{ display:flex; gap:8px; }
+  .pw-nav button{ width:38px; height:38px; border-radius:50%; cursor:pointer; color:var(--cream); font-size:20px; line-height:1;
+    display:flex; align-items:center; justify-content:center; background:rgba(10,18,38,.7); border:1.5px solid rgba(245,166,35,.4);
+    transition:background .14s var(--ease), border-color .14s, transform .14s; }
+  .pw-nav button:hover{ background:rgba(22,36,72,.92); border-color:var(--gold); transform:translateY(-1px); }
+  /* Formation-look switcher (replaces the coverage stepper) */
+  .pw-look-tabs{ display:flex; align-items:center; gap:8px; background:rgba(8,14,30,.72); border:1.5px solid rgba(245,166,35,.35);
+    border-radius:999px; padding:5px 6px 5px 14px; }
+  .pw-look-lead{ font-family:var(--font-display); font-weight:800; text-transform:uppercase; letter-spacing:.14em;
+    font-size:10px; color:var(--gold); opacity:.85; padding-right:3px; }
+  .pw-look-tab{ cursor:pointer; font-family:var(--font-display); font-weight:800; text-transform:uppercase; letter-spacing:.06em;
+    font-size:13px; color:rgba(240,231,203,.82); background:transparent; border:1.5px solid transparent; border-radius:999px;
+    padding:6px 15px; line-height:1; transition:background .14s var(--ease), color .14s, border-color .14s, transform .14s; }
+  .pw-look-tab:hover{ color:var(--cream); border-color:rgba(245,166,35,.5); }
+  .pw-look-tab.on{ color:var(--ink-gold); background:linear-gradient(180deg,var(--gold-lt),var(--gold) 58%,var(--gold-dk));
+    border-color:var(--gold-dk); box-shadow:0 4px 12px rgba(0,0,0,.4); }
+  /* The play-call art on the left rail */
+  .pw-playcall{ display:flex; flex-direction:column; gap:8px; }
+  .pw-playcall-ey{ font-family:var(--font-display); font-weight:800; font-size:12.5px; letter-spacing:.18em;
+    text-transform:uppercase; color:var(--gold); }
+  .pw-playcall img{ width:100%; border-radius:12px; border:2px solid rgba(245,166,35,.4);
+    box-shadow:0 10px 26px rgba(0,0,0,.55); display:block; }
+
+  .pw-overview{ flex:1 1 auto; min-height:0; display:flex; gap:18px; align-items:stretch; }
+  .pw-rail{ flex:0 0 376px; max-width:376px; display:flex; flex-direction:column; justify-content:space-between;
+    gap:24px; min-height:0; overflow-y:auto; }
+  .pw-rail-ey{ font-family:var(--font-display); font-weight:800; font-size:12.5px; letter-spacing:.18em;
+    text-transform:uppercase; color:var(--gold); margin-bottom:11px; }
+  .pw-rail-bottom{ display:flex; flex-direction:column; gap:16px; }
+  .pw-rail-nodes{ display:flex; flex-direction:column; gap:11px; }
+  .pw-watch{ display:flex; align-items:center; gap:13px; text-align:left; cursor:pointer; color:var(--ink-gold);
+    background:linear-gradient(180deg,var(--gold-lt),var(--gold) 55%,var(--gold-dk)); border:2px solid var(--gold-dk);
+    border-radius:15px; padding:14px 20px; box-shadow:0 10px 26px rgba(0,0,0,.42); transition:transform .14s var(--ease), filter .14s var(--ease); }
+  .pw-watch:hover{ transform:translateY(-2px); filter:brightness(1.06); }
+  .pw-watch-ico{ flex:0 0 auto; display:inline-flex; } .pw-watch-ico svg{ width:20px; height:20px; }
+  .pw-watch-tx{ display:flex; flex-direction:column; gap:2px; min-width:0; }
+  .pw-watch-tx b{ font-family:var(--font-display); font-weight:900; text-transform:uppercase; letter-spacing:.05em; font-size:15px; line-height:1; }
+  .pw-watch-tx em{ font-style:normal; font-family:var(--font-display); font-weight:700; text-transform:uppercase; letter-spacing:.03em; font-size:10.5px; line-height:1.15; color:var(--ink-gold); opacity:.78; }
+
+  .pw-cat{ display:flex; gap:13px; align-items:center; text-align:left; cursor:pointer; width:100%; padding:13px 16px 14px;
+    opacity:0; transform:translateX(-12px); background:var(--cream); border:2.5px solid var(--primary); border-radius:14px;
+    box-shadow:0 7px 18px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.6);
+    transition:transform .45s var(--ease) var(--d,0s), opacity .45s ease var(--d,0s), box-shadow .15s var(--ease), border-color .15s var(--ease); }
+  .pw-card.ready .pw-cat{ opacity:1; transform:translateX(0); }
+  .pw-cat:hover{ box-shadow:0 12px 26px rgba(0,0,0,.55), 0 0 0 3px rgba(245,166,35,.5); transform:translateX(3px); }
+  .pw-cat.king{ border-color:var(--gold); }
+  .pw-cat.active{ border-color:var(--gold); box-shadow:0 0 0 3px rgba(245,166,35,.55), 0 12px 26px rgba(0,0,0,.6); }
+  .pw-card:has(.pw-cat.active) .pw-cat:not(.active){ opacity:.45; }
+  .pw-cat-ico{ flex:0 0 44px; height:44px; border-radius:50%; align-self:flex-start; margin-top:1px;
+    background:radial-gradient(circle at 35% 30%, #27439a, var(--primary)); border:2px solid var(--gold);
+    color:var(--cream); display:flex; align-items:center; justify-content:center; }
+  .pw-cat-ico svg{ width:22px; height:22px; }
+  .pw-cat.king .pw-cat-ico{ background:radial-gradient(circle at 35% 30%, var(--gold-lt), var(--gold) 58%, var(--gold-dk)); color:var(--ink-gold); }
+  .pw-cat-body{ flex:1; min-width:0; }
+  .pw-cat-title{ display:block; font-family:var(--font-display); font-weight:900; text-transform:uppercase; letter-spacing:.4px; font-size:17px; color:var(--ink); line-height:1.05; }
+  .pw-cat-sub{ display:block; font-family:var(--font-display); font-weight:700; text-transform:uppercase; letter-spacing:.06em; font-size:10.5px; color:var(--primary); opacity:.74; margin-top:4px; }
+  .pw-cat.king .pw-cat-sub{ color:var(--ink-gold); opacity:.9; }
+  .pw-cat-chev{ flex:0 0 auto; align-self:center; color:var(--primary); opacity:.5; font-size:22px; font-family:var(--font-display); font-weight:700; }
+  .pw-cat-list{ list-style:none; margin:4px 0 0; padding:0; counter-reset:rd; display:grid; grid-template-columns:1fr 1fr; gap:3px 12px; }
+  .pw-cat-list li{ counter-increment:rd; position:relative; padding-left:19px; font-family:var(--font-display); font-weight:700;
+    text-transform:uppercase; letter-spacing:.02em; font-size:11.5px; color:var(--ink-soft); line-height:1.6; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .pw-cat-list li::before{ content:counter(rd); position:absolute; left:0; top:2px; width:13px; height:13px; border-radius:50%;
+    background:var(--primary); color:var(--cream); font-size:8px; font-weight:900; display:flex; align-items:center; justify-content:center; }
+
+  /* fitFieldZone() sizes this to a true 16:9 box that fits the available area, so the whole
+     screenshot shows and the dots stay aligned on any screen (widescreen included). */
+  .pw-field-zone{ position:relative; flex:0 0 auto; min-width:0; align-self:center; border-radius:12px; overflow:hidden;
+    box-shadow:0 6px 26px rgba(0,0,0,.55), inset 0 0 0 1px rgba(245,166,35,.18); }
+  .pw-field-img{ position:absolute; inset:0; width:100%; height:100%; object-fit:cover; transition:filter .5s var(--ease), transform .6s var(--ease); }
+  .pw-hint{ position:absolute; right:14px; bottom:12px; z-index:4; font-family:var(--font-display); font-weight:700;
+    text-transform:uppercase; letter-spacing:.18em; font-size:10px; color:rgba(240,231,203,.85); pointer-events:none;
+    text-shadow:0 1px 6px rgba(0,0,0,.9); animation:pwHintPulse 2.8s ease-in-out infinite; transition:opacity .3s ease; }
+  @keyframes pwHintPulse{ 0%,100%{opacity:.35;} 50%{opacity:.8;} }
+  .pw-field-zone.pw-zoomed .pw-hint{ opacity:0; }
+  .pw-field-zone.pw-zoomed .pw-field-img{ filter:blur(14px) brightness(.34) saturate(1.05); transform:scale(1.06); }
+  .pw-field-zone.pw-zoomed .dd-hots{ opacity:0; pointer-events:none; }
+
+  .pw-web{ position:absolute; inset:0; z-index:9; opacity:0; pointer-events:none; transition:opacity .3s ease; }
+  .pw-web.in{ opacity:1; pointer-events:auto; }
+  .pw-web-veil{ position:absolute; inset:0; cursor:zoom-out; background:radial-gradient(120% 110% at 54% 46%, rgba(4,7,16,.28), rgba(2,4,10,.58)); }
+  .pw-web-svg{ position:absolute; inset:0; width:100%; height:100%; overflow:visible; pointer-events:none; z-index:1; }
+  .pw-wstrand{ fill:none; stroke:var(--gold); stroke-width:3.5; stroke-linecap:round; opacity:.6; filter:drop-shadow(0 0 4px rgba(245,166,35,.5));
+    stroke-dasharray:100; stroke-dashoffset:100; transition:stroke-dashoffset .7s cubic-bezier(.4,0,.1,1); }
+  .pw-web.in .pw-wstrand{ stroke-dashoffset:0; }
+  .pw-wpulse{ fill:none; stroke:#ffe8a8; stroke-width:3.5; stroke-linecap:round; stroke-dasharray:5 95; filter:drop-shadow(0 0 5px var(--gold)); opacity:0; animation:hubPulse 2.6s linear infinite; }
+  .pw-web.in .pw-wpulse{ opacity:.85; transition:opacity .4s ease .55s; }
+  @keyframes hubPulse{ from{stroke-dashoffset:100;} to{stroke-dashoffset:0;} }
+  .pw-wnode{ position:absolute; transform:translate(-50%,-50%) scale(.82); z-index:3; width:clamp(200px,22%,290px);
+    background:var(--cream); color:var(--ink); border:2.5px solid var(--primary); border-radius:14px; padding:13px 15px; text-align:left;
+    box-shadow:0 14px 34px rgba(0,0,0,.6), inset 0 1px 0 rgba(255,255,255,.55); opacity:0;
+    transition:transform .46s var(--ease) var(--d,0s), opacity .46s ease var(--d,0s); }
+  .pw-web.in .pw-wnode{ opacity:1; transform:translate(-50%,-50%) scale(1); }
+  .pw-wnode.read, .pw-wnode.cpoint, .pw-wnode.beat, .pw-wnode.about{ display:flex; gap:12px; align-items:flex-start; }
+  /* "What is it" node: big and readable, the first thing a newcomer reads */
+  .pw-wnode.about{ border-color:var(--gold); width:clamp(440px,54%,680px); padding:24px 28px; gap:18px; }
+  .pw-wnode.about .pw-wn-ico{ flex:0 0 52px; height:52px; }
+  .pw-wnode.about .pw-wn-ico svg{ width:28px; height:28px; }
+  .pw-wnode.about .pw-wn-tx b{ color:var(--primary); font-size:27px; margin-bottom:10px; }
+  .pw-wnode.about .pw-wn-tx p{ font-size:21px; line-height:1.6; }
+  /* Attack concept nodes: about twice the base size */
+  .pw-wnode.beat{ width:clamp(300px,34%,430px); padding:18px 22px; gap:14px; }
+  .pw-wnode.beat .pw-wn-ico{ flex:0 0 46px; height:46px; }
+  .pw-wnode.beat .pw-wn-ico svg{ width:24px; height:24px; }
+  .pw-wnode.beat .pw-wn-tx b{ font-size:22px; margin-bottom:5px; }
+  .pw-wnode.beat .pw-wn-tx p{ font-size:16.5px; line-height:1.55; }
+  .pw-wnode.beat .pw-wn-tag-go{ font-size:11px; margin-top:8px; }
+  .pw-wn-n{ flex:0 0 32px; height:32px; border-radius:50%; margin-top:1px; background:radial-gradient(circle at 35% 30%, #27439a, var(--primary));
+    border:2px solid var(--gold); color:var(--cream); font-family:var(--font-display); font-weight:900; font-size:15px; display:flex; align-items:center; justify-content:center; }
+  .pw-wn-ico{ flex:0 0 36px; height:36px; border-radius:50%; margin-top:1px;
+    background:radial-gradient(circle at 35% 30%, var(--gold-lt), var(--gold) 58%, var(--gold-dk)); border:2px solid var(--gold-dk);
+    color:var(--ink-gold); display:flex; align-items:center; justify-content:center; }
+  .pw-wn-ico svg{ width:19px; height:19px; }
+  .pw-wn-tx{ flex:1; min-width:0; }
+  .pw-wn-tx b{ display:block; font-family:var(--font-display); font-weight:900; text-transform:uppercase; letter-spacing:.4px; font-size:16px; color:var(--ink); margin-bottom:3px; line-height:1.05; }
+  .pw-wn-tx p{ margin:0; font-size:13px; line-height:1.52; color:var(--ink-soft); }
+  .pw-wnode.cpoint{ border-color:var(--gold); } .pw-wnode.cpoint .pw-wn-tx b{ color:var(--primary); }
+  .pw-wnode.beat{ border-color:var(--gold); }
+  .pw-wn-tag-go{ display:block; margin-top:5px; font-family:var(--font-display); font-weight:700; text-transform:uppercase; letter-spacing:.08em; font-size:9px; color:var(--primary); opacity:.7; }
+  .pw-web-back{ position:absolute; left:16px; top:16px; z-index:6; cursor:pointer; display:inline-flex; align-items:center; gap:6px;
+    font-family:var(--font-display); font-weight:800; text-transform:uppercase; letter-spacing:.12em; font-size:12px; color:var(--cream);
+    background:rgba(14,24,48,.78); border:1px solid rgba(245,166,35,.36); border-radius:999px; padding:8px 15px 8px 12px;
+    backdrop-filter:blur(6px); transition:background .15s, border-color .15s, transform .15s; }
+  .pw-web-back:hover{ background:rgba(20,34,66,.95); border-color:var(--gold); transform:translateX(-2px); }
+  .pw-web-back span{ font-size:17px; line-height:0; }
+
+  /* ===== IDENTIFY DOTS (shown only when "Identify It" is active) ===== */
+  /* Dots live on the field by default; a web pop-out (.pw-zoomed) hides them (see .pw-zoomed .dd-hots above). */
+  .dd-hots{ position:absolute; inset:0; z-index:7; transition:opacity .3s ease; }
+  .dd-hot{ position:absolute; transform:translate(-50%,-50%); background:none; border:none; cursor:pointer; padding:0; }
+  .dd-hot-dot{ display:flex; align-items:center; justify-content:center; width:27px; height:27px; border-radius:50%;
+    background:rgba(245,166,35,.97); border:2px solid #fff; color:var(--ink-gold);
+    font-family:var(--font-display); font-weight:900; font-size:13.5px; line-height:1;
+    box-shadow:0 0 0 4px rgba(245,166,35,.22), 0 2px 8px rgba(0,0,0,.6); animation:ddPulse 2.2s ease-in-out infinite; }
+  @keyframes ddPulse{ 0%,100%{box-shadow:0 0 0 4px rgba(245,166,35,.22),0 2px 8px rgba(0,0,0,.6);} 50%{box-shadow:0 0 0 9px rgba(245,166,35,.05),0 2px 8px rgba(0,0,0,.6);} }
+  @keyframes ddPulseSm{ 0%,100%{box-shadow:0 0 0 2px rgba(245,166,35,.22),0 1px 5px rgba(0,0,0,.6);} 50%{box-shadow:0 0 0 4px rgba(245,166,35,.05),0 1px 5px rgba(0,0,0,.6);} }
+  .dd-hot-tip{ position:absolute; left:50%; bottom:150%; transform:translateX(-50%) translateY(6px); width:210px;
+    background:var(--cream); color:var(--ink); border:2px solid var(--gold); border-radius:10px; padding:10px 12px;
+    font-size:12.5px; line-height:1.5; opacity:0; pointer-events:none; transition:opacity .15s, transform .15s;
+    box-shadow:0 12px 30px rgba(0,0,0,.6); z-index:12; text-align:left; }
+  .dd-hot-tip b{ display:block; font-family:var(--font-display); font-weight:900; text-transform:uppercase; font-size:12px; color:var(--primary); margin-bottom:3px; letter-spacing:.4px; }
+  .dd-hot:hover .dd-hot-tip, .dd-hot.on .dd-hot-tip{ opacity:1; transform:translateX(-50%) translateY(0); }
+
+  /* ===== EDIT MODE (drag-to-place hotspots) ===== */
+  body.dd-edit .dd-hot{ cursor:grab; }
+  body.dd-edit .dd-hot-dot{ background:#3bd16f; color:#06301a; box-shadow:0 0 0 4px rgba(59,209,111,.3); animation:none; }
+  body.dd-edit .dd-hots{ opacity:1 !important; pointer-events:auto !important; }
+  /* Per-look show/hide toggle (edit mode only): × removes the dot from this look, + brings it back */
+  .dd-hot-del{ display:none; position:absolute; top:-10px; right:-10px; width:19px; height:19px; border-radius:50%;
+    background:#c8102e; color:#fff; font-family:var(--font-display); font-weight:900; font-size:14px; line-height:15px;
+    text-align:center; border:2px solid #fff; box-shadow:0 2px 6px rgba(0,0,0,.55); cursor:pointer; z-index:14; }
+  body.dd-edit .dd-hot-del{ display:block; }
+  .dd-hot.hidden-dot{ opacity:.34; }
+  .dd-hot.hidden-dot .dd-hot-dot{ text-decoration:line-through; }
+  .dd-hot.hidden-dot .dd-hot-del{ background:#3bd16f; color:#06301a; }
+  #dd-edit-panel{ display:none; }
+  body.dd-edit #dd-edit-panel{ display:flex; flex-direction:column; gap:8px; position:fixed; left:14px; bottom:14px; z-index:200;
+    width:360px; max-width:44vw; background:rgba(6,10,20,.97); border:1.5px solid var(--gold); border-radius:12px; padding:14px; }
+  #dd-edit-panel h5{ font-family:var(--font-display); font-weight:900; text-transform:uppercase; letter-spacing:.1em; font-size:13px; color:var(--gold); }
+  #dd-edit-panel .dd-ep-note{ font-size:11.5px; color:rgba(240,231,203,.6); line-height:1.5; }
+  #dd-edit-panel textarea{ width:100%; height:180px; background:#04060e; color:var(--cream); border:1px solid rgba(245,166,35,.3);
+    border-radius:8px; padding:9px; font-family:ui-monospace,Menlo,Consolas,monospace; font-size:11px; line-height:1.45; resize:vertical; }
+  #dd-edit-panel .dd-ep-row{ display:flex; gap:8px; }
+  #dd-edit-panel button{ flex:1; font-family:var(--font-display); font-weight:800; text-transform:uppercase; letter-spacing:.05em;
+    font-size:12px; padding:9px 10px; border-radius:8px; cursor:pointer; border:1.5px solid rgba(245,238,218,.25); background:transparent; color:var(--cream); }
+  #dd-edit-panel button.primary{ background:linear-gradient(180deg,var(--gold-lt),var(--gold) 55%,var(--gold-dk)); border-color:var(--gold-dk); color:var(--ink-gold); }
+  #dd-edit-badge{ display:none; }
+  body.dd-edit #dd-edit-badge{ display:block; position:fixed; top:12px; left:50%; transform:translateX(-50%); z-index:200;
+    font-family:var(--font-display); font-weight:800; letter-spacing:.14em; text-transform:uppercase; font-size:12px; color:#3bd16f;
+    background:rgba(6,10,20,.9); border:1px solid rgba(59,209,111,.5); border-radius:999px; padding:6px 16px; }
+
+  /* ===== GAME MODE ===== */
+  .dd-game{ width:min(680px,94vw); background:linear-gradient(180deg,#0c1226,#070b16); border:1.5px solid var(--gold);
+    border-radius:20px; padding:34px 30px 30px; position:relative; box-shadow:0 30px 80px rgba(0,0,0,.6); }
+  .dd-game .card-close{ top:14px; right:16px; }
+  .dd-game-back{ position:absolute; top:18px; left:18px; cursor:pointer; font-family:var(--font-display); font-weight:800;
+    text-transform:uppercase; letter-spacing:.1em; font-size:11px; color:var(--cream); background:rgba(245,166,35,.08);
+    border:1px solid rgba(245,166,35,.35); border-radius:999px; padding:6px 13px; }
+  .dd-game-back[hidden]{ display:none; }
+  .dd-q-step{ font-family:var(--font-display); font-weight:800; letter-spacing:.2em; text-transform:uppercase; font-size:11px; color:var(--gold); margin:14px 0 12px; }
+  .dd-q{ font-family:var(--font-display); font-weight:900; text-transform:uppercase; font-size:clamp(24px,4vw,34px); line-height:1.05; color:var(--cream); margin-bottom:8px; }
+  .dd-q-sub{ font-size:14px; color:rgba(240,231,203,.6); margin-bottom:22px; line-height:1.5; }
+  .dd-opts{ display:flex; flex-direction:column; gap:12px; }
+  .dd-opt{ text-align:left; font-family:var(--font-display); font-weight:800; text-transform:uppercase; letter-spacing:.03em;
+    font-size:18px; color:var(--cream); background:rgba(245,166,35,.08); border:2px solid rgba(245,166,35,.4); border-radius:14px;
+    padding:16px 20px; cursor:pointer; transition:all .15s; }
+  .dd-opt:hover{ background:rgba(245,166,35,.18); border-color:var(--gold); transform:translateX(3px); }
+  .dd-result-badge{ font-family:'Cinzel',serif; font-weight:900; font-size:22px; color:var(--ink-gold);
+    background:linear-gradient(180deg,var(--gold-lt),var(--gold) 55%,var(--gold-dk)); width:66px; height:66px; border-radius:50%;
+    display:flex; align-items:center; justify-content:center; margin:14px 0 16px; }
+  .dd-result-name{ font-family:var(--font-display); font-weight:900; text-transform:uppercase; font-size:34px; color:var(--cream); margin-bottom:12px; line-height:1; }
+  .dd-result-throw{ font-size:16px; line-height:1.65; color:rgba(240,231,203,.85); margin-bottom:24px; }
+  .dd-result-actions{ display:flex; gap:12px; flex-wrap:wrap; }
+  .dd-btn{ font-family:var(--font-display); font-weight:800; text-transform:uppercase; letter-spacing:.05em; font-size:14px;
+    padding:13px 22px; border-radius:12px; cursor:pointer; border:2px solid rgba(245,238,218,.25); background:transparent; color:var(--cream); }
+  .dd-btn.primary{ background:linear-gradient(180deg,var(--gold-lt),var(--gold) 55%,var(--gold-dk)); border-color:var(--gold-dk); color:var(--ink-gold); }
+
+  @media (max-width:820px){
+    .card.pw-card{ width:96vw; height:94vh; }
+    .pw-overview{ flex-direction:column; align-items:stretch; overflow-y:auto; gap:14px; }
+    .pw-field-zone{ flex:0 0 auto; width:100%; aspect-ratio:16/9; order:1; }
+    .pw-rail{ flex:0 0 auto; width:100%; max-width:100%; overflow:visible; order:2; }
+    .pw-header{ flex-wrap:wrap; gap:8px; padding-right:50px; }
+    /* Smaller field dots on a phone (tighter pulse ring too, or the halo still looks big) */
+    .dd-hot-dot{ width:15px; height:15px; font-size:9px; border-width:1.5px; animation:ddPulseSm 2.2s ease-in-out infinite; }
+    .dd-hot-tip{ width:min(64vw,220px); font-size:12px; }
+    /* Pop-outs become a FULL-SCREEN SHEET (list), not cards floating on the field */
+    .pw-web{ position:fixed; inset:0; z-index:120; }
+    .pw-web-sheet{ position:absolute; inset:0; display:flex; flex-direction:column;
+      background:linear-gradient(180deg,#0b1324 0%,#060a14 100%); transform:translateY(100%);
+      transition:transform .32s var(--ease); }
+    .pw-web.in .pw-web-sheet{ transform:translateY(0); }
+    .pw-web-sheet-head{ flex:0 0 auto; display:flex; align-items:center; gap:12px; padding:16px 16px 14px;
+      border-bottom:1px solid rgba(245,166,35,.22); background:rgba(6,10,20,.92); }
+    .pw-web-sheet .pw-web-back{ position:static; }
+    .pw-web-sheet-title{ font-family:var(--font-display); font-weight:900; text-transform:uppercase;
+      letter-spacing:.05em; font-size:20px; color:var(--gold); line-height:1; }
+    .pw-web-sheet-body{ flex:1 1 auto; min-height:0; overflow-y:auto; -webkit-overflow-scrolling:touch;
+      padding:16px; display:flex; flex-direction:column; gap:13px; }
+    .pw-web-sheet .pw-wnode{ position:static !important; width:100% !important; max-width:none !important;
+      transform:none !important; opacity:1 !important; margin:0; }
+    .pw-overview:has(.pw-web.in) .pw-rail{ display:none; }
+    #dd-edit-panel{ max-width:92vw; }
+  }
+  @media (prefers-reduced-motion: reduce){
+    .pw-card.pw-enter, .pw-card.pw-enter .pw-field-zone, .pw-card.pw-enter .pw-rail{ animation:none !important; }
+    .pw-cat{ opacity:1 !important; transform:none !important; transition:none !important; }
+    .pw-wnode{ opacity:1 !important; transform:translate(-50%,-50%) !important; transition:none !important; }
+    .pw-wstrand{ stroke-dashoffset:0 !important; transition:none !important; } .pw-wpulse{ animation:none !important; opacity:0 !important; }
+  }
+
+  /* ===== ORBITAL HUB (adapted from the Second Brain constellation) ===== */
+  body.hub-live { padding: 0; overflow-x: hidden; }
+  #hub { position: relative; min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 12px 16px; gap: 6px; }
+  .dd-toplabel { position: absolute; top: 26px; left: 50%; transform: translateX(-50%); font-family: var(--font-display);
+    font-weight: 800; letter-spacing: 3px; text-transform: uppercase; font-size: 11px; color: var(--gold); }
+  .dd-corner-chip { position: absolute; top: 22px; left: 22px; z-index: 5; display: flex; flex-direction: column; gap: 2px;
+    text-align: left; cursor: pointer; background: rgba(6,10,20,.6); border: 1.5px solid rgba(245,166,35,.35); border-radius: 12px;
+    padding: 10px 16px; transition: border-color .15s, transform .15s; }
+  .dd-corner-chip:hover { border-color: var(--gold); transform: translateY(-1px); }
+  .dd-corner-chip b { font-family: var(--font-display); font-weight: 900; text-transform: uppercase; letter-spacing: .06em; font-size: 15px; color: var(--cream); }
+  .dd-corner-chip em { font-style: normal; font-family: var(--font-display); font-weight: 700; text-transform: uppercase; letter-spacing: .04em; font-size: 9.5px; color: var(--gold); }
+
+  .dd-hub { position: relative; width: min(94vw, 82vh); height: min(82vh, 94vw); margin: 0 auto; --r: min(33vh, 31vw); --sx: 1.5; }
+  /* Widen the ellipse on roomy widescreens, keep it near-circular on phones so it never runs off the sides. */
+  @media (min-aspect-ratio: 16/9) { .dd-hub { --sx: 1.9; } }
+  @media (min-aspect-ratio: 2/1)  { .dd-hub { --sx: 2.15; } }
+  @media (max-width: 720px){
+    .dd-hub{ --sx: 1.0; --r: min(30vh, 37vw); }
+    .dd-hub .dd-emblem-disc{ width: clamp(92px, 25vw, 124px); }
+    .dd-hub .dd-emblem-name{ font-size: clamp(19px, 5.6vw, 24px); margin-top: 9px; letter-spacing: 1px; }
+    .dd-hub .dd-emblem-sub{ font-size: 10px; letter-spacing: 2px; }
+    .dd-hub .dd-badge{ width: clamp(50px, 14vw, 62px); }
+  }
+  /* Static wrapper stretches the whole orbit horizontally into an ellipse so it
+     uses the wide-screen side room; badges get un-stretched back on .dd-node-inner. */
+  .dd-orbit { position: absolute; inset: 0; transform: scaleX(var(--sx)); transform-origin: 50% 50%; }
+  .dd-ring { position: absolute; inset: 0; animation: ddSpin 150s linear infinite; transform-origin: 50% 50%; }
+  .dd-hub:hover .dd-ring, .dd-hub:hover .dd-node-spin { animation-play-state: paused; }
+  @keyframes ddSpin { to { transform: rotate(360deg); } }
+  @keyframes ddSpinRev { to { transform: rotate(-360deg); } }
+  .dd-strand { position: absolute; left: 50%; top: 50%; width: 2px; height: var(--r); transform-origin: top center;
+    transform: translateX(-50%) rotate(calc(var(--a) + 180deg));
+    background: linear-gradient(to bottom, rgba(245,166,35,.55), rgba(245,166,35,0)); pointer-events: none; }
+  .dd-node { position: absolute; left: 50%; top: 50%; background: none; border: none; padding: 0; cursor: pointer; z-index: 4;
+    transform: translate(-50%,-50%) rotate(var(--a)) translateY(calc(-1 * var(--r))); }
+  /* Two-stage un-rotate: the spin wrapper cancels the ring's continuous spin,
+     the inner cancels this node's fixed angle, so the icon + label stay UPRIGHT. */
+  .dd-node-spin { display: block; animation: ddSpinRev 150s linear infinite; }
+  .dd-node-inner { display: flex; flex-direction: column; align-items: center; gap: 8px;
+    transform: rotate(calc(-1 * var(--a))) scaleX(calc(1 / var(--sx))); transition: filter .15s; }
+  .dd-node:hover .dd-node-inner { filter: brightness(1.08); }
+  .dd-badge { width: clamp(58px, 13vmin, 168px); aspect-ratio: 1; display: flex; align-items: center; justify-content: center;
+    filter: drop-shadow(0 8px 18px rgba(0,0,0,.6)); transition: transform .18s ease; }
+  .dd-badge img { width: 100%; height: 100%; object-fit: contain; }
+  .dd-node:hover .dd-badge { transform: scale(1.09); }
+  .dd-badge-label { font-family: var(--font-display); font-size: clamp(11px, 1.5vmin, 17px); font-weight: 900; text-transform: uppercase;
+    letter-spacing: .8px; color: var(--cream); white-space: nowrap; text-shadow: 0 1px 6px rgba(0,0,0,.9);
+    background: rgba(5,8,18,.62); padding: 3px 12px; border-radius: 999px; border: 1px solid rgba(245,166,35,.22); }
+
+  .dd-emblem { position: absolute; left: 50%; top: 50%; transform: translate(-50%,-50%); z-index: 3; pointer-events: none;
+    display: flex; flex-direction: column; align-items: center; text-align: center; }
+  .dd-emblem-disc { width: clamp(158px, 21vmin, 288px); aspect-ratio: 1; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+    background: radial-gradient(circle at 50% 38%, color-mix(in srgb, var(--gold) 30%, #0b1530) 0%, #070d1e 70%);
+    border: 3px solid var(--gold); box-shadow: 0 0 0 6px rgba(245,166,35,.10), 0 0 60px 6px rgba(245,166,35,.30), inset 0 0 34px rgba(0,0,0,.6);
+    animation: hubBreath 5.5s ease-in-out infinite; }
+  @keyframes hubBreath { 0%,100% { box-shadow: 0 0 0 6px rgba(245,166,35,.10), 0 0 50px 4px rgba(245,166,35,.24), inset 0 0 34px rgba(0,0,0,.6); }
+    50% { box-shadow: 0 0 0 8px rgba(245,166,35,.14), 0 0 72px 10px rgba(245,166,35,.38), inset 0 0 34px rgba(0,0,0,.6); } }
+  .dd-emblem-disc img { width: 72%; height: 72%; object-fit: contain; filter: drop-shadow(0 4px 14px rgba(0,0,0,.6)); }
+  .dd-emblem-name { margin-top: 18px; font-family: 'Cinzel', serif; font-weight: 900; text-transform: uppercase; letter-spacing: 2px;
+    font-size: clamp(24px, 3.4vmin, 42px); background: linear-gradient(160deg, #fff 20%, var(--gold) 80%);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+  .dd-emblem-sub { font-family: var(--font-display); font-weight: 800; text-transform: uppercase; letter-spacing: 3px; font-size: clamp(11px, 1.5vmin, 17px); color: var(--gold); margin-top: 5px; }
+
+  .dd-ingame-cta { margin-top: 12px; display: flex; align-items: center; gap: 14px; cursor: pointer; text-align: left;
+    background: linear-gradient(180deg, var(--gold-lt), var(--gold) 55%, var(--gold-dk)); color: var(--ink-gold);
+    border: 2px solid var(--gold-dk); border-radius: 16px; padding: 15px 26px; box-shadow: 0 12px 30px rgba(0,0,0,.5);
+    transition: transform .14s var(--ease), filter .14s; }
+  .dd-ingame-cta:hover { transform: translateY(-2px); filter: brightness(1.05); }
+  .dd-ingame-cta .hm-ico { display: inline-flex; } .dd-ingame-cta .hm-ico svg { width: 26px; height: 26px; }
+  .dd-ingame-cta b { display: block; font-family: var(--font-display); font-weight: 900; text-transform: uppercase; letter-spacing: .04em; font-size: 18px; line-height: 1; }
+  .dd-ingame-cta em { font-style: normal; font-family: var(--font-display); font-weight: 700; text-transform: uppercase; letter-spacing: .03em; font-size: 10.5px; opacity: .8; }
+  .dd-cta-row { display: flex; gap: 14px; flex-wrap: wrap; justify-content: center; margin-top: 12px; }
+  .dd-cta-row .dd-ingame-cta { margin-top: 0; }
+  .dd-ingame-cta.alt { background: linear-gradient(180deg, #2f66cf, #1E54B7 60%, #163f8a); color: var(--cream); border-color: #12356f; }
+  .dd-ingame-cta.alt em { color: var(--cream); }
+  .dd-hub-hint { margin-top: 20px; font-family: var(--font-display); font-size: 11px; font-weight: 700; letter-spacing: .06em;
+    text-transform: uppercase; color: rgba(245,238,218,.3); text-align: center; }
+
+  @media (max-width: 620px) { .dd-hub { max-height: 58vh; } }
+  @media (prefers-reduced-motion: reduce) { .dd-ring, .dd-strand, .dd-node-spin { animation: none !important; } }
+
+  /* ===== IN-GAME node-web (ported from the coaching app's Log a Game engine) ===== */
+  #dd-web { position: fixed; inset: 0; z-index: 65; display: none; flex-direction: column;
+    background: radial-gradient(120% 120% at 50% 30%, rgba(6,10,22,.5), rgba(2,4,10,.8)); backdrop-filter: blur(3px); }
+  #dd-web.open { display: flex; }
+  .dw-head { flex: 0 0 auto; display: flex; align-items: center; gap: 14px; padding: 15px 22px; border-bottom: 1px solid rgba(245,166,35,.18); }
+  .dw-head-t { font-family: var(--font-display); font-weight: 900; text-transform: uppercase; letter-spacing: .05em; font-size: 20px; color: var(--cream); line-height: 1; }
+  .dw-head-s { font-family: var(--font-display); font-weight: 700; text-transform: uppercase; letter-spacing: .1em; font-size: 11px; color: var(--gold); margin-top: 3px; }
+  .dw-close { margin-left: auto; width: 40px; height: 40px; border-radius: 50%; cursor: pointer; background: rgba(13,22,46,.9);
+    border: 2px solid var(--gold); color: var(--gold); font-size: 20px; display: flex; align-items: center; justify-content: center; }
+  .dw-close:hover { background: var(--gold); color: var(--ink-gold); }
+  .dw-disclaimer { flex: 0 0 auto; text-align: center; font-family: 'Barlow', sans-serif; font-size: 12px; line-height: 1.5;
+    color: rgba(240,231,203,.62); padding: 9px 22px; background: rgba(245,166,35,.06); border-bottom: 1px solid rgba(245,166,35,.14); }
+  .dw-disclaimer b { color: var(--gold); font-weight: 700; }
+  .dw-title { position: absolute; transform: translate(-50%,-50%); left: calc(var(--nx,0) * 1px); top: calc(var(--ny,0) * 1px);
+    text-align: center; pointer-events: none; white-space: nowrap; }
+  .dw-title-main { font-family: 'Cinzel', serif; font-weight: 900; text-transform: uppercase; letter-spacing: 3px; font-size: 30px;
+    background: linear-gradient(160deg, #fff 20%, var(--gold) 80%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    filter: drop-shadow(0 3px 14px rgba(0,0,0,.7)); }
+  .dw-title-sub { font-family: var(--font-display); font-weight: 800; text-transform: uppercase; letter-spacing: 3px; font-size: 11px;
+    color: var(--gold); margin-top: 4px; }
+  .dw-stage { flex: 1; position: relative; overflow: hidden; cursor: grab; }
+  .dw-stage.dragging { cursor: grabbing; }
+  .dw-canvas { position: absolute; left: 50%; top: 46%; transition: transform .55s var(--ease); will-change: transform; }
+  .dw-svg { position: absolute; left: 0; top: 0; width: 1px; height: 1px; overflow: visible; pointer-events: none; }
+  .dw-strand { stroke: var(--gold); stroke-width: 3.2; fill: none; opacity: .6; stroke-linecap: round;
+    filter: drop-shadow(0 0 3px rgba(245,166,35,.5)); stroke-dasharray: 600; stroke-dashoffset: 600; animation: dwDraw .6s var(--ease) forwards; }
+  @keyframes dwDraw { to { stroke-dashoffset: 0; } }
+  .dw-node { position: absolute; transform: translate(-50%,-50%); left: calc(var(--nx,0) * 1px); top: calc(var(--ny,0) * 1px);
+    display: flex; align-items: center; gap: 9px; padding: 10px 15px 10px 11px; border-radius: 15px; min-width: 118px; max-width: 250px; cursor: pointer;
+    background-color: var(--cream); background-image: linear-gradient(180deg, rgba(255,255,255,.6), rgba(0,0,0,.06) 60%);
+    border: 3px solid var(--primary); box-shadow: inset 0 0 0 2.5px var(--gold), 0 8px 20px rgba(0,0,0,.5); animation: dwPop .5s var(--ease) both; }
+  @keyframes dwPop { 0% { opacity: 0; transform: translate(-50%,-50%) scale(.3); } 68% { transform: translate(-50%,-50%) scale(1.12); } 100% { opacity: 1; transform: translate(-50%,-50%) scale(1); } }
+  .dw-node-ico { flex: 0 0 34px; width: 34px; height: 34px; border-radius: 50%; font-size: 15px; font-family: 'Cinzel', serif; font-weight: 900;
+    background: radial-gradient(circle at 50% 30%, color-mix(in srgb, var(--primary) 80%, #fff), var(--primary) 60%);
+    border: 2.5px solid var(--cream); box-shadow: inset 0 0 0 2px var(--gold); display: flex; align-items: center; justify-content: center; color: var(--gold); }
+  .dw-node-ico svg { width: 16px; height: 16px; }
+  .dw-node-txt { display: flex; flex-direction: column; line-height: 1.08; min-width: 0; text-align: left; }
+  .dw-node-q { font-family: var(--font-display); font-weight: 700; text-transform: uppercase; letter-spacing: 1px; font-size: 9px; color: var(--ink-soft); }
+  .dw-node-a { font-family: var(--font-display); font-weight: 900; text-transform: uppercase; font-size: 14px; letter-spacing: .3px; color: var(--primary); max-width: 200px; }
+  .dw-node.opt { min-width: 215px; max-width: 305px; align-items: flex-start; padding: 13px 17px 13px 13px; }
+  .dw-node.opt .dw-node-ico { margin-top: 1px; }
+  .dw-node.opt .dw-node-a { font-size: 15.5px; white-space: normal; max-width: 250px; margin-bottom: 4px; line-height: 1.1; }
+  .dw-opt-desc { display: block; font-family: 'Barlow', sans-serif; font-weight: 500; text-transform: none; letter-spacing: 0;
+    font-size: 11.5px; line-height: 1.42; color: var(--ink-soft); max-width: 250px; }
+  .dw-node.opt:hover { border-color: var(--gold); box-shadow: 0 0 0 3px rgba(245,166,35,.55), 0 10px 24px rgba(0,0,0,.55); transform: translate(-50%,-50%) scale(1.03); }
+  .dw-node.hub { min-width: 250px; max-width: 300px; align-items: flex-start; padding: 12px 17px; background: rgba(11,19,42,.92); background-image: none; border-color: var(--gold);
+    box-shadow: 0 6px 16px rgba(0,0,0,.5); cursor: default; }
+  .dw-node.hub .dw-node-txt { flex: 1; }
+  .dw-node.hub .dw-node-a { color: var(--cream); white-space: normal; max-width: none; font-size: 14px; letter-spacing: .4px; line-height: 1.3; }
+  .dw-node.hub .dw-node-q { color: var(--gold); opacity: .8; }
+  .dw-node.hub .dw-node-ico { background: radial-gradient(circle at 50% 30%, #27439a, #1E54B7); border-color: var(--gold); color: var(--cream); }
+  .dw-node.opt.picked { border-color: var(--gold); background-color: color-mix(in srgb, var(--gold) 20%, var(--cream));
+    box-shadow: inset 0 0 0 2.5px var(--gold-dk), 0 0 26px rgba(245,166,35,.45), 0 8px 20px rgba(0,0,0,.5); pointer-events: none; }
+  .dw-node.dim { opacity: .38; pointer-events: none; }
+  .dw-node.result { flex-direction: column; align-items: flex-start; gap: 0; max-width: 330px; cursor: default;
+    border-color: var(--gold); background-color: color-mix(in srgb, var(--gold) 22%, var(--cream));
+    box-shadow: inset 0 0 0 2.5px var(--gold-dk), 0 0 30px rgba(245,166,35,.5), 0 8px 20px rgba(0,0,0,.5); }
+  .dw-res-top { display: flex; align-items: center; gap: 10px; }
+  .dw-res-throw { font-family: 'Barlow', sans-serif; font-size: 12.5px; font-weight: 500; color: #3a2a10; line-height: 1.5; margin-top: 10px; text-transform: none; }
+  .dw-finish { display: flex; gap: 8px; margin-top: 12px; }
+  .dw-finish button { font-family: var(--font-display); font-weight: 800; text-transform: uppercase; letter-spacing: .04em; font-size: 12px;
+    padding: 9px 14px; border-radius: 9px; cursor: pointer; }
+  .dw-finish .go { background: var(--primary); color: var(--secondary); border: 2px solid var(--gold); }
+  .dw-finish .re { background: transparent; color: var(--primary); border: 2px solid var(--primary); }
+  .dw-zoom { position: absolute; right: 18px; bottom: 18px; z-index: 8; display: flex; flex-direction: column; gap: 8px; }
+  .dw-zoom button { width: 40px; height: 40px; border-radius: 10px; cursor: pointer; font-size: 20px; line-height: 1;
+    background: rgba(13,22,46,.85); border: 2px solid var(--gold); color: var(--gold); display: flex; align-items: center; justify-content: center; }
+  .dw-zoom button:hover { background: var(--gold); color: var(--ink-gold); }
+  .dw-hint { position: absolute; left: 50%; bottom: 18px; transform: translateX(-50%); z-index: 7; font-family: var(--font-display);
+    font-weight: 700; text-transform: uppercase; letter-spacing: .14em; font-size: 10px; color: rgba(245,238,218,.35); pointer-events: none; }
+  @media (prefers-reduced-motion: reduce) { .dw-node { animation: none !important; } .dw-strand { animation: none; stroke-dashoffset: 0; } .dw-canvas { transition: none; } }
+
+  /* ===== "THE READ" doc card (from the reading-defenses script) ===== */
+  .dd-doc { width: min(760px, 94vw); max-height: 88vh; overflow-y: auto; background: linear-gradient(180deg, #0c1226, #070b16);
+    border: 1.5px solid var(--gold); border-radius: 20px; padding: 34px 34px 30px; box-shadow: 0 30px 80px rgba(0,0,0,.6); }
+  .dd-doc h2 { font-family: 'Cinzel', serif; font-weight: 900; font-size: clamp(26px,4vw,38px); background: linear-gradient(160deg,#fff 20%,var(--gold) 80%);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 6px; }
+  .dd-doc .dd-doc-sub { font-family: var(--font-display); font-weight: 700; text-transform: uppercase; letter-spacing: .12em; font-size: 12px; color: var(--gold); margin-bottom: 22px; }
+  .dd-step { display: flex; gap: 16px; padding: 16px 0; border-bottom: 1px solid rgba(245,238,218,.08); }
+  .dd-step:last-of-type { border-bottom: none; }
+  .dd-step-n { flex: 0 0 38px; height: 38px; border-radius: 50%; background: radial-gradient(circle at 35% 30%, var(--gold-lt), var(--gold) 58%, var(--gold-dk));
+    color: var(--ink-gold); font-family: 'Cinzel', serif; font-weight: 900; font-size: 17px; display: flex; align-items: center; justify-content: center; }
+  .dd-step-tx h4 { font-family: var(--font-display); font-weight: 900; text-transform: uppercase; letter-spacing: .04em; font-size: 17px; color: var(--cream); margin-bottom: 5px; }
+  .dd-step-tx p { font-size: 14px; line-height: 1.6; color: rgba(240,231,203,.72); }
+  .dd-step-tx p b { color: var(--gold); font-weight: 700; }
+  .dd-doc-note { margin-top: 20px; background: rgba(245,166,35,.07); border: 1px solid rgba(245,166,35,.28); border-radius: 12px; padding: 16px 18px; }
+  .dd-doc-note h4 { font-family: var(--font-display); font-weight: 900; text-transform: uppercase; letter-spacing: .04em; font-size: 14px; color: var(--gold); margin-bottom: 6px; }
+  .dd-doc-note p { font-size: 13.5px; line-height: 1.6; color: rgba(240,231,203,.75); }
+</style>
+</head>
+<body>
+
+<!-- ===== BACKGROUND VIDEO ===== -->
+<video id="dd-bg" autoplay muted loop playsinline>
+  <source src="Assets/stadium_bg.mp4" type="video/mp4">
+</video>
+<div id="dd-bg-veil"></div>
+
+<!-- ===== HUB ===== -->
+<div id="hub">
+  <div class="dd-toplabel">Scheme Kings Tool</div>
+  <button class="dd-corner-chip" id="btn-keys"><b>The Read</b><em>Pre-snap keys · start here</em></button>
+
+  <div class="dd-hub">
+    <div class="dd-orbit"><div class="dd-ring" id="dd-ring"></div></div>
+    <div class="dd-emblem">
+      <div class="dd-emblem-disc"><img src="Assets/scheme kings logo.png" alt="SK"></div>
+      <div class="dd-emblem-name">Defense Decoder</div>
+      <div class="dd-emblem-sub">Read Any Coverage</div>
+    </div>
+  </div>
+
+  <div class="dd-cta-row">
+    <button class="dd-ingame-cta" id="btn-game">
+      <span class="hm-ico" id="ico-game"></span>
+      <span><b>Decode · Read It</b><em>Diagnose the coverage at the line</em></span>
+    </button>
+    <button class="dd-ingame-cta alt" id="btn-attack">
+      <span class="hm-ico" id="ico-attack"></span>
+      <span><b>Attack · Beat It</b><em>Get the concept that kills it</em></span>
+    </button>
+  </div>
+
+  <div class="dd-hub-hint">Tap a coverage to study it, or hit In-Game to read at the line. Defenses disguise, so use this as your best read, not a guarantee.</div>
+</div>
+
+<!-- ===== TAKEOVER ===== -->
+<div id="takeover"><div id="takeover-inner"></div></div>
+
+<!-- ===== IN-GAME NODE-WEB (Log a Game engine) ===== -->
+<div id="dd-web">
+  <div class="dw-head">
+    <button class="dw-close" id="dw-close" title="Close">&times;</button>
+  </div>
+  <div class="dw-disclaimer"><b>Heads up:</b> this reads the pre-snap look. Defenses disguise coverages and rotate after the snap, so treat it as your best read, not a guarantee.</div>
+  <div class="dw-stage" id="dw-stage">
+    <div class="dw-canvas" id="dw-canvas"><svg class="dw-svg" id="dw-svg"></svg></div>
+    <div class="dw-hint">Drag to pan · scroll to zoom · fit button lower-right</div>
+  </div>
+  <div class="dw-zoom">
+    <button type="button" id="dw-zin" title="Zoom in">+</button>
+    <button type="button" id="dw-zout" title="Zoom out">&minus;</button>
+    <button type="button" id="dw-zfit" title="Fit all">&#9974;</button>
+  </div>
+</div>
+
+<!-- ===== EDIT MODE UI ===== -->
+<div id="dd-edit-badge">Edit Mode · drag dots · click field to add · press E to exit</div>
+<div id="dd-edit-panel">
+  <h5>Hotspot Editor</h5>
+  <div class="dd-ep-note">Drag the green dots. × hides a dot on this look, + brings it back. Your edits auto-save in this browser, so a reload won't lose them. When you've done every coverage, hit <b>Copy ALL</b> and send it over to make it permanent.</div>
+  <textarea id="dd-ep-json" spellcheck="false"></textarea>
+  <div class="dd-ep-row">
+    <button id="dd-ep-apply">Apply</button>
+    <button id="dd-ep-copy">Copy This One</button>
+  </div>
+  <button id="dd-ep-copyall" class="primary">Copy ALL Coverages</button>
+</div>
+
+<script>
+/* ============================================================================
+   ICONS
+   ========================================================================== */
+const ICO = {
+  eye:   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg>',
+  target:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r="1" fill="currentColor"/></svg>',
+  crown: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 7l4 4 5-7 5 7 4-4v11H3z"/></svg>',
+  chart: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><rect x="6.5" y="10" width="3" height="7"/><rect x="11.5" y="6" width="3" height="11"/><rect x="16.5" y="13" width="3" height="4"/></svg>',
+  play:  '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>',
+  motion:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12h13"/><path d="M13 6l6 6-6 6"/></svg>',
+  book:  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2z"/><path d="M9 7h6M9 11h6"/></svg>',
+};
+const CPOINT_ICO = ['crown','eye','target','motion'];
+
+/* ============================================================================
+   COVERAGE DATA  (wording is easy to change,swap freely)
+   identify = pre-snap tells | beat = concepts that attack it | keys = must-remembers
+   tendencies = when you see it | hotspots = dots on the screenshot (x/y in %)
+   Placeholder screenshots come from the Alabama Assets folder for now.
+   ========================================================================== */
+const COVERAGES = [
+  {
+    id:'cover1', code:'C1', name:'Cover 1', tag:'man',
+    blurb:'Man across the board with a safety over the top and usually a hook defender, the rat, in the middle.',
+    whatis:'Cover 1 is man coverage. Every defender follows his receiver, with one safety deep over the top and a rat defender in the hole over the middle.',
+    hero:'Alabama Assets/PA Doble Post Screen Shot.png',
+    icon:'Asstes Read Defense/Cover 1 Icon.webp',
+    playcall:'Asstes Read Defense/Cover 1 Play.jpg',
+    looks:[
+      { label:'vs 2x2', img:'Asstes Read Defense/Cover 1 vs 2x2.jpg', dots:[ {x:53,y:46.7}, {x:21,y:59.9}, {x:33.5,y:65.8}, {x:71.1,y:65}, {x:70,y:55,hide:true} ] },
+      { label:'vs 3x1', img:'Asstes Read Defense/Cover 1 vs 3x1.jpg', dots:[ {x:48.9,y:49.5}, {x:26.3,y:60.9}, {x:75.3,y:67}, {x:66,y:45,hide:true}, {x:66.9,y:65.8} ] },
+    ],
+    identify:[
+      { label:'One High Safety', text:'One safety deep in the middle of the field. Middle closed.', x:50, y:29 },
+      { label:'Corners 7 Yds, No Shade', text:'Both corners about 7 yards off, head-up with no inside or outside shade.', x:13, y:50 },
+      { label:'Nickel Tight, Head-Up', text:'Nickel a yard tighter than Cover 3, head-up in the slot with no shade.', x:32, y:53 },
+      { label:'Safety Over His Man', text:'Strong safety a touch deeper than Cover 3, aligned directly over his man.', x:66, y:45 },
+      { label:'Trips: Safety Over #3', text:'vs 3x1: strong safety walks down over #3, nickel head-up at about 4 yards, a linebacker in the box.', x:70, y:55 },
+    ],
+    beat:[
+      { name:'Create A Pick (Mesh / Bunch Rub)', why:'Natural rubs and picks spring a man defender free underneath.' },
+      { name:'Isolate A Mismatch', why:'Work the slot on a post or corner; with a speed edge, take a one-on-one deep shot on the outside.' },
+      { name:'Backs & TEs In Space', why:'RB wheels and option routes, plus your TE on corners, posts, and quick breakers, all beat man.' },
+    ],
+    keys:[
+      { title:'Take Your Matchup', text:'Find the one-on-one you like pre-snap and go get it.' },
+      { title:'Motion Everything', text:'Use motion to confirm man and to move the rat out of your window.' },
+      { title:'Backs & TEs Beat Man', text:'Your back on a wheel or option and your TE in space punish linebackers.' },
+    ],
+    tendencies:[
+      { label:'Early Downs & 3rd-and-Medium', text:'Base call when the defense wants to pressure without fully selling out.' },
+      { label:'Aggressive Defenses', text:'Shows up any time the D trusts its corners on an island.' },
+    ],
+    hotspots:[
+      { x:50, y:24, label:'Single High Safety', text:'One safety deep in the middle, the tell for single-high (Cover 1 or Cover 3).' },
+      { x:24, y:52, label:'Press Corner', text:'Corner tight over the WR with inside eyes usually means man.' },
+      { x:70, y:52, label:'Trail Corner', text:'If he runs with your receiver on motion, it is man.' },
+    ],
+  },
+  {
+    id:'cover3', code:'C3', name:'Cover 3', tag:'zone',
+    blurb:'Single high, three deep zones, four underneath. The most common zone.',
+    whatis:'Cover 3 is a zone with three deep defenders, two hook defenders over the middle, and two defenders in the flats.',
+    hero:'Alabama Assets/Slot Cross Screen Shot.png',
+    icon:'Asstes Read Defense/Cover 3 Icon.webp',
+    playcall:'Asstes Read Defense/Cover 3 Sky Call.jpg',
+    looks:[
+      { label:'vs 2x2', img:'Asstes Read Defense/cover 3 vs 2x2.jpg', dots:[ {x:51.7,y:48.2}, {x:20.6,y:60.6}, {x:71.7,y:64.3}, {x:32.5,y:64.2}, {x:49.6,y:59.6,hide:true} ] },
+      { label:'vs 3x1', img:'Asstes Read Defense/Cover 3 Vs 3x1.jpg', dots:[ {x:52.9,y:50.1}, {x:21,y:60.6}, {x:76.6,y:67.6}, {x:66,y:44,hide:true}, {x:64.5,y:65.6} ] },
+    ],
+    identify:[
+      { label:'One High Safety', text:'One safety deep in the middle of the field. Middle closed.', x:50, y:29 },
+      { label:'Corners 7 Yds, Head-Up', text:'Both corners about 7 yards off, aligned head-up over the receivers.', x:13, y:50 },
+      { label:'Nickel 5 Yds, Outside Shade', text:'Nickel about 5 yards off in the slot with an outside shade.', x:31, y:53 },
+      { label:'Strong Safety Down ~4', text:'Strong safety walked down to about 4 yards on the tight end side, staggered just off the nickel.', x:66, y:44 },
+      { label:'Trips: LB Over #3', text:'vs 3x1: strong safety drops to the solo side and a linebacker aligns over #3.', x:50, y:58 },
+    ],
+    beat:[
+      { name:'Attack The Middle Of The Field', why:'Overload the middle with crossers, drags, and posts (Mesh), or bend Four Verticals into the seams and read the middle safety.' },
+      { name:'High-Low The Flat', why:'Flood/Sail and Smash put the curl-flat defender in a bind he cannot win.' },
+      { name:'One-Play Touchdowns', why:'Hold the backside corner or the middle safety, then take a deep shot elsewhere.' },
+    ],
+    keys:[
+      { title:'Overload The Middle', text:'Only two hook defenders over the middle. Flood them and one comes open in the traffic.' },
+      { title:'Bend The Seams', text:'The two seams and the flats are the soft spots, never the deep middle.' },
+      { title:'Hold, Then Bomb', text:'Freeze the backside corner or the middle safety, then attack away from him deep.' },
+    ],
+    tendencies:[
+      { label:'All Downs, All Field', text:'The default zone in the game, especially versus spread looks.' },
+      { label:'Red Zone', text:'Very common inside the 20 where the field shrinks.' },
+    ],
+    hotspots:[
+      { x:50, y:22, label:'Single High Safety', text:'One deep safety, but watch the corners bail behind him at the snap.' },
+      { x:22, y:46, label:'Bailing Corner', text:'Corner dropping to a deep third instead of trailing = zone (Cover 3).' },
+      { x:60, y:56, label:'Curl-Flat Defender', text:'This underneath defender widens to the flat, attack over or under him.' },
+    ],
+  },
+  {
+    id:'cover2', code:'C2', name:'Cover 2', tag:'zone',
+    blurb:'Two high safeties, five underneath zone defenders.',
+    whatis:'Cover 2 is a zone with two deep safeties splitting the field in half, five defenders underneath, and the corners squatting in the flats.',
+    hero:'Alabama Assets/PA Deep IN Screen Shot.png',
+    icon:'Asstes Read Defense/Cover 2 icon.webp',
+    playcall:'Asstes Read Defense/Cover 2 Zone Call.jpg',
+    looks:[
+      { label:'vs 2x2', img:'Asstes Read Defense/Cover 2 vs 2x2.jpg', dots:[ {x:66.5,y:53.6}, {x:20.9,y:65.7}, {x:66.3,y:67.1}, {x:52,y:57,hide:true} ] },
+      { label:'vs 3x1', img:'Asstes Read Defense/Cover 2 vs 3x1.jpg', dots:[ {x:40.3,y:48.4}, {x:20.5,y:60.7}, {x:74.1,y:59.6}, {x:64.8,y:60.6} ] },
+    ],
+    identify:[
+      { label:'Two Safeties ~14 Yds', text:'Both safeties about 14 yards deep, splitting the field in half. Middle open.', x:50, y:26 },
+      { label:'Corners 5 Yds, Outside Shade', text:'Both corners about 5 yards off with an outside shade.', x:13, y:50 },
+      { label:'Nickel 4 Yds, Inside Shade', text:'Nickel about 4 yards off the slot with an inside shade.', x:31, y:53 },
+      { label:'Trips: Mid-Read LB Over #3', text:'vs 3x1: the mid-read linebacker walks out over the top of #3 in most formations.', x:52, y:57 },
+    ],
+    beat:[
+      { name:'Hit The Deep Hole', why:'Split the two safeties with a seam or post from the slot; works best when there is no mid read or you can pull it down.' },
+      { name:'Beat The Squat Corner', why:'Corner routes, Smash, and Wheels get over the squat corner and under the deep-half safety.' },
+      { name:'Attack The Flats', why:'Slot, TE, or a back into the flat punishes sinking corners, then you hit the deep shot behind them.' },
+    ],
+    keys:[
+      { title:'Split The Safeties', text:'The soft spot is the deep middle; a seam or post beats two-deep, best with no mid read.' },
+      { title:'Beat The Squat Corner', text:'Corner routes and wheels over a corner sitting in the flat, with a clear-out to move the safety.' },
+      { title:'Take The Flats First', text:'Attack the open flats to make the corners jump, then throw deep behind them.' },
+    ],
+    tendencies:[
+      { label:'Passing Downs', text:'Common on 2nd/3rd-and-long to keep everything in front.' },
+      { label:'Vs Run-Heavy Sets', text:'Strong against the flat/short game, softer up the seams.' },
+    ],
+    hotspots:[
+      { x:34, y:20, label:'Deep Safety (Left)', text:'Two safeties split deep = two-high shell.' },
+      { x:66, y:20, label:'Deep Safety (Right)', text:'The hole is BETWEEN them, a post splits it.' },
+      { x:22, y:54, label:'Squat Corner', text:'Corner sitting in the flat, not bailing, beat him deep.' },
+    ],
+  },
+  {
+    id:'cover2man', code:'C2M', name:'Cover 2 Man', tag:'man',
+    blurb:'Two high safeties with pressed man coverage underneath.',
+    whatis:'Cover 2 Man is press man coverage underneath with two deep safeties splitting the field in half for help over the top.',
+    hero:'Alabama Assets/Weak Flood Screen Shot.png',
+    icon:'Asstes Read Defense/Cover 2 man Icon.webp',
+    playcall:'Asstes Read Defense/Cover 2 Man  Play.jpg',
+    looks:[ { label:'Base', img:'Asstes Read Defense/Cover 2 man Screen Shot.jpg', dots:[ {x:35.6,y:51.5}, {x:21,y:70.6}, {x:34,y:70.8}, {x:62,y:55,hide:true} ] } ],
+    identify:[
+      { label:'Two Safeties ~14 Yds', text:'Both safeties about 14 yards deep, like Cover 2 up top.', x:50, y:26 },
+      { label:'Everyone Pressed Up', text:'Underneath defenders rolled up on the line, pressing instead of sitting off in zone.', x:13, y:52 },
+      { label:'Inside Shade Across', text:'Corners and defenders aligned with an inside shade (zone shows an outside shade).', x:31, y:54 },
+      { label:'Trips: LB Presses #3', text:'vs 3x1: a linebacker walks out and presses #3, everyone keeping inside leverage.', x:62, y:55 },
+    ],
+    beat:[
+      { name:'Rubs & Crossers', why:'Mesh and bunch picks spring a receiver free underneath the two-deep shell.' },
+      { name:'Attack The Two Deep', why:'Push the safeties back with verticals, then run posts and crossers in behind them.' },
+      { name:'Send Five Out', why:'They only rush four; keep your back and TE in the route and win one-on-ones on linebackers.' },
+    ],
+    keys:[
+      { title:'Motion Is The Tell', text:'Follow = Cover 2 Man; pass-off = Cover 2 zone. Always check.' },
+      { title:'Rubs Beat Trail Corners', text:'Mesh and bunch pick concepts create instant separation.' },
+      { title:'Send Five Out', text:'Only four rush, so flood five into routes and hunt your backs and TEs on linebackers.' },
+    ],
+    tendencies:[
+      { label:'3rd Down & Blitz Looks', text:'Two-deep help behind aggressive press man on obvious passing downs.' },
+      { label:'Vs Trips / Bunch', text:'Defenses use it to bracket, but bunch rubs punish it.' },
+    ],
+    hotspots:[
+      { x:34, y:20, label:'Deep Safety', text:'Two-high again, but the underneath is man, not zone.' },
+      { x:24, y:52, label:'Trail Corner', text:'He runs with the receiver on motion, that is the man tell.' },
+      { x:56, y:58, label:'LB In Man', text:'Linebacker locked on the back/TE, win that matchup.' },
+    ],
+  },
+  {
+    id:'cover4', code:'C4', name:'Cover 4 Match', tag:'zone',
+    blurb:'A two-high match coverage (Quarters and Palms) that reacts and changes based on the concepts you run.',
+    whatis:'Cover 4 Match is a zone with four deep defenders, each taking a quarter of the field, that reads and matches your routes.',
+    hero:'Alabama Assets/PA Glance Y Bomb Screen Shot.png',
+    icon:'Asstes Read Defense/Cover 4 match icon.webp',
+    playcall:'Asstes Read Defense/Cover 4 Quarters Play.jpg',
+    looks:[
+      { label:'vs 2x2', img:'Asstes Read Defense/Match vs 2x2.jpg', dots:[ {x:38.6,y:56.1}, {x:22.4,y:61.3}, {x:35.9,y:67.8}, {x:66,y:55} ] },
+      { label:'vs 3x1', img:'Asstes Read Defense/Match vs 3x1.jpg', dots:[ {x:40.4,y:53.4}, {x:21.7,y:60.2}, {x:74.1,y:66.2}, {x:66,y:55} ] },
+    ],
+    identify:[
+      { label:'Two Safeties ~14 Yds', text:'Both safeties about 14 yards deep, the same start as Cover 2.', x:50, y:26 },
+      { label:'Corners 7 Yds, Outside Shade', text:'Both corners about 7 yards off with an outside shade, deeper than Cover 2 at 5.', x:13, y:50 },
+      { label:'Nickel 4-5 Yds, Head-Up On #2', text:'Nickel about 4 to 5 yards off, aligned head-up over #2.', x:31, y:53 },
+      { label:'Trips: #3 Covered', text:'vs 3x1: a defender aligns directly over #3.', x:66, y:55 },
+    ],
+    beat:[
+      { name:'Take Underneath', why:'Run verticals to carry the match coverage off, then work backs and drags underneath.' },
+      { name:'Attack The Deep Defenders', why:'Multiple crossers and deep posts isolate a receiver one-on-one on a quarters defender.' },
+      { name:'Attack The Middle Of The Field', why:'Run off the lone middle hook (3RAK) and the quarters, then flood the middle with drags, slants, and shallow crossers.' },
+    ],
+    keys:[
+      { title:'Run It Off First', text:'It is match coverage. Send verticals to carry the deep defenders, then attack what they vacate.' },
+      { title:'Isolate Deep One-On-Ones', text:'Crossers and deep posts get a receiver alone on a quarters defender, not double moves or four verts.' },
+      { title:'Clear The Middle Hook', text:'Only one hook sits over the middle. Run it off and flood the space with shallow crossers and slants.' },
+    ],
+    tendencies:[
+      { label:'Passing Downs & 2-Minute', text:'Designed to erase deep shots and keep it all in front.' },
+      { label:'Vs Spread', text:'A go-to answer against 4-wide and empty sets.' },
+    ],
+    hotspots:[
+      { x:36, y:18, label:'Quarters Safety', text:'Deeper and wider than Cover 2, that width is the quarters tell.' },
+      { x:64, y:18, label:'Quarters Safety', text:'Four deep defenders total; underneath is soft.' },
+      { x:70, y:50, label:'Open Underneath', text:'Soft coverage short, take the free completion.' },
+    ],
+  },
+  {
+    id:'cover0', code:'C0', name:'Cover 0', tag:'man',
+    blurb:'No safety help. All man, all pressure. Blitz coverage.',
+    whatis:'Cover 0 is an all-out blitz. Everyone is in man with no deep help anywhere, and the defense brings more rushers than you can block.',
+    hero:'Alabama Assets/PA Vert Screen Shot.jpg',
+    icon:'Asstes Read Defense/Cover 0 icon.webp',
+    playcall:'Asstes Read Defense/0 Man Blitz Call.jpg',
+    looks:[
+      { label:'Straight Up', img:'Asstes Read Defense/0 blitz Straight Up.jpg', dots:[ {x:39.1,y:57.1}, {x:26.9,y:60.9}, {x:34.9,y:65.6,hide:true}, {x:50,y:62,hide:true}, {x:66,y:50,hide:true} ] },
+      { label:'Showing Blitz', img:'Asstes Read Defense/0 Blitz Showing Blitz.jpg', dots:[ {x:64.7,y:58.5}, {x:26.4,y:61.8}, {x:31,y:53,hide:true}, {x:57.6,y:69.1}, {x:66,y:50,hide:true} ] },
+    ],
+    identify:[
+      { label:'Safeties 9-10 (Not 14)', text:'Safeties dropped to about 9-10 yards instead of 14, or off the field entirely. Middle open.', x:50, y:37 },
+      { label:'Corners 7+ Yds, Inside Shade', text:'Both corners about 7-plus yards off with a slight inside shade.', x:13, y:50 },
+      { label:'Nickel 6 Yds, Inside Shade', text:'Nickel about 6 yards off with an inside shade.', x:31, y:53 },
+      { label:'More Rushers Than Blockers', text:'Extra defenders walked up to the line, more than you can block. No 14-yard split.', x:50, y:62 },
+      { label:'Trips: Safety Over A Man', text:'vs 3x1: a safety aligns directly over a receiver, confirming man.', x:66, y:50 },
+    ],
+    beat:[
+      { name:'Block It Up', why:'Make sure you can protect the blitz. Often the back stays in, so you only have four out but a clean pocket.' },
+      { name:'Take A Protected Shot', why:'No help anywhere. Win one-on-one with separation, whips and returns, or corners and posts deep.' },
+      { name:'Get It Out Hot', why:'More rushers than blockers means throw now, so know your hot read before the snap.' },
+    ],
+    keys:[
+      { title:'Block It Up First', text:'Cover 0 brings the house. Keep the back in if you have to, and buy a clean pocket.' },
+      { title:'Know Your Hot Read', text:'If they bring more than you can block, the ball has to come out hot, pre-plan it.' },
+      { title:'Win With Separation', text:'No safety help anywhere, so take the one-on-one and win it with whips, returns, corners, and posts.' },
+    ],
+    tendencies:[
+      { label:'Obvious Passing Downs', text:'3rd-and-long, goal line, and desperation, max pressure, zero deep help.' },
+      { label:'Punish With Tempo', text:'Quick, decisive throws make defenses pay for selling out.' },
+    ],
+    hotspots:[
+      { x:50, y:16, label:'Empty Deep Middle', text:'No safety here at all = Cover 0. Get the ball out hot.' },
+      { x:52, y:60, label:'Walked-Up Blitzers', text:'Extra defenders in the box means more rushers than blockers.' },
+      { x:24, y:52, label:'Press Man Corner', text:'Everyone is in man, rubs and quick game beat it.' },
+    ],
+  },
+];
+const COV_BY_ID   = Object.fromEntries(COVERAGES.map(c => [c.id, c]));
+const COV_BY_CODE = Object.fromEntries(COVERAGES.map(c => [c.code, c]));
+
+/* ============================================================================
+   GAME MODE,3-question decision tree
+   ========================================================================== */
+const GAME_TREE = {
+  title: 'Defense Decoder', subtitle: 'In-Game Read · At The Line', stepWord: 'Read',
+  start: 'q_mof',
+  nodes: {
+    q_mof: { short:'Safeties', q:'Check the safeties. Is the middle of the field open or closed?', options:[
+      { short:'Closed / Single High', desc:'One deep post safety in the middle. Points to Cover 3 zone or Cover 1 Man.', to:'q_single_form' },
+      { short:'Open / Two High', desc:'Two safeties around 14 yards splitting the field. Cover 2, Cover 4, or Cover 2 Man.', to:'q_two_form' },
+      { short:'Open / No Deep Help', desc:'No safety deep, or dropped to 9-10 yards with defenders walked up. A pressure look.', to:'q_zero' },
+    ]},
+
+    // --- SINGLE HIGH ---
+    q_single_form: { short:'Your Set', q:'Single high. What formation are you in?', options:[
+      { short:'2x2 (Balanced)', desc:'Two receivers to each side. You will read the corners and the nickel.', to:'q_single_2x2' },
+      { short:'3x1 (Trips)', desc:'Three receivers to one side. You also get the #3-receiver tell.', to:'q_single_3x1' },
+    ]},
+    q_single_2x2: { short:'Corners', q:'Read the corners and the nickel.', options:[
+      { short:'CBs 7 Head-Up, Nickel Outside Shade', desc:'Corners about 7 yards off, head-up. Nickel around 5 yards with an OUTSIDE shade. Zone leverage: Cover 3.', to:'r_cover3' },
+      { short:'CBs 7 Head-Up No Shade, Nickel Tight', desc:'Corners about 7 yards off, head-up with NO shade. Nickel a touch closer and head-up. Man leverage: Cover 1.', to:'r_cover1' },
+    ]},
+    q_single_3x1: { short:'Corners + #3', q:'Read the corners, the nickel, and who takes #3.', options:[
+      { short:'Outside Shade, LB Covers #3', desc:'Corners 7 head-up, nickel outside shade, a linebacker takes #3 and the strong safety works the solo side. Zone: Cover 3.', to:'r_cover3' },
+      { short:'No Shade, Safety Walks To #3', desc:'Corners 7 head-up with no shade, and the strong safety walks down over #3. Man: Cover 1.', to:'r_cover1' },
+    ]},
+
+    // --- TWO HIGH ---
+    q_two_form: { short:'Your Set', q:'Two high. What formation are you in?', options:[
+      { short:'2x2 (Balanced)', desc:'Two receivers to each side. You will read corner cushion and shade.', to:'q_two_2x2' },
+      { short:'3x1 (Trips)', desc:'Three receivers to one side. You also get the #3-receiver tell.', to:'q_two_3x1' },
+    ]},
+    q_two_2x2: { short:'Corners', q:'Read the corner cushion and the shade.', options:[
+      { short:'CBs ~5 Yds, Outside Shade', desc:'Corners about 5 yards off with an outside shade, squatting. Nickel about 4 yards off the slot with an inside shade. That is Cover 2 zone.', to:'r_cover2' },
+      { short:'CBs ~7 Yds, Outside Shade', desc:'Corners about 7 yards off with an outside shade, deeper than Cover 2, nickel head-up on #2. That extra depth is quarters: Cover 4.', to:'r_cover4' },
+      { short:'Everyone Pressed, Inside Shade', desc:'Everyone rolls up and presses with an INSIDE shade. Two-deep man: Cover 2 Man.', to:'r_cover2man' },
+    ]},
+    q_two_3x1: { short:'Corners + #3', q:'Read the corner cushion and who takes #3.', options:[
+      { short:'CBs ~5, Mid-Read LB Over #3', desc:'Corners about 5 yards off with an outside shade, and the mid-read linebacker walks out over #3. The 5-yard corner depth is your Cover 2 tell.', to:'r_cover2' },
+      { short:'CBs ~7, #3 Covered', desc:'Corners about 7 yards off with an outside shade, deeper than Cover 2, and a match defender is over #3. Cover 4.', to:'r_cover4' },
+      { short:'Pressed Inside, LB On #3', desc:'Everyone pressed with an inside shade and a linebacker presses #3. Two-deep man: Cover 2 Man.', to:'r_cover2man' },
+    ]},
+
+    // --- NO DEEP HELP ---
+    q_zero: { short:'Box Count', q:'No deep help. Count the box: can they bring more rushers than you can block?', options:[
+      { short:'Yes, More Rushers Than Blockers', desc:'Extra defenders walked up, corners 7+ inside shade, nickel 6 inside. They can bring more than you can block. No time.', to:'r_cover0_hot' },
+      { short:'No, The Numbers Are Even', desc:'They cannot bring extra, you can block it up. Still no deep help, so you have a beat to take a shot.', to:'r_cover0_hold' },
+    ]},
+  },
+  results: {
+    r_cover1:    { cov:'C1',  name:'Cover 1',            throw:'Single-high man. Corners head-up with no shade, a safety over his man. Create a pick with mesh or bunch rubs, isolate a mismatch, or attack a linebacker with a back or TE. Watch the rat in the hole.' },
+    r_cover3:    { cov:'C3',  name:'Cover 3',            throw:'Single-high zone. Corners 7 head-up, nickel with an outside shade. Overload the middle with crossers, bend four verticals into the seams, or high-low the flat with a flood or smash.' },
+    r_cover2:    { cov:'C2',  name:'Cover 2',            throw:'Two-deep zone. Corners squat at 5 with an outside shade. Split the safeties with a seam or post, beat the squat corner with a corner or wheel, or attack the open flats.' },
+    r_cover4:    { cov:'C4',  name:'Cover 4 Match', throw:'Quarters / Palms match. Corners deeper at 7. Run verticals off the match and dump underneath, isolate a quarters defender deep with crossers and posts, or flood the middle of the field.' },
+    r_cover2man: { cov:'C2M', name:'Cover 2 Man',        throw:'Two-deep man. Everyone pressed with an inside shade. Beat it with rubs and crossers, push the safeties back and throw behind them, or send five out and win with a back or TE on a linebacker.' },
+    r_cover0_hot:  { cov:'C0', name:'Cover 0 · Get It Out', throw:'They can bring more than you can block, so you have no time. Get the ball out HOT the instant it is snapped: slants, quick outs, hitches, your pre-planned hot route. Throw into the grass the blitzer vacated. Do not hold it.' },
+    r_cover0_hold: { cov:'C0', name:'Cover 0 · Take A Shot', throw:'You can pick the rush up, so you have a beat, and there is NO deep help behind them. Hold it and look for a shot: a corner route, a deep post, or a go on your best matchup. Keep a back in to block and let the deep route come open.' },
+  },
+};
+
+/* ============================================================================
+   ATTACK TREE (the second tool: Coverage Killer). Same node-web engine, all text.
+   Pick a coverage -> pick your plan -> the concept to run + the read.
+   ========================================================================== */
+const ATTACK_TREE = {
+  title: 'Coverage Killer', subtitle: 'Beat The Coverage', stepWord: 'Step',
+  start: 'a_pick',
+  nodes: {
+    a_pick: { short:'Coverage', q:'Which coverage are you attacking?', options:[
+      { short:'Cover 1 (Man)', desc:'Single-high man. Beat it with rubs, mismatches, and backs in space.', to:'a_c1' },
+      { short:'Cover 3 (Zone)', desc:'Single-high zone. Stress the flats, the seams, or high-low the flat defender.', to:'a_c3' },
+      { short:'Cover 2 (Zone)', desc:'Two-deep zone. Attack the deep hole, the squat corner, or both safeties.', to:'a_c2' },
+      { short:'Cover 4 Match', desc:'Quarters and Palms. Take underneath, attack deep, or hit the middle.', to:'a_c4' },
+      { short:'Cover 2 Man', desc:'Two-deep man. Rubs, push the safeties, or send five out.', to:'a_c2m' },
+      { short:'Cover 0 (Blitz)', desc:'No help anywhere. Block it up, take a protected shot, or get it out hot.', to:'a_c0' },
+    ]},
+    // ── COVER 1 ──
+    a_c1: { short:'Approach', q:'Cover 1 is man with a safety over the top and a rat in the hole. How do you want to beat it?', options:[
+      { short:'Create A Pick', desc:'Rub a man defender free.', to:'a_c1_pick' },
+      { short:'Isolate A Mismatch', desc:'Work a receiver one-on-one.', to:'a_c1_iso' },
+      { short:'Backs & TEs In Space', desc:'Attack a linebacker.', to:'a_c1_space' },
+    ]},
+    a_c1_pick: { short:'Concept', q:'Ways to pick a man defender free:', options:[
+      { short:'Mesh', desc:'Two shallow crossers rub off each other.', to:'r_c1_mesh' },
+      { short:'Bunch Rub', desc:'The point man screens the trail defender.', to:'r_c1_bunch' },
+    ]},
+    a_c1_iso: { short:'Concept', q:'Ways to isolate a mismatch:', options:[
+      { short:'Slot On A Post Or Corner', desc:'Work your slot away from safety help.', to:'r_c1_slot' },
+      { short:'Speed On The Outside', desc:'One-on-one deep shot with a speed edge.', to:'r_c1_speed' },
+    ]},
+    a_c1_space: { short:'Concept', q:'Ways to attack a linebacker:', options:[
+      { short:'RB Wheel Or Option', desc:'A back the LB cannot run with.', to:'r_c1_wheel' },
+      { short:'TE In Space', desc:'Tight end on corners, posts, and quick breakers.', to:'r_c1_te' },
+    ]},
+
+    // ── COVER 3 ──
+    a_c3: { short:'Approach', q:'Cover 3 has three deep and four under. How do you attack it?', options:[
+      { short:'Attack The Middle Of The Field', desc:'Overload the middle and bend the seams.', to:'a_c3_mof' },
+      { short:'High-Low The Flat', desc:'Put the flat defender in a bind.', to:'a_c3_flat' },
+      { short:'One-Play Touchdowns', desc:'Take the top off.', to:'r_c3_bombs' },
+    ]},
+    a_c3_mof: { short:'Concept', q:'Ways to attack the middle of the field:', options:[
+      { short:'Overload The Middle', desc:'Flood it with crossers, drags, and posts.', to:'r_c3_overload' },
+      { short:'Four Verticals', desc:'Bend the seams, read the middle safety.', to:'r_c3_verts' },
+    ]},
+    a_c3_flat: { short:'Concept', q:'Ways to high-low the flat defender:', options:[
+      { short:'Flood / Sail', desc:'Three levels to one side.', to:'r_c3_flood' },
+      { short:'Smash', desc:'Corner over a hitch.', to:'r_c3_smash' },
+    ]},
+
+    // ── COVER 2 ──
+    a_c2: { short:'Approach', q:'Cover 2 has two deep and five under. How do you attack it?', options:[
+      { short:'Hit The Deep Hole', desc:'Split the safeties.', to:'a_c2_hole' },
+      { short:'Beat The Squat Corner', desc:'Over him, under the safety.', to:'a_c2_corner' },
+      { short:'Attack The Flats', desc:'Punish sinking corners underneath.', to:'a_c2_flats' },
+    ]},
+    a_c2_hole: { short:'Concept', q:'Split the safeties (best with no mid read, or pull the mid read down):', options:[
+      { short:'Seam / Post', desc:'From the slot, between the safeties.', to:'r_c2_seam' },
+      { short:'Double Post', desc:'Two posts occupy both safeties.', to:'r_c2_dblpost' },
+    ]},
+    a_c2_corner: { short:'Concept', q:'Ways to beat the squat corner:', options:[
+      { short:'Corner Route', desc:'Over him, under the deep-half safety.', to:'r_c2_corner' },
+      { short:'Smash', desc:'Hitch under it holds the corner low.', to:'r_c2_smash' },
+      { short:'Wheel', desc:'Up the sideline behind a clear-out.', to:'r_c2_wheel' },
+    ]},
+    a_c2_flats: { short:'Concept', q:'Ways to attack the flats:', options:[
+      { short:'Slot Or TE To The Flat', desc:'Fast into the vacated flat.', to:'r_c2_flatslot' },
+      { short:'Backs To The Flat', desc:'RB out of the backfield.', to:'r_c2_flatback' },
+    ]},
+
+    // ── COVER 4 MATCH ──
+    a_c4: { short:'Approach', q:'Cover 4 Match reacts and changes based on the concepts you run. How do you attack it?', options:[
+      { short:'Take Underneath', desc:'Run off the match, then work under it.', to:'a_c4_under' },
+      { short:'Attack The Deep Defenders', desc:'Isolate a quarters defender deep.', to:'a_c4_deep' },
+      { short:'Attack The Middle Of The Field', desc:'Run off the middle hook, then flood it.', to:'a_c4_mof' },
+    ]},
+    a_c4_under: { short:'Concept', q:'Ways to take the underneath:', options:[
+      { short:'Run Off, Then Dump', desc:'Verticals carry the match, check it down.', to:'r_c4_carry' },
+      { short:'Drags & Backs', desc:'Work the vacated underneath.', to:'r_c4_drags' },
+    ]},
+    a_c4_deep: { short:'Concept', q:'Ways to attack the deep defenders:', options:[
+      { short:'Crossers & Deep Posts', desc:'Isolate a receiver one-on-one deep.', to:'r_c4_cross' },
+      { short:'One-On-One Shots', desc:'Get a quarters defender on an island.', to:'r_c4_iso' },
+    ]},
+    a_c4_mof: { short:'Concept', q:'Ways to attack the middle of the field:', options:[
+      { short:'Clear Then Cross', desc:'Run off the middle hook and quarters.', to:'r_c4_clear' },
+      { short:'Slants & Shallow Crossers', desc:'Flood the vacated middle.', to:'r_c4_shallow' },
+    ]},
+
+    // ── COVER 2 MAN ──
+    a_c2m: { short:'Approach', q:'Cover 2 Man is press man with two-deep help. How do you beat it?', options:[
+      { short:'Rubs & Crossers', desc:'Man-beaters underneath.', to:'a_c2m_rub' },
+      { short:'Attack The Two Deep', desc:'Push the safeties, then post behind.', to:'a_c2m_deep' },
+      { short:'Send Five Out', desc:'Win one-on-ones with backs and TEs.', to:'a_c2m_five' },
+    ]},
+    a_c2m_rub: { short:'Concept', q:'Ways to rub a man defender off:', options:[
+      { short:'Mesh', desc:'Shallow crossers collide the defenders.', to:'r_c2m_mesh' },
+      { short:'Bunch Pick', desc:'Stack releases screen the trail man.', to:'r_c2m_bunch' },
+    ]},
+    a_c2m_deep: { short:'Concept', q:'Ways to attack the two deep:', options:[
+      { short:'Push The Safeties Back', desc:'Verticals run them off, then post behind.', to:'r_c2m_push' },
+      { short:'Deep Crossers', desc:'Cross into the hole behind the safeties.', to:'r_c2m_cross' },
+    ]},
+    a_c2m_five: { short:'Concept', q:'Send five out and win a matchup:', options:[
+      { short:'RB One-On-One', desc:'Your back on a linebacker.', to:'r_c2m_rb' },
+      { short:'TE Mismatch', desc:'Your tight end on a linebacker.', to:'r_c2m_te' },
+    ]},
+
+    // ── COVER 0 ──
+    a_c0: { short:'Approach', q:'Cover 0 is all-out pressure with no help anywhere. How do you handle it?', options:[
+      { short:'Block It Up', desc:'Protect the blitz first.', to:'a_c0_block' },
+      { short:'Take A Protected Shot', desc:'One-on-one deep, no help.', to:'a_c0_shot' },
+      { short:'Get It Out Hot', desc:'More rushers than blockers, throw now.', to:'a_c0_hot' },
+    ]},
+    a_c0_block: { short:'Concept', q:'Ways to block up the blitz:', options:[
+      { short:'Keep The Back In', desc:'Protect, only four out but clean.', to:'r_c0_protect' },
+      { short:'Count It Out Pre-Snap', desc:'Blockers vs rushers, do the math.', to:'r_c0_count' },
+    ]},
+    a_c0_shot: { short:'Concept', q:'Ways to take a protected shot:', options:[
+      { short:'Win With Separation', desc:'Whips out, returns in.', to:'r_c0_sep' },
+      { short:'Corners & Posts', desc:'One-on-one deep, no safety help.', to:'r_c0_corner' },
+    ]},
+    a_c0_hot: { short:'Concept', q:'Ways to get it out hot:', options:[
+      { short:'Know Your Hot Read', desc:'Throw the hot route now.', to:'r_c0_hotread' },
+      { short:'Quick Slants & Outs', desc:'Beat pressure with the quick game.', to:'r_c0_quick' },
+    ]},
+  },
+  results: {
+    r_c1_mesh:   { cov:'C1', name:'Mesh', throw:'Two shallow crossers rub the man defenders off each other. First man out of the traffic is wide open. Read him to the flat if the defense switches.' },
+    r_c1_bunch:  { cov:'C1', name:'Bunch Rub', throw:'From a bunch or stack, the point man screens off the defender covering your release man. That gives an instant free release underneath, uncontested.' },
+    r_c1_slot:   { cov:'C1', name:'Slot On A Post Or Corner', throw:'Work the slot receiver on a post or a corner route. You are attacking away from the single safety, so win inside or outside leverage and the throw is yours.' },
+    r_c1_speed:  { cov:'C1', name:'Speed On The Outside', throw:'If you have a speed advantage outside, look for the one-on-one on the perimeter and take a deep shot. There is no help over the top on your side in man.' },
+    r_c1_wheel:  { cov:'C1', name:'RB Wheel Or Option', throw:'A linebacker cannot run with your back. Run a wheel if you have the speed edge, or an option route out of the backfield. Backs beat man very well.' },
+    r_c1_te:     { cov:'C1', name:'TE In Space', throw:'Your tight end reverses man coverage. Attack with corner routes, posts, or quick in and out breakers, away from the rat in the hole.' },
+    r_c3_overload:{ cov:'C3', name:'Overload The Middle', throw:'Cover 3 only has two hook defenders over the middle. Overload them with crossers, drags, and posts, something like Mesh. Pile bodies inside and one comes open in the traffic. This is about the hooks, not the flats.' },
+    r_c3_verts:  { cov:'C3', name:'Four Verticals', throw:'Bend two go routes into the seams between the deep-third defenders. The middle safety cannot cover both seams. Read him and throw away from his leverage.' },
+    r_c3_flood:  { cov:'C3', name:'Flood / Sail', throw:'Three routes at three levels to one side. The curl-flat defender can only take one: he sinks, hit the flat; he widens, hit the sail.' },
+    r_c3_smash:  { cov:'C3', name:'Smash', throw:'A hitch under a corner route to the same side. The flat defender cannot cover both. Sits, throw the corner over him; bails, take the hitch.' },
+    r_c3_bombs:  { cov:'C3', name:'One-Play Touchdowns', throw:'There are a ton of one-play shots vs Cover 3. A comeback or corner holds the backside corner on his deep third, then you attack elsewhere. Or a streak holds the middle safety in the middle while you run a deep post to the short side. Check the Scheme Kings Cover 3 one-play touchdowns for more.' },
+    r_c2_seam:   { cov:'C2', name:'Seam / Post', throw:'The soft spot is the deep middle between the two safeties. A seam or post from the slot splits them. This works best when there is no mid read, or when you can pull the mid read down with an underneath route first.' },
+    r_c2_dblpost:{ cov:'C2', name:'Double Post', throw:'Two posts attack both safeties. One holds his half, and the second post windows open right down the middle behind them.' },
+    r_c2_corner: { cov:'C2', name:'Corner Route', throw:'Over the squat corner and under the deep-half safety, the classic Cover 2 hole on the sideline. Add a flat route to occupy the corner.' },
+    r_c2_smash:  { cov:'C2', name:'Smash', throw:'A hitch under a corner holds the squat corner low, then you drop the corner route over him into the sideline void.' },
+    r_c2_wheel:  { cov:'C2', name:'Wheel', throw:'Send a wheel from your #2 receiver up the sideline, with a clear-out from another receiver to pull the deep-half safety off. The squat corner sits and the wheel runs right by him into the void.' },
+    r_c2_flatslot:{ cov:'C2', name:'Slot Or TE To The Flat', throw:'Cover 2 corners sink to the deep half, so the flats are open. Attack them with your slot receiver or tight end. This forces the corners to jump the flats, and then you hit the deeper stuff behind them.' },
+    r_c2_flatback:{ cov:'C2', name:'Backs To The Flat', throw:'Release a back out of the backfield into the flat. Free grass underneath the sinking corner. Keep hitting it until the corner gets aggressive, then take the deep shot behind him.' },
+    r_c4_carry:  { cov:'C4', name:'Run Off, Then Dump', throw:'Cover 4 is match coverage, so it carries verticals. Send your receivers vertical to run the match coverage off, then check the ball down to your back underneath.' },
+    r_c4_drags:  { cov:'C4', name:'Drags & Backs', throw:'With the deep defenders carried vertical, the underneath is soft. Bring drags and backs out of the backfield into that vacated space for easy grass.' },
+    r_c4_cross:  { cov:'C4', name:'Crossers & Deep Posts', throw:'It is not about double moves or four verticals here. Beat quarters with multiple crossers and deep posts, cross the field and isolate a receiver one-on-one on a quarters defender, then attack deep.' },
+    r_c4_iso:    { cov:'C4', name:'One-On-One Shots', throw:'Isolate a quarters defender on an island and take a one-on-one shot down the field. Win the matchup and it is a big play, there is no extra help over the top of him.' },
+    r_c4_clear:  { cov:'C4', name:'Clear Then Cross', throw:'There is only one hook defender over the middle in Cover 4 match, the three-receiver-hook (3RAK). Run him and the deep quarters defenders off with vertical routes first to clear the middle.' },
+    r_c4_shallow:{ cov:'C4', name:'Slants & Shallow Crossers', throw:'Once the middle hook and the deep quarters are run off, flood the middle with drags, shallow crossers, slants, and shallow posts. Someone comes open in the vacated space.' },
+    r_c2m_mesh:  { cov:'C2M', name:'Mesh', throw:'Press man dies to rubs. Cross two receivers shallow so the man defenders collide. First one out of the mesh has instant separation.' },
+    r_c2m_bunch: { cov:'C2M', name:'Bunch Pick', throw:'Stack and bunch releases screen the trailing man defenders. Get a clean, free release underneath the two-deep shell.' },
+    r_c2m_push:  { cov:'C2M', name:'Push The Safeties Back', throw:'Send verticals to run the two safeties off and push them deep. Once they bail, run a post or crosser in behind them into the space they vacated.' },
+    r_c2m_cross: { cov:'C2M', name:'Deep Crossers', throw:'A deep crosser runs into the hole between the two safeties, where the trail corner cannot follow and the safety is late getting over. Best once you have pushed the safeties back.' },
+    r_c2m_rb:    { cov:'C2M', name:'RB One-On-One', throw:'They only rush four, so send five out and keep your back in the route. A linebacker manned on your back loses that one-on-one. Attack him on a wheel, angle, or option route.' },
+    r_c2m_te:    { cov:'C2M', name:'TE Mismatch', throw:'Send five out and get your tight end on a linebacker. That is a mismatch all over the field, work him on seams, corners, and crossers.' },
+    r_c0_protect:{ cov:'C0', name:'Keep The Back In', throw:'Cover 0 brings the house, so make sure you can block it up. A lot of the time your running back has to stay in to pick up the extra rusher. You will only have four out, but you buy a clean pocket to work from.' },
+    r_c0_count:  { cov:'C0', name:'Count It Out Pre-Snap', throw:'Count the rushers against your blockers before the snap. If you can account for everyone, you have time to let a deeper route develop. If you cannot, you already know you are getting it out hot.' },
+    r_c0_sep:    { cov:'C0', name:'Win With Separation', throw:'There is no help anywhere in Cover 0, so win with separation. Whips attacking to the outside and return routes attacking back in break defenders off fast. Once you are protected, take that one-on-one.' },
+    r_c0_corner: { cov:'C0', name:'Corners & Posts', throw:'With no safety help anywhere, corners and posts are money one-on-one down the field. Block it up, take the protected shot, and let your guy win the matchup outright.' },
+    r_c0_hotread:{ cov:'C0', name:'Know Your Hot Read', throw:'If there are more rushers than you can block, get the ball out hot right now. Know where your hot read is before the snap so you can throw it the instant you see the extra pressure.' },
+    r_c0_quick:  { cov:'C0', name:'Quick Slants & Outs', throw:'Beat the blitz with the quick game. Slants and quick outs get the ball out of your hand before the pressure gets home, and there is no deep help to jump them.' },
+  },
+};
+
+/* ============================================================================
+   HELPERS + TAKEOVER
+   ========================================================================== */
+const $  = (s, r=document) => r.querySelector(s);
+const $$ = (s, r=document) => Array.from(r.querySelectorAll(s));
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+function openTakeover(html){
+  const inner = $('#takeover-inner');
+  inner.innerHTML = html;
+  $('#takeover').classList.add('open');
+  document.addEventListener('keydown', onKey);
+}
+function closeTakeover(){
+  $('#takeover').classList.remove('open');
+  $('#takeover-inner').innerHTML = '';
+  ddActive = null;
+  document.removeEventListener('keydown', onKey);
+}
+function onKey(e){
+  if(e.key === 'Escape'){
+    const web = $('.pw-web.in');
+    if(web){ closeWeb(); return; }
+    closeTakeover();
+  }
+  if((e.key === 'e' || e.key === 'E') && ddActive){ toggleEdit(); }
+  if(e.key === 'ArrowRight' && ddActive){ stepCoverage(1); }
+  if(e.key === 'ArrowLeft'  && ddActive){ stepCoverage(-1); }
+}
+
+/* ============================================================================
+   HUB
+   ========================================================================== */
+function buildHub(){
+  document.body.classList.add('hub-live');
+  $('#ico-game').innerHTML = ICO.eye;
+  $('#ico-attack').innerHTML = ICO.target;
+  const ring = $('#dd-ring');
+  const n = COVERAGES.length;
+  ring.innerHTML = COVERAGES.map((c,i) => {
+    const a = (i * (360 / n)).toFixed(2);
+    return `<div class="dd-strand" style="--a:${a}deg"></div>
+      <button class="dd-node ${c.tag}" data-id="${c.id}" style="--a:${a}deg" title="${c.name}">
+        <span class="dd-node-spin">
+          <span class="dd-node-inner">
+            <span class="dd-badge"><img src="${c.icon}" alt="${c.name}"></span>
+            <span class="dd-badge-label">${c.name}</span>
+          </span>
+        </span>
+      </button>`;
+  }).join('');
+  ring.querySelectorAll('.dd-node').forEach(b => b.addEventListener('click', () => openCoverage(b.dataset.id)));
+  $('#btn-game').addEventListener('click', openGameMode);
+  $('#btn-attack').addEventListener('click', openAttackMode);
+  $('#btn-keys').addEventListener('click', openInitialKeys);
+}
+
+/* ============================================================================
+   LEARN MODE,the coverage card (reuses the play-screen structure)
+   ========================================================================== */
+// Map each coverage to its Attack-tree starting node, so the card and the Attack tool
+// share ONE source of truth for the approaches + concepts + reads.
+const ATTACK_START = { C1:'a_c1', C3:'a_c3', C2:'a_c2', C2M:'a_c2m', C4:'a_c4', C0:'a_c0' };
+function attackApproaches(c){
+  const node = ATTACK_TREE.nodes[ATTACK_START[c.code]];
+  return node ? node.options : [];
+}
+// The concepts (+ their reads) that live under one approach. An approach can point to a
+// sub-node (multiple concepts) or straight to a single result (like One-Play Touchdowns).
+function approachItems(o){
+  const node = ATTACK_TREE.nodes[o.to];
+  if(node) return node.options.map(co => {
+    const res = ATTACK_TREE.results[co.to];
+    return { kind:'beat', label:co.short, text:(res ? res.throw : (co.desc || '')) };
+  });
+  const res = ATTACK_TREE.results[o.to];
+  return res ? [{ kind:'beat', label:res.name, text:res.throw }] : [];
+}
+// What each sidebar button pops out onto the field.
+function catItems(c, key){
+  if(key === 'whatis')   return [{ kind:'about', label:'What Is ' + c.name + '?', text:c.whatis }];
+  if(key === 'identify') return c.identify.map((r,i) => ({ kind:'read', n:i+1, label:r.label, text:r.text }));
+  if(key.startsWith('atk')){ const o = attackApproaches(c)[+key.slice(3)]; return o ? approachItems(o) : []; }
+  return [];
+}
+// Heading for a pop-out (used by the mobile full-screen sheet).
+function catTitle(c, key){
+  if(key === 'whatis')   return 'What Is ' + c.name + '?';
+  if(key === 'identify') return 'Identify It';
+  if(key.startsWith('atk')){ const o = attackApproaches(c)[+key.slice(3)]; return o ? o.short : ''; }
+  return '';
+}
+
+function coverageCardHTML(c){
+  const cats = [
+    { key:'whatis',   title:'What Is ' + c.name + '?', ico:ICO.book,
+      preview:`<span class="pw-cat-sub">New to it? Start here</span>` },
+    { key:'identify', title:'Identify It', ico:ICO.eye,
+      preview:`<ol class="pw-cat-list">${c.identify.map(r=>`<li>${esc(r.label)}</li>`).join('')}</ol>` },
+    ...attackApproaches(c).map((o,i) => ({
+      key:'atk'+i, title:o.short, ico:ICO.target, king:true,
+      preview:`<span class="pw-cat-sub">${esc(o.desc || 'How to attack it')}</span>` })),
+  ];
+  const catHTML = cats.map((cat,i) => `
+    <button class="pw-cat${cat.king?' king':''}" data-cat="${cat.key}" style="--d:${(0.1+i*0.06).toFixed(2)}s">
+      <span class="pw-cat-ico">${cat.ico}</span>
+      <span class="pw-cat-body"><span class="pw-cat-title">${cat.title}</span>${cat.preview}</span>
+      <span class="pw-cat-chev">&rsaquo;</span>
+    </button>`).join('');
+  return `
+    <div class="card pw-card">
+      <button class="card-close" title="Close (Esc)">&times;</button>
+      <div class="pw-header">
+        <div class="pw-header-id">
+          <div class="pw-eyebrow">${c.tag === 'man' ? 'Man Coverage' : 'Zone Coverage'}</div>
+          <h2 class="pw-title">${c.name}</h2>
+        </div>
+        <div class="pw-header-meta">
+          <span class="pw-form-inline">${c.code}</span>
+          ${c.looks.length > 1 ? `<div class="pw-look-tabs" role="tablist" aria-label="Coverage look">
+            <span class="pw-look-lead">The Look</span>
+            ${c.looks.map((lk,i)=>`<button class="pw-look-tab${i===0?' on':''}" data-look="${i}">${esc(lk.label)}</button>`).join('')}
+          </div>` : ''}
+        </div>
+      </div>
+      <div class="pw-overview">
+        <aside class="pw-rail">
+          <div class="pw-rail-bottom">
+            <div class="pw-rail-nodes">
+              <div class="pw-rail-ey">Break It Down</div>
+              ${catHTML}
+            </div>
+            ${c.playcall ? `<div class="pw-playcall">
+              <div class="pw-playcall-ey">The Play Call</div>
+              <img src="${c.playcall}" alt="${esc(c.name)} play call">
+            </div>` : ''}
+          </div>
+        </aside>
+        <div class="pw-field-zone">
+          <img class="pw-field-img" src="${c.looks[0].img}" alt="">
+          <div class="dd-hots"></div>
+          <div class="pw-hint">Tap a node - it branches across the field</div>
+          <div class="pw-web" aria-hidden="true"></div>
+        </div>
+      </div>
+    </div>`;
+}
+
+// Size the field to a true 16:9 box that fits the available area (fixes widescreen cropping).
+function fitFieldZone(){
+  const ov = $('.pw-overview'), zone = $('.pw-field-zone'), rail = $('.pw-rail');
+  if(!ov || !zone) return;
+  if(innerWidth <= 820){ zone.style.width = ''; zone.style.height = ''; return; } // mobile stacks via CSS
+  const gap = 18;
+  const availW = ov.clientWidth - (rail ? rail.offsetWidth : 0) - gap;
+  const availH = ov.clientHeight;
+  if(availW <= 0 || availH <= 0) return;
+  let w = availW, h = w * 9 / 16;
+  if(h > availH){ h = availH; w = h * 16 / 9; }
+  zone.style.width  = Math.round(w) + 'px';
+  zone.style.height = Math.round(h) + 'px';
+}
+window.addEventListener('resize', () => { if($('.pw-card')) fitFieldZone(); });
+
+function openCoverage(id){
+  const c = COV_BY_ID[id];
+  if(!c) return;
+  ddActive = c;
+  ddLook = 0;
+  openTakeover(coverageCardHTML(c));
+  const root = $('.pw-card');
+  root.classList.add('pw-enter');
+  requestAnimationFrame(() => requestAnimationFrame(() => root.classList.add('ready')));
+  setTimeout(() => root.classList.add('ready'), 120);
+  setTimeout(() => root.classList.remove('pw-enter'), 700);   // settle to full size even if the anim was paused
+
+  root.querySelector('.card-close').addEventListener('click', closeTakeover);
+  $$('.pw-cat', root).forEach(btn => btn.addEventListener('click', () => {
+    if(btn.classList.contains('active')){ closeWeb(); return; }
+    openWeb(btn.dataset.cat, btn);
+  }));
+  $$('.pw-look-tab', root).forEach(tab => tab.addEventListener('click', () => {
+    if(tab.classList.contains('on')) return;
+    ddLook = +tab.dataset.look;
+    $$('.pw-look-tab', root).forEach(t => t.classList.toggle('on', t === tab));
+    const img = $('.pw-field-img', root);
+    if(img && c.looks[ddLook]) img.src = c.looks[ddLook].img;
+    closeWeb();
+    renderDots();          // move the dots to THIS look's saved positions
+    if(ddEdit) syncEditPanel();
+  }));
+  fitFieldZone();
+  requestAnimationFrame(fitFieldZone);   // again after layout settles
+  renderDots();
+  wireEditZone();
+  syncEditPanel();
+}
+
+function stepCoverage(dir){
+  if(!ddActive) return;
+  const i = COVERAGES.findIndex(c => c.id === ddActive.id);
+  const next = COVERAGES[(i + dir + COVERAGES.length) % COVERAGES.length];
+  openCoverage(next.id);
+}
+
+/* ---- the strand web (reuses the playbook geometry) ---- */
+const POS = {
+  1:[[58,48]],
+  2:[[52,30],[64,68]],
+  3:[[50,24],[78,46],[54,72]],
+  4:[[48,22],[78,30],[50,60],[80,70]],
+  5:[[46,20],[76,26],[62,48],[50,74],[80,80]],
+  6:[[46,18],[74,24],[54,42],[80,50],[52,72],[78,80]],
+};
+function originY(zone, sourceEl){
+  if(!sourceEl) return 50;
+  const zr = zone.getBoundingClientRect(), sr = sourceEl.getBoundingClientRect();
+  return Math.max(10, Math.min(90, (sr.top + sr.height/2 - zr.top) / zr.height * 100));
+}
+function covWebHTML(c, key, oy){
+  let items = catItems(c, key);
+  if(items.length > 6) items = items.slice(0, 6);
+  // MOBILE: a full-screen sheet with the reads stacked as a scrollable list (no
+  // cards floating on the tiny field). Applies to What Is / Identify / every attack approach.
+  if(innerWidth <= 820){
+    return `
+      <div class="pw-web-veil" data-webback></div>
+      <div class="pw-web-sheet">
+        <div class="pw-web-sheet-head">
+          <button class="pw-web-back" data-webback><span>&lsaquo;</span> Back</button>
+          <span class="pw-web-sheet-title">${esc(catTitle(c, key))}</span>
+        </div>
+        <div class="pw-web-sheet-body">
+          ${items.map((it,i) => covWNode(it, 0, 0, i)).join('')}
+        </div>
+      </div>`;
+  }
+  const pos = POS[Math.min(items.length,6)] || POS[6];
+  const O = [0, oy*9];
+  let strands = '', pulses = '', nodes = '';
+  items.forEach((it,i) => {
+    const [xp,yp] = pos[i], nx = xp*16, ny = yp*9;
+    // Draw a gold strand to EVERY node, including single-node pop-outs (One-Play TDs, What Is It).
+    const cx = nx*0.42, cy = (O[1]+ny)/2;
+    const d = `M${O[0]},${O[1].toFixed(0)} Q${cx.toFixed(0)},${cy.toFixed(0)} ${nx.toFixed(0)},${ny.toFixed(0)}`;
+    strands += `<path class="pw-wstrand" d="${d}" pathLength="100"/>`;
+    pulses  += `<path class="pw-wpulse" d="${d}" pathLength="100" style="animation-delay:${(i*0.45).toFixed(2)}s"/>`;
+    nodes += covWNode(it, xp, yp, i);
+  });
+  return `
+    <div class="pw-web-veil" data-webback></div>
+    <svg class="pw-web-svg" viewBox="0 0 1600 900" preserveAspectRatio="none" aria-hidden="true">${strands}${pulses}</svg>
+    ${nodes}
+    <button class="pw-web-back" data-webback><span>&lsaquo;</span> Back</button>`;
+}
+function covWNode(it, xp, yp, i){
+  const style = `left:${xp}%;top:${yp}%;--d:${(0.16 + i*0.08).toFixed(2)}s`;
+  if(it.kind === 'read')
+    return `<div class="pw-wnode read" style="${style}"><span class="pw-wn-n">${it.n}</span>
+      <div class="pw-wn-tx"><b>${esc(it.label)}</b><p>${esc(it.text)}</p></div></div>`;
+  if(it.kind === 'beat')
+    return `<div class="pw-wnode beat" style="${style}"><span class="pw-wn-ico">${ICO.target}</span>
+      <div class="pw-wn-tx"><b>${esc(it.label)}</b><p>${esc(it.text)}</p><span class="pw-wn-tag-go">How to run it</span></div></div>`;
+  if(it.kind === 'about')
+    return `<div class="pw-wnode about" style="${style}"><span class="pw-wn-ico">${ICO.book}</span>
+      <div class="pw-wn-tx"><b>${esc(it.label)}</b><p>${esc(it.text)}</p></div></div>`;
+  if(it.kind === 'cpoint')
+    return `<div class="pw-wnode cpoint" style="${style}"><span class="pw-wn-ico">${ICO[it.ico]||ICO.crown}</span>
+      <div class="pw-wn-tx"><b>${esc(it.title)}</b><p>${esc(it.text)}</p></div></div>`;
+  return '';
+}
+let webClearTimer = null;
+function openWeb(key, sourceEl){
+  clearTimeout(webClearTimer);
+  const zone = $('.pw-field-zone'), web = $('.pw-web');
+  web.classList.remove('in');
+  web.innerHTML = covWebHTML(ddActive, key, originY(zone, sourceEl));
+  zone.classList.add('pw-zoomed');
+  requestAnimationFrame(() => requestAnimationFrame(() => web.classList.add('in')));
+  web.querySelectorAll('[data-webback]').forEach(b => b.addEventListener('click', closeWeb));
+  $$('.pw-cat').forEach(x => x.classList.toggle('active', x.dataset.cat === key));
+}
+function closeWeb(){
+  const web = $('.pw-web'); if(!web) return;
+  web.classList.remove('in');
+  const zone = $('.pw-field-zone'); if(zone) zone.classList.remove('pw-zoomed');
+  $$('.pw-cat').forEach(x => x.classList.remove('active'));
+  clearTimeout(webClearTimer);
+  webClearTimer = setTimeout(() => { const w = $('.pw-web'); if(w && !w.classList.contains('in')) w.innerHTML = ''; }, 320);
+}
+
+/* ============================================================================
+   IDENTIFY DOTS (always on the field; click one for that read, or open the
+   "Identify It" web to fan them all out. Movable via edit mode.)
+   ========================================================================== */
+// Dot positions are stored PER LOOK (2x2 vs 3x1 are different formations) on
+// looks[ddLook].dots, parallel to the identify array. Falls back to the item's
+// own x/y default until the user drags it on a given look.
+function ddCurrentLook(){ return (ddActive && ddActive.looks && (ddActive.looks[ddLook] || ddActive.looks[0])) || null; }
+function ddLookDots(){
+  const lk = ddCurrentLook(); if(!lk) return null;
+  if(!lk.dots) lk.dots = [];
+  while(lk.dots.length < ddActive.identify.length){
+    const it = ddActive.identify[lk.dots.length];
+    lk.dots.push({ x: it.x ?? 50, y: it.y ?? 50 });
+  }
+  return lk.dots;
+}
+function ddDotPos(i){
+  const lk = ddCurrentLook();
+  if(lk && lk.dots && lk.dots[i]) return lk.dots[i];
+  const it = ddActive.identify[i]; return { x: it.x ?? 50, y: it.y ?? 50 };
+}
+function renderDots(){
+  const host = $('.dd-hots'); if(!host || !ddActive) return;
+  const dots = ddLookDots();
+  host.innerHTML = ddActive.identify.map((h,i) => {
+    const d = (dots && dots[i]) || { x:h.x ?? 50, y:h.y ?? 50 };
+    if(d.hide && !ddEdit) return '';                         // hidden on this look (shown dimmed only in edit mode)
+    return `<button class="dd-hot${d.hide ? ' hidden-dot' : ''}" data-i="${i}" style="left:${d.x}%;top:${d.y}%">
+      <span class="dd-hot-dot">${i+1}</span>
+      <span class="dd-hot-del" title="Show/hide this dot on this look">${d.hide ? '+' : '×'}</span>
+      <span class="dd-hot-tip"><b>${esc(h.label)}</b>${esc(h.text)}</span>
+    </button>`;
+  }).join('');
+  host.querySelectorAll('.dd-hot').forEach(dot => {
+    const idx = +dot.dataset.i;
+    dot.addEventListener('click', e => {
+      if(ddEdit) return;
+      e.stopPropagation();
+      const on = dot.classList.contains('on');
+      host.querySelectorAll('.dd-hot').forEach(d => d.classList.remove('on'));
+      if(!on) dot.classList.add('on');
+    });
+    dot.addEventListener('pointerdown', startDrag);
+    const del = dot.querySelector('.dd-hot-del');
+    if(del){
+      del.addEventListener('pointerdown', e => { e.stopPropagation(); e.preventDefault(); });
+      del.addEventListener('click', e => { e.stopPropagation(); toggleDotHidden(idx); });
+    }
+  });
+}
+// Hide/show one dot on the CURRENT look only (the read still exists in the Identify web).
+function toggleDotHidden(i){
+  const dots = ddLookDots(); if(!dots) return;
+  if(!dots[i]){ const it = ddActive.identify[i]; dots[i] = { x: it.x ?? 50, y: it.y ?? 50 }; }
+  dots[i].hide = !dots[i].hide;
+  renderDots(); syncEditPanel(); ddSaveDots();
+}
+
+/* ============================================================================
+   EDIT MODE,drag to place, click to add, edit JSON, copy
+   ========================================================================== */
+let ddActive = null, ddEdit = false, dragI = -1, ddLook = 0;
+
+function toggleEdit(){
+  ddEdit = !ddEdit;
+  document.body.classList.toggle('dd-edit', ddEdit);
+  renderDots();               // re-render so hidden dots reveal (edit) / disappear (done)
+  if(ddEdit) syncEditPanel();
+}
+function wireEditZone(){
+  const zone = $('.pw-field-zone'); if(!zone) return;
+  zone.addEventListener('click', e => {
+    if(!ddEdit || !ddActive) return;
+    if(e.target.closest('.dd-hot') || e.target.closest('.pw-web')) return;
+    const r = zone.getBoundingClientRect();
+    const x = +(((e.clientX - r.left) / r.width) * 100).toFixed(1);
+    const y = +(((e.clientY - r.top) / r.height) * 100).toFixed(1);
+    ddActive.identify.push({ label:'New Tell', text:'Describe what this alignment tells you.', x, y });
+    renderDots(); syncEditPanel();
+  });
+}
+function startDrag(e){
+  if(!ddEdit) return;
+  e.preventDefault(); e.stopPropagation();
+  dragI = +e.currentTarget.dataset.i;
+  window.addEventListener('pointermove', onDrag);
+  window.addEventListener('pointerup', endDrag);
+}
+function onDrag(e){
+  if(dragI < 0 || !ddActive) return;
+  const zone = $('.pw-field-zone'); if(!zone) return;
+  const r = zone.getBoundingClientRect();
+  const x = +Math.max(0, Math.min(100, ((e.clientX - r.left) / r.width) * 100)).toFixed(1);
+  const y = +Math.max(0, Math.min(100, ((e.clientY - r.top) / r.height) * 100)).toFixed(1);
+  const dots = ddLookDots();
+  if(dots) dots[dragI] = { x, y };
+  const dot = $(`.dd-hot[data-i="${dragI}"]`);
+  if(dot){ dot.style.left = x + '%'; dot.style.top = y + '%'; }
+}
+function endDrag(){
+  dragI = -1;
+  window.removeEventListener('pointermove', onDrag);
+  window.removeEventListener('pointerup', endDrag);
+  syncEditPanel();
+  ddSaveDots();
+}
+// ONE object captures everything: shared reads + EVERY look's dot placements/hidden.
+// So you edit across all looks, then copy once (no per-look copy/paste).
+function editExport(){
+  const looks = {};
+  (ddActive.looks || []).forEach(lk => {
+    looks[lk.label] = ddActive.identify.map((it,i) => {
+      const d = (lk.dots && lk.dots[i]) || { x: it.x ?? 50, y: it.y ?? 50 };
+      const o = { x: d.x, y: d.y }; if(d.hide) o.hide = true; return o;
+    });
+  });
+  return { identify: ddActive.identify.map(it => ({ label: it.label, text: it.text })), looks };
+}
+function syncEditPanel(){
+  const ta = $('#dd-ep-json'); if(!ta || !ddActive) return;
+  ta.value = JSON.stringify(editExport(), null, 2);
+}
+function applyEditPanel(){
+  if(!ddActive) return;
+  try {
+    const parsed = JSON.parse($('#dd-ep-json').value);
+    if(parsed && Array.isArray(parsed.identify)){
+      parsed.identify.forEach((row,i) => {
+        if(!ddActive.identify[i]) ddActive.identify[i] = { label:'', text:'', x:50, y:50 };
+        if('label' in row) ddActive.identify[i].label = row.label;
+        if('text' in row) ddActive.identify[i].text = row.text;
+      });
+    }
+    if(parsed && parsed.looks){
+      (ddActive.looks || []).forEach(lk => {
+        const arr = parsed.looks[lk.label];
+        if(Array.isArray(arr)) lk.dots = arr.map(d => { const o = { x:+d.x || 0, y:+d.y || 0 }; if(d.hide) o.hide = true; return o; });
+      });
+    }
+    renderDots(); ddSaveDots();
+  } catch(_){ alert('That JSON is not valid, check the brackets and quotes.'); }
+}
+function copyEditPanel(){
+  const ta = $('#dd-ep-json'); if(!ta) return;
+  ta.select(); navigator.clipboard?.writeText(ta.value);
+  const btn = $('#dd-ep-copy'); const t = btn.textContent; btn.textContent = 'Copied!';
+  setTimeout(() => btn.textContent = t, 1200);
+}
+
+/* ---- PERSISTENCE: auto-save every dot edit to the browser so a reload never
+   loses your work, plus a one-click "Copy ALL" that exports every coverage. ---- */
+const DD_DOTS_KEY = 'dd-dots-v1';
+function ddSaveDots(){
+  try {
+    const out = {};
+    COVERAGES.forEach(c => {
+      const looks = {};
+      (c.looks || []).forEach(lk => { if(lk.dots) looks[lk.label] = lk.dots; });
+      if(Object.keys(looks).length) out[c.id] = looks;
+    });
+    localStorage.setItem(DD_DOTS_KEY, JSON.stringify(out));
+  } catch(_){}
+}
+function ddLoadDots(){
+  try {
+    const raw = localStorage.getItem(DD_DOTS_KEY); if(!raw) return;
+    const saved = JSON.parse(raw);
+    COVERAGES.forEach(c => {
+      const looks = saved[c.id]; if(!looks) return;
+      (c.looks || []).forEach(lk => { if(Array.isArray(looks[lk.label])) lk.dots = looks[lk.label]; });
+    });
+  } catch(_){}
+}
+function ddExportAll(){
+  const out = {};
+  COVERAGES.forEach(c => {
+    const looks = {};
+    (c.looks || []).forEach(lk => {
+      looks[lk.label] = c.identify.map((it,i) => {
+        const d = (lk.dots && lk.dots[i]) || { x: it.x ?? 50, y: it.y ?? 50 };
+        const o = { x:d.x, y:d.y }; if(d.hide) o.hide = true; return o;
+      });
+    });
+    out[c.id] = { name:c.name, identify:c.identify.map(it=>({label:it.label,text:it.text})), looks };
+  });
+  return out;
+}
+function fallbackCopy(txt, cb){
+  const ta = document.createElement('textarea');
+  ta.value = txt; ta.style.position = 'fixed'; ta.style.left = '-9999px';
+  document.body.appendChild(ta); ta.select();
+  try { document.execCommand('copy'); } catch(_){}
+  document.body.removeChild(ta); if(cb) cb();
+}
+function copyAllPanel(){
+  const txt = JSON.stringify(ddExportAll(), null, 2);
+  const done = () => { const b = $('#dd-ep-copyall'); if(!b) return; const t = b.textContent; b.textContent = 'Copied ALL 6!'; setTimeout(() => b.textContent = t, 1500); };
+  if(navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(txt).then(done, () => fallbackCopy(txt, done));
+  else fallbackCopy(txt, done);
+}
+
+/* ============================================================================
+   GAME MODE
+   ========================================================================== */
+/* ===== IN-GAME node-web (ported from the coaching app's Log a Game engine):
+   a pannable, zoomable canvas where each read spawns a node and the branches
+   draw out on curved strands, exactly like Log a Game. ===== */
+let dwZoom = 0.92, dwPx = 0, dwPy = 0, dwFocus = { x:0, y:0 }, dwWired = false, dwTree = null;
+
+function openGameMode(){ openDW(GAME_TREE); }     // Decode: read the coverage
+function openAttackMode(){ openDW(ATTACK_TREE); }  // Attack: beat the coverage
+function openDW(tree){
+  ddActive = null; dwTree = tree;
+  document.getElementById('dd-web').classList.add('open');
+  if(!dwWired){
+    dwWireStage();
+    document.getElementById('dw-close').addEventListener('click', closeGameWeb);
+    document.getElementById('dw-zin').addEventListener('click', () => dwZoomBy(1.15));
+    document.getElementById('dw-zout').addEventListener('click', () => dwZoomBy(0.87));
+    document.getElementById('dw-zfit').addEventListener('click', dwFrame);
+    document.addEventListener('keydown', e => { if(e.key === 'Escape' && document.getElementById('dd-web').classList.contains('open')) closeGameWeb(); });
+    dwWired = true;
+  }
+  dwStart();
+}
+function closeGameWeb(){ document.getElementById('dd-web').classList.remove('open'); }
+
+function dwStart(){
+  const canvas = document.getElementById('dw-canvas');
+  canvas.innerHTML = '<svg class="dw-svg" id="dw-svg"></svg>';
+  // floating branded title, riding the canvas just above Read 1
+  const t = document.createElement('div');
+  t.className = 'dw-title';
+  t.style.setProperty('--nx', 0); t.style.setProperty('--ny', -160);
+  t.innerHTML = `<div class="dw-title-main">${dwTree.title}</div><div class="dw-title-sub">${dwTree.subtitle}</div>`;
+  canvas.appendChild(t);
+  dwZoom = 0.92; dwPx = 0; dwPy = 0; dwFocus = { x:0, y:40 };
+  dwCamera(false);
+  dwAskQuestion(dwTree.start, 0, 0, null, 1);
+}
+function dwNode(cls, x, y, html){
+  const canvas = document.getElementById('dw-canvas');
+  const el = document.createElement('div');
+  el.className = 'dw-node ' + cls;
+  el.style.setProperty('--nx', Math.round(x));
+  el.style.setProperty('--ny', Math.round(y));
+  el.innerHTML = html;
+  canvas.appendChild(el);
+  return el;
+}
+function dwStrand(x1, y1, x2, y2){
+  const svg = document.getElementById('dw-svg');
+  const mx = (x1 + x2) / 2, my = (y1 + y2) / 2;
+  const p = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  p.setAttribute('class', 'dw-strand');
+  p.setAttribute('d', `M${x1} ${y1} Q${mx} ${my} ${x2} ${y2}`);
+  svg.insertBefore(p, svg.firstChild);
+}
+function dwCamera(animate = true){
+  const c = document.getElementById('dw-canvas'); if(!c) return;
+  c.style.transition = animate ? '' : 'none';
+  c.style.transform = `translate(${(-dwFocus.x * dwZoom + dwPx).toFixed(0)}px, ${(-dwFocus.y * dwZoom + dwPy).toFixed(0)}px) scale(${dwZoom})`;
+}
+function dwZoomBy(f){ dwZoom = Math.max(0.4, Math.min(1.6, dwZoom * f)); dwCamera(); }
+function dwFrame(){
+  const c = document.getElementById('dw-canvas'), stage = document.getElementById('dw-stage');
+  const els = [...c.querySelectorAll('.dw-node')]; if(!els.length) return;
+  const xs = els.map(e => +e.style.getPropertyValue('--nx')), ys = els.map(e => +e.style.getPropertyValue('--ny'));
+  const minX = Math.min(...xs), maxX = Math.max(...xs), minY = Math.min(...ys), maxY = Math.max(...ys);
+  dwZoom = Math.max(0.35, Math.min(1.1, Math.min(stage.clientWidth / ((maxX - minX) + 440), stage.clientHeight / ((maxY - minY) + 440))));
+  dwPx = 0; dwPy = 0; dwFocus = { x:(minX + maxX) / 2, y:(minY + maxY) / 2 }; dwCamera();
+}
+function dwWireStage(){
+  const stage = document.getElementById('dw-stage'); if(!stage) return;
+  let drag = false, sx = 0, sy = 0, bx = 0, by = 0;
+  stage.addEventListener('pointerdown', e => { if(e.target.closest('.dw-node') || e.target.closest('.dw-zoom')) return;
+    drag = true; stage.classList.add('dragging'); sx = e.clientX; sy = e.clientY; bx = dwPx; by = dwPy; try { stage.setPointerCapture(e.pointerId); } catch(_){} });
+  stage.addEventListener('pointermove', e => { if(!drag) return; dwPx = bx + (e.clientX - sx); dwPy = by + (e.clientY - sy); dwCamera(false); });
+  stage.addEventListener('pointerup', () => { drag = false; stage.classList.remove('dragging'); });
+  stage.addEventListener('wheel', e => { e.preventDefault(); dwZoomBy(e.deltaY < 0 ? 1.1 : 0.9); }, { passive:false });
+}
+function dwAskQuestion(key, qx, qy, parentPos, depth){
+  const node = dwTree.nodes[key];
+  dwNode('hub', qx, qy, `<span class="dw-node-ico">${ICO.eye}</span><span class="dw-node-txt"><span class="dw-node-q">${dwTree.stepWord || 'Read'} ${depth}${node.short ? ' · ' + node.short : ''}</span><span class="dw-node-a">${node.q}</span></span>`);
+  if(parentPos) dwStrand(parentPos.x, parentPos.y, qx, qy);
+  const opts = node.options, n = opts.length;
+  const S = n <= 2 ? 350 : n === 3 ? 320 : 292;
+  const optY = qy + 195;
+  const optEls = [];
+  opts.forEach((o, i) => {
+    const ox = qx + (i - (n - 1) / 2) * S;
+    const el = dwNode('opt', ox, optY,
+      `<span class="dw-node-ico">${ICO.target}</span><span class="dw-node-txt"><span class="dw-node-a">${o.short}</span>${o.desc ? `<span class="dw-opt-desc">${o.desc}</span>` : ''}</span>`);
+    dwStrand(qx, qy, ox, optY);
+    el.addEventListener('click', () => dwPick(o, el, optEls, ox, optY, depth));
+    optEls.push(el);
+  });
+  dwFocus = { x:qx, y:qy + 110 }; dwPx = 0; dwPy = 0; dwCamera();
+}
+function dwPick(opt, el, siblings, ox, oy, depth){
+  if(el.classList.contains('picked') || el.classList.contains('dim')) return;
+  siblings.forEach(s => { if(s !== el) s.classList.add('dim'); });
+  el.classList.add('picked');
+  if(dwTree.nodes[opt.to]) dwAskQuestion(opt.to, ox, oy + 220, { x:ox, y:oy }, depth + 1);
+  else dwResult(dwTree.results[opt.to], ox, oy + 220, { x:ox, y:oy });
+}
+function dwResult(r, x, y, parentPos){
+  const el = dwNode('result', x, y,
+    `<div class="dw-res-top"><span class="dw-node-ico" style="background:radial-gradient(circle at 50% 30%,var(--gold-lt),var(--gold));color:var(--ink-gold);font-size:13px">${r.cov}</span><span class="dw-node-a" style="font-size:19px;white-space:normal;max-width:250px">${r.name}</span></div>
+     <div class="dw-res-throw">${r.throw}</div>
+     <div class="dw-finish"><button class="go">Full breakdown</button><button class="re">Start over</button></div>`);
+  if(parentPos) dwStrand(parentPos.x, parentPos.y, x, y);
+  el.querySelector('.go').addEventListener('click', () => { const c = COV_BY_CODE[r.cov]; if(c){ closeGameWeb(); openCoverage(c.id); } });
+  el.querySelector('.re').addEventListener('click', dwStart);
+  // Lock in on the final read: center it and zoom IN (do not frame the whole tree).
+  dwFocus = { x, y: y + 30 }; dwPx = 0; dwPy = 0; dwZoom = 1.1; dwCamera(true);
+}
+
+/* ---- "The Read",pre-snap keys card (from the reading-defenses script) ---- */
+function openInitialKeys(){
+  ddActive = null;
+  openTakeover(`
+    <div class="card dd-doc">
+      <button class="card-close" title="Close (Esc)">&times;</button>
+      <h2>The Read</h2>
+      <div class="dd-doc-sub">Your pre-snap checklist, in order</div>
+      <div class="dd-step"><div class="dd-step-n">1</div><div class="dd-step-tx">
+        <h4>Check The Safeties First</h4>
+        <p>No matter the formation, this is your primary read. Is the <b>middle of the field open or closed?</b> Closed (one high post safety) points to Cover 1 or Cover 3. Open (two high safeties around 14 yards, or none at all) points to Cover 2, Cover 2 Man, Cover 4, or a Cover 0 blitz.</p></div></div>
+      <div class="dd-step"><div class="dd-step-n">2</div><div class="dd-step-tx">
+        <h4>Analyze The Corners</h4>
+        <p>Now get detail. Are they <b>inside, outside, or head-up</b> on your receivers, and how much <b>cushion</b> are they giving? Depth is the separator: about 5 yards off is Cover 2, about 7 yards off is Cover 4.</p></div></div>
+      <div class="dd-step"><div class="dd-step-n">3</div><div class="dd-step-tx">
+        <h4>Read The Nickel And Linebackers</h4>
+        <p>Still unsure? Check the nickel and linebacker shades and depth, and look for any <b>uncovered receiver</b> with no defender over him. That reveals man vs zone and tips blitzes and adjustments.</p></div></div>
+      <div class="dd-doc-note"><h4>Put It To Work</h4>
+        <p>Once you can ID the look, use <b>pure progression reads</b> to keep it simple: run your routes in order regardless of the defense. As you get comfortable, add <b>alerts</b> that punish a specific coverage (a corner route vs Cover 2, a slant or drag vs man). By the snap, you already know where to go.</p></div>
+    </div>`);
+  $('.dd-doc .card-close').addEventListener('click', closeTakeover);
+}
+
+/* ============================================================================
+   BOOT
+   ========================================================================== */
+ddLoadDots();   // restore any dot placements saved in this browser
+buildHub();
+$('#dd-ep-apply').addEventListener('click', applyEditPanel);
+$('#dd-ep-copy').addEventListener('click', copyEditPanel);
+$('#dd-ep-copyall').addEventListener('click', copyAllPanel);
+</script>
+</body>
+</html>
