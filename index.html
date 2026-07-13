@@ -9953,6 +9953,8 @@ function plShell(body, count, active) {
   active = active || 'saved';
   const sub = active === 'drives'
     ? `Drives you built and saved${count ? ` · ${count}` : ''}`
+    : active === 'sheets'
+    ? `Your call sheet, one per scheme${count ? ` · ${count}` : ''}`
     : `Your saved plays${count ? ` · ${count} bookmarked` : ''}`;
   return `<div class="pl-wrap">
     <div class="pl-head">
@@ -9961,7 +9963,7 @@ function plShell(body, count, active) {
     </div>
     <div class="pl-tabs">
       <button class="pl-tab ${active === 'saved' ? 'on' : ''}" onclick="loadPlayLibrary()">Saved Plays</button>
-      <button class="pl-tab ${active === 'field' ? 'on' : ''}" onclick="loadFieldView()">Field View</button>
+      <button class="pl-tab ${active === 'sheets' ? 'on' : ''}" onclick="loadCallSheets()">Call Sheets</button>
       <button class="pl-tab ${active === 'drives' ? 'on' : ''}" onclick="loadSavedDrives()">Saved Drives</button>
     </div>
     ${body}</div>`;
@@ -10000,6 +10002,39 @@ async function loadPlayLibrary() {
 async function unsavePlay(sk, pk) {
   await db.from('saved_plays').delete().eq('member_id', currentUser.id).eq('scheme_key', sk).eq('play_key', pk);
   loadPlayLibrary();
+}
+
+/* ── CALL SHEETS - the member's Game Plan call sheet, ONE per scheme. Built + saved
+   in each playbook's War Room ("Save Your Call Sheet"), stored in `saved_sheets`
+   (member_id + scheme_key + jsonb sheet). Each card opens the actual sheet read-only
+   via the playbook iframe (?sheet=1). Fully customizable there; this is the view. ── */
+async function loadCallSheets(){
+  showInCenter(plShell('<div class="loading-msg">Loading your call sheets…</div>', 0, 'sheets'), true);
+  const { data: sheets, error } = await db.from('saved_sheets')
+    .select('scheme_key, data, updated_at').eq('member_id', currentUser.id)
+    .order('updated_at', { ascending: false });
+  await ensureSchemeNameMap();
+  // Before the migration runs the table is missing; treat any read failure as "none yet"
+  // so the tab shows the friendly empty state instead of a raw Postgres error.
+  if (error) { console.warn('saved_sheets read failed:', error.message); }
+  if (error || !sheets || !sheets.length) {
+    showInCenter(plShell(`<div class="pl-empty">No call sheets yet.<br><span>Open a playbook's <b>War Room</b>, build your Game Plan call sheet, and hit <b>Save Your Call Sheet</b> - it lands right here.</span></div>`, 0, 'sheets'), true);
+    return;
+  }
+  const cards = sheets.map(s => {
+    const nm = schemeNameFor(lwSchemeUuid(s.scheme_key)) || schemeNameFor(s.scheme_key) || 'Scheme';
+    const d = s.data || {};
+    // sheet sections are arrays of play ids; formations/constraints are counted apart
+    const nPlays = Object.keys(d).reduce((a, k) => a + ((k !== 'formations' && k !== 'constraints' && Array.isArray(d[k])) ? d[k].length : 0), 0);
+    const nCon = Array.isArray(d.constraints) ? d.constraints.length : 0;
+    const date = s.updated_at ? new Date(s.updated_at).toLocaleDateString('en-US', {month:'short', day:'numeric', year:'numeric'}) : '';
+    return `<div class="pl-card pl-drive-card" style="grid-column:1/-1;cursor:pointer" onclick="openSavedSheet('${s.scheme_key}')">
+      <div class="pl-card-top"><span class="pl-name">${achEsc(nm)} · Call Sheet</span>
+        <span style="color:var(--gold);font-weight:800">Open ▸</span></div>
+      <div class="pl-meta" style="margin-bottom:0">${nPlays} play${nPlays !== 1 ? 's' : ''}${nCon ? ` · ${nCon} constraint${nCon !== 1 ? 's' : ''}` : ''}${date ? ` · updated ${date}` : ''}</div>
+    </div>`;
+  }).join('');
+  showInCenter(plShell(`<div class="pl-group"><div class="pl-grid">${cards}</div></div>`, sheets.length, 'sheets'), true);
 }
 
 /* ── SAVED DRIVES - drives built + saved from any playbook's Drive Builder land here.
@@ -10658,6 +10693,25 @@ function openSavedPlay(schemeKey, playKey){
   ov.className = 'sk-pb-overlay';
   ov.innerHTML = `<button class="sk-pb-close" title="Close (Esc)" aria-label="Close">&times;</button>`
     + `<iframe class="sk-pb-frame" src="/playbooks/${file}?play=${encodeURIComponent(playKey)}" allowfullscreen></iframe>`;
+  document.body.appendChild(ov);
+  function close(){ ov.remove(); document.removeEventListener('keydown', onKey); }
+  const onKey = e => { if(e.key === 'Escape') close(); };
+  ov.querySelector('.sk-pb-close').addEventListener('click', close);
+  document.addEventListener('keydown', onKey);
+}
+
+// Open a member's saved call sheet in the SAME overlay as saved plays. The playbook
+// renders the actual Game Plan sheet read-only when iframed with ?sheet=1, pulling
+// this member's saved_sheets row (same-origin Supabase session). One sheet per scheme.
+function openSavedSheet(schemeKey){
+  const file = playbookFileFor(schemeKey);
+  if(!file) return;
+  document.getElementById('sk-pb-overlay')?.remove();
+  const ov = document.createElement('div');
+  ov.id = 'sk-pb-overlay';
+  ov.className = 'sk-pb-overlay';
+  ov.innerHTML = `<button class="sk-pb-close" title="Close (Esc)" aria-label="Close">&times;</button>`
+    + `<iframe class="sk-pb-frame" src="/playbooks/${file}?sheet=1" allowfullscreen></iframe>`;
   document.body.appendChild(ov);
   function close(){ ov.remove(); document.removeEventListener('keydown', onKey); }
   const onKey = e => { if(e.key === 'Escape') close(); };
