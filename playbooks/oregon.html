@@ -8449,6 +8449,11 @@ body.sheetOnly #takeover .gp-howto,
 body.sheetOnly #takeover .gp-clear-wrap,
 body.sheetOnly #takeover .gp-knob{ display:none !important; }
 body.sheetOnly #takeover .gp-sec-h{ pointer-events:none; }
+/* iframed by the coaching app: skip the landing cover AND the whole 3D scene so the
+   saved sheet pops straight up on a clean backdrop (no "Open Playbook" gate, no flash). */
+body.sheetOnly{ background:#0b120c !important; }
+body.sheetOnly #warCover,
+body.sheetOnly #gl{ display:none !important; }
 /* "reset here" sticky note pointing at the clear button */
 #takeover .gp-clear-wrap{ display:inline-flex; align-items:center; gap:7px; }
 #takeover .gp-clear-note{ position:relative; padding:5px 10px 6px; border-radius:3px;
@@ -13204,6 +13209,18 @@ function openCategory(type){
   return;
 }
 
+// REST headers for the Supabase sync (anon key; owner-gated client-side). This was
+// missing after the audit, so every sbHeaders() call threw and the sync silently
+// died - which is why a new scheme never appeared in the coaching app's lists.
+function sbHeaders(extra = {}) {
+  return {
+    'apikey': SCHEME_CONFIG.supabaseAnonKey,
+    'Authorization': `Bearer ${SCHEME_CONFIG.supabaseAnonKey}`,
+    'Content-Type': 'application/json',
+    ...extra,
+  };
+}
+
 async function syncPlaybookToSupabase() {
   const { schemeKey, supabaseUrl, supabaseAnonKey } = SCHEME_CONFIG;
   if (!schemeKey || !supabaseUrl || !supabaseAnonKey) return;
@@ -13263,6 +13280,20 @@ async function syncPlaybookToSupabase() {
   }
 }
 
+let _ownerSynced = false;
+/* Run the owner-only sync exactly once per session, the moment we KNOW the owner is
+   signed in - at page load OR after they sign in via the save modal (the load-time
+   check alone misses the latter, leaving the scheme out of the coaching app lists). */
+function maybeOwnerSync(){
+  if(_ownerSynced) return;
+  const u = (typeof SK_AUTH !== 'undefined' && SK_AUTH) ? SK_AUTH.user : null;
+  if(u && (u.id === '80498288-8171-4d65-af9f-20648b279041'
+        || (u.email || '').toLowerCase() === 'kingreggiemut@gmail.com')){
+    _ownerSynced = true;
+    syncPlaybookToSupabase();
+  }
+}
+
 /* ==========================================================================
    SK_AUTH - shared sign-in bridge to the coaching app
    --------------------------------------------------------------------------
@@ -13299,6 +13330,7 @@ async function initAuth(){
     SK_AUTH.client.auth.onAuthStateChange((_evt, sess) => {
       SK_AUTH.user = sess ? sess.user : null;
       loadSavedPlays();
+      maybeOwnerSync();   // owner may sign in AFTER load (via the save modal) - sync then too
     });
   } catch (e) { /* never let an auth hiccup break the playbook */ }
 }
@@ -13569,14 +13601,7 @@ function skInjectAuthCSS(){
   }
   skInjectAuthCSS();                 // style the sign-in modal + toast up front
   try{
-    initAuth().then(() => {
-      /* owner-only: background-sync this playbook's plays + registry row into
-         Supabase so the coaching app can resolve names (runs for King Reggie) */
-      const u = SK_AUTH.user;
-      if(u && (u.id === '80498288-8171-4d65-af9f-20648b279041'
-            || (u.email || '').toLowerCase() === 'kingreggiemut@gmail.com'))
-        syncPlaybookToSupabase();
-    });
+    initAuth().then(maybeOwnerSync);   // owner-only playbook+plays sync (once per session)
   }catch(e){}
   /* deep-link: ?play=<id> opens that play's film-room breakdown directly
      (the coaching app iframes the playbook with this param for saved plays).
@@ -13595,16 +13620,22 @@ function skInjectAuthCSS(){
      then opens the Game Plan section with body.sheetOnly hiding the war-room chrome. */
   try{
     if(new URLSearchParams(location.search).has('sheet')){
-      document.body.classList.add('sheetOnly');
-      const _openSheet = () => setTimeout(async () => {
+      document.body.classList.add('sheetOnly');   // hides the cover + 3D instantly (CSS)
+      const _openSheet = async () => {
         try{
           const remote = await loadSheetRemote();
           if(remote){ gpSheet = Object.assign(gpBlankSheet(), remote); gpSave(); }
         }catch(_){}
         try{ openSection('dna'); }catch(_){}
-      }, 600);
-      if(document.readyState === 'complete') _openSheet();
-      else window.addEventListener('load', _openSheet, { once:true });
+      };
+      /* No need to wait for the heavy 3D load (it's hidden). Open as soon as auth is
+         ready so the saved sheet loads from Supabase - capped so it never hangs. */
+      const _whenReady = (n) => {
+        if((typeof SK_AUTH !== 'undefined' && SK_AUTH && SK_AUTH.client) || n > 40) _openSheet();
+        else setTimeout(() => _whenReady(n + 1), 50);
+      };
+      if(document.readyState !== 'loading') _whenReady(0);
+      else document.addEventListener('DOMContentLoaded', () => _whenReady(0), { once:true });
     }
   }catch(_){}
 })();

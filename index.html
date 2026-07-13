@@ -10022,7 +10022,13 @@ async function loadCallSheets(){
     return;
   }
   const cards = sheets.map(s => {
-    const nm = schemeNameFor(lwSchemeUuid(s.scheme_key)) || schemeNameFor(s.scheme_key) || 'Scheme';
+    // schemeNameFor returns the string 'No Scheme' (truthy) when the playbooks row
+    // isn't synced yet, so read the map directly and fall back to a prettified key
+    // (e.g. "oregon-spread-cfb27" -> "Oregon Spread") - never show "No Scheme".
+    const mapped = SCHEME_NAME_MAP && (SCHEME_NAME_MAP[lwSchemeUuid(s.scheme_key)] || SCHEME_NAME_MAP[s.scheme_key]);
+    const nm = (mapped && mapped !== 'No Scheme') ? mapped
+      : (String(s.scheme_key || '').split('-').filter(w => w && !/^cfb\d+$/i.test(w))
+          .map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ') || 'Call Sheet');
     const d = s.data || {};
     // sheet sections are arrays of play ids; formations/constraints are counted apart
     const nPlays = Object.keys(d).reduce((a, k) => a + ((k !== 'formations' && k !== 'constraints' && Array.isArray(d[k])) ? d[k].length : 0), 0);
