@@ -1861,9 +1861,16 @@ function setPresenterMode(){
 /* ============================================================================
    RENDERER / CAMERA / LIGHTS — shared by miniature and full-scale field
    ============================================================================ */
+/* phones get a lean GL context: no MSAA, no preserved buffer, 1x pixels.
+   The heavy desktop setup pushed iOS Safari past its per-tab memory limit
+   whenever a rotation reallocated the drawing buffer, killing the page.
+   (captureDbField still works without preserveDrawingBuffer because it
+   renders synchronously right before reading the canvas.) */
+const IS_MOBILE = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) ||
+  (navigator.maxTouchPoints > 1 && /Mac/.test(navigator.platform));
 const renderer = new THREE.WebGLRenderer({ canvas:document.getElementById('gl'),
-  antialias:true, alpha:true, preserveDrawingBuffer:true });
-renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
+  antialias:!IS_MOBILE, alpha:true, preserveDrawingBuffer:!IS_MOBILE });
+renderer.setPixelRatio(IS_MOBILE ? 1 : Math.min(window.devicePixelRatio, 1.5));
 const scene = new THREE.Scene();
 /* fog starts inert (huge range); the field snap tightens it — mutating one
    Fog object avoids the shader recompile a null->fog swap would need */
@@ -1875,11 +1882,20 @@ const camera = new THREE.PerspectiveCamera(42, 1, 0.1, 320);
    these are only the pre-orbit boot values */
 camera.position.set(0, 2.5, 8);
 camera.lookAt(0, -0.9, 0);
+/* While a section takeover covers the 3D world, a rotation must NOT
+   reallocate the (invisible) GL drawing buffer — that spike is what
+   crashed phones. Defer it; the loop applies it when the hub wakes. */
+let glResizePending = false;
 function glResize(){
+  const tk = document.getElementById('takeover');
+  if(tk && tk.classList.contains('open')){ glResizePending = true; return; }
+  glResizePending = false;
   renderer.setSize(window.innerWidth, window.innerHeight);
   camera.aspect = window.innerWidth/window.innerHeight;
   camera.updateProjectionMatrix();
 }
+/* the section code (separate script) calls this when a takeover closes */
+window.WR_GL_WAKE = () => { if(glResizePending) glResize(); };
 glResize();
 
 const ambientL = new THREE.AmbientLight(0x9db8a5, 0.8);
@@ -5686,6 +5702,7 @@ function loop(){
   if(covered !== hubSlept){
     hubSlept = covered;
     if(bgVid){ covered ? bgVid.pause() : bgVid.play().catch(()=>{}); }
+    if(!covered && glResizePending) glResize();   // rotation happened while asleep
   }
   if(covered) return;
 
@@ -10655,6 +10672,7 @@ function hardCloseTakeover(){
   if(card){ card.style.animation = ""; card.classList.add("out"); }  // play exit anim
   takeover.classList.remove("open");
   document.body.classList.remove("overlay-on");      // restore the field banner
+  if(window.WR_GL_WAKE) window.WR_GL_WAKE();  // apply a rotation deferred while covered
   document.removeEventListener("keydown", onKey);
   state.view = null;
 }
@@ -13698,21 +13716,58 @@ window.ORPB = { openSection, openCategory, openPlay, closeTakeover,
 
 
 // ---- FULLSCREEN TOGGLE ----
+// iPhone Safari has NO fullscreen API for the page (video only), and inside an
+// iframe without allowfullscreen the call rejects even on Android/desktop. So:
+// native API (with webkit prefixes) when it works, otherwise "faux" fullscreen —
+// a class on <html> plus a postMessage the parent page can use to expand the
+// embed iframe to the whole viewport.
 (function(){
+  const doc = document, root = doc.documentElement;
+  let fauxFS = false;
+  const nativeEl = () => doc.fullscreenElement || doc.webkitFullscreenElement || null;
+  const fsActive = () => !!nativeEl() || fauxFS;
+  function fsSync(){ doc.dispatchEvent(new CustomEvent('wr-fs-change')); }
+  function setFaux(on){
+    fauxFS = on;
+    root.classList.toggle('faux-fs', on);
+    try{
+      if(window.parent !== window)
+        window.parent.postMessage({ skFullscreen: on }, '*');
+    }catch(e){}
+    fsSync();
+  }
+  function toggleFS(){
+    if(fsActive()){
+      if(nativeEl()){
+        if(doc.exitFullscreen) doc.exitFullscreen().catch(()=>{});
+        else if(doc.webkitExitFullscreen) doc.webkitExitFullscreen();
+      }
+      if(fauxFS) setFaux(false);
+      return;
+    }
+    const req = root.requestFullscreen || root.webkitRequestFullscreen;
+    const enabled = 'fullscreenEnabled' in doc ? doc.fullscreenEnabled : doc.webkitFullscreenEnabled;
+    if(req && enabled !== false){
+      try{
+        const p = req.call(root);
+        if(p && p.catch) p.catch(()=>setFaux(true));   // e.g. iframe denied it
+      }catch(e){ setFaux(true); }
+    } else {
+      setFaux(true);                                    // iPhone Safari path
+    }
+  }
+  window.WR_FS = { toggle: toggleFS, active: fsActive };
+  doc.addEventListener('fullscreenchange', fsSync);
+  doc.addEventListener('webkitfullscreenchange', fsSync);
+
   // The button markup is defined AFTER this script, so wire it once the DOM is
   // ready (otherwise getElementById returns null and the listener never attaches).
   const wire = () => {
     const btn = document.getElementById('fs-btn');
     if (!btn) return;
-    btn.addEventListener('click', () => {
-      if (!document.fullscreenElement) {
-        document.documentElement.requestFullscreen().catch(()=>{});
-      } else {
-        document.exitFullscreen().catch(()=>{});
-      }
-    });
-    document.addEventListener('fullscreenchange', () => {
-      btn.classList.toggle('is-fullscreen', !!document.fullscreenElement);
+    btn.addEventListener('click', toggleFS);
+    doc.addEventListener('wr-fs-change', () => {
+      btn.classList.toggle('is-fullscreen', fsActive());
     });
   };
   if (document.readyState === 'loading') {
@@ -13733,8 +13788,7 @@ window.ORPB = { openSection, openCategory, openPlay, closeTakeover,
   var fsb = document.getElementById("fsBtn");
   fsb.addEventListener("click", function(e){
     e.stopPropagation();
-    if(document.fullscreenElement) document.exitFullscreen().catch(function(){});
-    else document.documentElement.requestFullscreen().catch(function(){});
+    if(window.WR_FS) window.WR_FS.toggle();
   });
   document.getElementById("deckAll").addEventListener("click", function(e){
     e.stopPropagation();                    // the pack above draws ONE card on click
@@ -13743,8 +13797,10 @@ window.ORPB = { openSection, openCategory, openPlay, closeTakeover,
       setTimeout(function(){ placeCard(web.nodes[id], true, true); }, i*170);
     });
   });
-  document.addEventListener("fullscreenchange", function(){
-    fsb.classList.toggle("is-fs", !!document.fullscreenElement);
+  document.addEventListener("wr-fs-change", function(){
+    var on = !!(window.WR_FS && window.WR_FS.active());
+    fsb.classList.toggle("is-fs", on);
+    fsb.classList.toggle("is-fullscreen", on);
   });
 })();
 </script>
