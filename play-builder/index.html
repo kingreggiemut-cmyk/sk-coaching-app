@@ -12,7 +12,13 @@
   <link rel="stylesheet" href="styles/ui.css" />
   <style>
     html, body { margin: 0; height: 100%; background: #05140b; overflow: hidden; font-family: system-ui, sans-serif; }
-    #gl { display: block; position: fixed; inset: 0; }   /* full-window by default; mobile modes reshape it via body classes */
+    /* Explicit 100%/100% (not just inset:0): a <canvas> is a replaced element, so
+       left:0/right:0 alone DON'T stretch it — it falls back to its buffer size and
+       never grows to fill a bigger viewport (the fullscreen "black box" bug). An
+       explicit width/height makes it fill, so clientWidth reports the real viewport
+       and the renderer sizes to it. Stage/9:16 modes override this at higher
+       specificity (body.stage-phone #gl). */
+    #gl { display: block; position: fixed; inset: 0; width: 100%; height: 100%; }
     .hud { position: fixed; left: 12px; bottom: 10px; color: #bfe6c8; font-size: 12px; letter-spacing: .12em;
       text-transform: uppercase; font-weight: 700; text-shadow: 0 1px 3px #000; pointer-events: none; }
     .readout { position: fixed; right: 12px; top: 10px; color: #ffe36b; font-size: 12px; font-variant-numeric: tabular-nums;

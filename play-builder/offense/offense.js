@@ -1178,7 +1178,15 @@ function buildUI() {
     const cornerLbl = fsCorner.querySelector('.pd-fs-corner-lbl');
     if (cornerLbl) cornerLbl.textContent = label;
     fsCorner.classList.toggle('on', on);
-    onResize();   // make the renderer + camera match the new viewport
+    // Resize EVERYTHING once the fullscreen layout has actually settled. Calling
+    // onResize() alone (a) fires before the viewport has resized and (b) never
+    // rebuilds the post-processing render targets (post.js listens for 'resize'),
+    // which left the graded image filling only the old iframe box — the black bar.
+    // A real 'resize' event drives the renderer + post targets + UI scale together;
+    // fire it next frame AND again shortly after, since fullscreen timing varies.
+    const settle = () => window.dispatchEvent(new Event('resize'));
+    requestAnimationFrame(settle);
+    setTimeout(settle, 180);
   });
 
   ui = {
