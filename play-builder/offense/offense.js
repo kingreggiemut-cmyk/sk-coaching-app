@@ -1516,7 +1516,7 @@ function wireExport() {
    which is the natural upgrade moment. Renders on tab-open and on sign-in. */
 // The CFB home page — members land in; non-members get Squarespace's join gate.
 // Opens in a NEW TAB so they never lose the play they were drawing.
-const MEMBERSHIP_URL = 'https://www.schemekings.com/cfb-home-page';
+const MEMBERSHIP_URL = 'https://www.schemekings.com/the-coaching-coordinator';
 
 function wireMyPlays() {
   const body = ui.playsBody;
