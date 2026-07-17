@@ -32,15 +32,61 @@ let populate = null;
 
 scene.background = new THREE.Color(0x03060a);   // night: any uncovered pixel is black, never cyan
 
+// MOBILE GATE — the 3D builder needs a mouse (orbit/zoom) and keyboard, so on a
+// phone or tablet we DON'T boot the heavy world at all. We show a clean "open on a
+// computer" card instead — cheaper for them (no 11 MB of assets) and honest.
+function isMobileDevice() {
+  if (new URLSearchParams(location.search).get('desktop') === '1') return false;   // manual override
+  const ua = navigator.userAgent || '';
+  if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini|Mobile/i.test(ua)) return true;
+  if (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1) return true;           // iPadOS reports as a Mac
+  if (window.matchMedia('(pointer: coarse)').matches && Math.min(screen.width, screen.height) < 820) return true;
+  return false;
+}
+function showDesktopOnly() {
+  const q = new URLSearchParams(location.search); q.set('desktop', '1');
+  const anyway = location.pathname + '?' + q.toString();
+  const el = document.createElement('div');
+  el.id = 'pd-desktop-only';
+  el.innerHTML = `
+    <div class="pd-do-card">
+      <img class="pd-do-crest" src="assets/sk-logo.png" alt="">
+      <div class="pd-do-title">Best on the big screen</div>
+      <p class="pd-do-sub">King Reggie's Play Builder draws plays in 3D — it needs a mouse and keyboard. Open this page on a <b>desktop or laptop</b> to build.</p>
+      <a class="pd-do-anyway" href="${anyway}">Open anyway →</a>
+    </div>`;
+  const s = el.style;
+  s.position = 'fixed'; s.inset = '0'; s.zIndex = '999999';
+  s.display = 'flex'; s.alignItems = 'center'; s.justifyContent = 'center';
+  s.padding = '24px'; s.background = 'radial-gradient(120% 120% at 50% 0%, #1b2c52 0%, #0b1428 60%, #060c1c 100%)';
+  s.font = "400 15px/1.5 system-ui, -apple-system, Segoe UI, sans-serif";
+  const css = document.createElement('style');
+  css.textContent = `
+    #pd-desktop-only .pd-do-card { max-width: 340px; text-align: center; color: #dfe6f5; }
+    #pd-desktop-only .pd-do-crest { width: 62px; height: 62px; margin-bottom: 14px; }
+    #pd-desktop-only .pd-do-title { font: 900 22px/1.1 system-ui, sans-serif; letter-spacing: .5px; text-transform: uppercase; color: #fff; margin-bottom: 10px; }
+    #pd-desktop-only .pd-do-title::after { content:""; display:block; width:46px; height:3px; margin:11px auto 0; border-radius:2px; background:#ffd15a; }
+    #pd-desktop-only .pd-do-sub { margin: 0 0 18px; color: #aeb9d4; }
+    #pd-desktop-only .pd-do-sub b { color: #fff; }
+    #pd-desktop-only .pd-do-anyway { display:inline-block; font: 700 12px system-ui, sans-serif; letter-spacing:.4px; color:#8ea6d8; text-decoration:none; opacity:.7; }
+    #pd-desktop-only .pd-do-anyway:hover { opacity:1; color:#ffd15a; }`;
+  document.head.appendChild(css);
+  document.body.appendChild(el);
+  document.body.classList.add('mobile-blocked');
+}
+const IS_MOBILE = isMobileDevice();
+
 // The cover paints instantly from index.html and holds the door shut while the
 // world builds; without it a first-time visitor watches a black rectangle and
 // assumes it's broken. A shared link (?p=) skips it — they came for a play.
 // A shared link skips the cover entirely — they came for a play, not a pitch — and
 // skipping BEFORE build means its backdrop video is never even requested.
-if (new URLSearchParams(location.search).get('p')) cover.skipCover();
+if (IS_MOBILE) showDesktopOnly();
+else if (new URLSearchParams(location.search).get('p')) cover.skipCover();
 else cover.buildCover(() => { if (window.__coverOpened) window.__coverOpened(); });
 
 (async () => {
+  if (IS_MOBILE) return;   // don't boot the 3D world on a phone/tablet
   try {
     stadium = await buildStadiumWorld(renderer, 'field/assets/');
     scene.add(stadium.group);

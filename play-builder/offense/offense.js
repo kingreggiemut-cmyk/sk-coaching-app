@@ -1157,13 +1157,27 @@ function buildUI() {
   const fsBtn = con.querySelector('#pd-fs');
   fsBtn.onclick = toggleFullscreen;
 
+  // ALWAYS-VISIBLE fullscreen button, top-right. The builder lives in a small iframe
+  // on the site, so most people never realize they can blow it up — a labelled button
+  // (icon AND the words "Full screen") makes it obvious. Shows on free + member both.
+  const fsCorner = document.createElement('button');
+  fsCorner.className = 'pd-fs-corner'; fsCorner.id = 'pd-fs-corner'; fsCorner.type = 'button';
+  fsCorner.setAttribute('aria-label', 'Full screen');
+  fsCorner.innerHTML = `<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M2 6V2h4M14 6V2h-4M2 10v4h4M14 10v4h-4"/></svg><span class="pd-fs-corner-lbl">Full screen</span>`;
+  fsCorner.onclick = toggleFullscreen;
+  document.body.appendChild(fsCorner);
+
   // 9:16 frame guide (the picker that drives it now lives in the Studio drawer,
   // built by app.js — it's a filming tool, not a consumer control)
   const phoneFrame = document.createElement('div'); phoneFrame.className = 'pd-phoneframe';
   document.body.appendChild(phoneFrame);
   document.addEventListener('fullscreenchange', () => {
     const on = !!document.fullscreenElement;
-    fsBtn.querySelector('.pd-fs-lbl').textContent = on ? 'Exit full screen' : 'Full screen';
+    const label = on ? 'Exit full screen' : 'Full screen';
+    fsBtn.querySelector('.pd-fs-lbl').textContent = label;
+    const cornerLbl = fsCorner.querySelector('.pd-fs-corner-lbl');
+    if (cornerLbl) cornerLbl.textContent = label;
+    fsCorner.classList.toggle('on', on);
     onResize();   // make the renderer + camera match the new viewport
   });
 
