@@ -1,0 +1,891 @@
+/* Scheme Kings — Play Drawer UI. Varsity-patch identity (SK blue/white/gold,
+   collage brief) with product-grade interaction states. All motion 150–220ms,
+   ease-out. :focus-visible rings for keyboard. H toggles .ui-hidden. */
+@import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800;900&family=Barlow:wght@500;600;700&display=swap');
+
+:root {
+  --sk-blue: #1f6ef2;
+  --sk-blue-deep: #1358d6;
+  --sk-navy: #17284d;
+  --sk-gold: #F5A623;
+  --sk-gold-soft: #FFC53D;
+  --sk-cream: #F0EAD0;
+  --sk-cream-2: #f7f2e2;
+  --sk-ink: #17284d;
+  --sk-ink-soft: #52618a;
+  --sk-noise: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3CfeComponentTransfer%3E%3CfeFuncA type='linear' slope='0.32'/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E");
+  --font-display: "Barlow Condensed", "Arial Narrow", sans-serif;
+  --font-body: "Barlow", system-ui, sans-serif;
+  --ease: cubic-bezier(.22, 1, .36, 1);
+  --z-hint: 18; --z-panel: 20; --z-bar: 21;
+  --ui-scale: 1;   /* set from JS — all control clusters scale with the viewport */
+}
+
+body.ui-hidden .pd-dock,
+body.ui-hidden .pd-controls,
+body.ui-hidden .pd-side { opacity: 0; pointer-events: none; }
+.pd-dock, .pd-controls { transition: opacity .18s var(--ease); }
+
+/* ---------------- STUDIO layer ----------------
+   Reggie's filming tools. Built and working at all times — just not shown to a
+   normal user until <body> gets .studio-on (see core/studio.js). Display, not
+   destruction: nothing re-wires, so a hidden tool can never break a live one. */
+body:not(.studio-on) .studio-only { display: none !important; }
+
+/* ================================================================
+   THE SHELL — one bottom bar + one side panel. Everything else is field.
+   Six floating patches over the stadium had no edge to anchor to, so the eye had
+   no path and the product (the field) was what peeked out BETWEEN the controls.
+   Now the chrome frames the field instead of tiling it.
+   ================================================================ */
+:root { --dock-h: 62px; --side-w: 316px; --controls-w: 334px; }
+
+/* The tabs are separate chunky buttons floating over the grass, NOT a slab across
+   the bottom of the screen. A full-width bar cut the stadium in half; these let the
+   field run edge to edge behind them. */
+/* Centred in the FREE BAND — between the side panel and the control panel — not on
+   the viewport. Using left/right (instead of a 50% + translate trick) means the
+   buttons can never reach under either panel, and they wrap instead of colliding
+   if the band gets tight.
+   pointer-events: none on the band matters — it spans the bottom of the screen, and
+   an invisible strip there would eat every orbit drag. Only the buttons take clicks. */
+.pd-dock {
+  position: fixed; left: 0; right: var(--controls-w); bottom: 14px; z-index: var(--z-bar);
+  transform: scale(var(--ui-scale)); transform-origin: bottom center;
+  display: flex; align-items: center; justify-content: center; gap: 9px; flex-wrap: wrap;
+  pointer-events: none;
+  transition: left .22s var(--ease), opacity .18s var(--ease);
+}
+.pd-dock > * { pointer-events: auto; }
+body.side-open .pd-dock { left: var(--side-w); }
+/* Big, and they DON'T move when you touch them — a button that jumps on hover
+   makes a row of them feel unstable. Selection is carried by turning blue, which
+   is the one signal that matters. */
+.pd-tab {
+  display: flex; align-items: center; gap: 9px; cursor: pointer; padding: 15px 24px;
+  font: 900 16px var(--font-display); letter-spacing: 1.3px; text-transform: uppercase; color: var(--sk-ink);
+  transition: background-color .16s var(--ease), color .16s var(--ease), box-shadow .16s var(--ease);
+}
+.pd-tab-ico { font-size: 17px; line-height: 1; display: inline-flex; align-items: center; }
+.pd-tab-ico svg { width: 17px; height: 17px; display: block; }
+.pd-tab:hover { box-shadow: inset 0 0 0 2px rgba(245,166,35,.9), 0 8px 20px rgba(0,0,0,.5); }
+.pd-tab:focus-visible { outline: 3px solid var(--sk-gold); outline-offset: 3px; }
+.pd-tab.on {
+  background-color: var(--sk-blue); color: #fff; border-color: var(--sk-navy);
+  box-shadow: inset 0 0 0 2px rgba(255,255,255,.35), 0 8px 20px rgba(31,110,242,.55);
+}
+.pd-tab.on .pd-tab-ico { filter: brightness(1.6) saturate(.6); }
+
+/* CONTROL PANEL — bottom-right. Status, scrubber, and the transport that cycles
+   Run → Pause → Resume → Replay. A lone RUN button was too small to find. */
+.pd-controls {
+  position: fixed; right: 14px; bottom: 14px; z-index: var(--z-bar); width: 300px;
+  transform: scale(var(--ui-scale)); transform-origin: bottom right;
+  display: flex; flex-direction: column; gap: 10px;
+  background-color: var(--sk-cream); background-image: var(--sk-noise); background-blend-mode: multiply;
+  border: 2.5px solid var(--sk-blue); border-left-width: 9px;
+  box-shadow: inset 0 0 0 2px rgba(245,166,35,.4), 0 12px 30px rgba(0,0,0,.5);
+  border-radius: 15px; padding: 12px 14px 14px;
+}
+.pd-controls-head { font: 900 13px var(--font-display); letter-spacing: 2.2px; text-transform: uppercase; color: var(--sk-navy); border-bottom: 2px solid var(--sk-gold); padding-bottom: 7px; }
+.pd-controls-body { display: flex; flex-direction: column; gap: 10px; }
+.pd-controls-btns { display: flex; gap: 8px; }
+.pd-controls-btns .pd-btn { flex: 1; justify-content: center; text-align: center; padding: 13px 10px; font-size: 15px; }
+
+/* THROW TO — real buttons, in read order, each wearing its shortcut key.
+   Throwing used to be a keyboard combo you had to be told about. */
+.pd-throw { display: flex; flex-direction: column; gap: 5px; }
+.pd-throw[hidden] { display: none; }
+.pd-throw-btns { display: flex; flex-wrap: wrap; gap: 5px; }
+.pd-throw-btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 8px 11px; font-size: 12px; letter-spacing: .6px;
+}
+.pd-throw-key {
+  display: grid; place-items: center; width: 16px; height: 16px; border-radius: 4px;
+  background: var(--sk-navy); color: var(--sk-cream); font: 900 10px var(--font-display);
+}
+/* the money read is the one the whole play is built around — say so */
+.pd-throw-btn.money { border-color: #d9433a; }
+.pd-throw-btn.money .pd-throw-key { background: #d9433a; }
+.pd-throw-none { font: 600 10.5px var(--font-body); color: #5d6885; }
+
+/* ---------------- the one side panel ---------------- */
+.pd-side {
+  position: fixed; left: 0; top: 0; bottom: 0; z-index: var(--z-panel); width: var(--side-w);
+  display: flex; flex-direction: column;
+  background-color: var(--sk-cream); background-image: var(--sk-noise); background-blend-mode: multiply;
+  border-right: 3px solid var(--sk-blue);
+  box-shadow: inset -3px 0 0 rgba(245,166,35,.5), 8px 0 30px rgba(0,0,0,.45);
+  transform: translateX(-100%); visibility: hidden;
+  transition: transform .22s var(--ease), visibility .22s;
+}
+.pd-side.show { transform: translateX(0); visibility: visible; }
+.pd-side-head {
+  display: flex; align-items: center; justify-content: space-between; flex: 0 0 auto;
+  padding: 13px 12px 11px 15px; border-bottom: 2px solid var(--sk-gold);
+}
+.pd-side-title { font: 900 17px var(--font-display); letter-spacing: 2px; text-transform: uppercase; color: var(--sk-navy); }
+.pd-side-acts { display: flex; gap: 6px; }
+.pd-side-btn {
+  cursor: pointer; width: 26px; height: 26px; border-radius: 7px;
+  font: 900 13px var(--font-display); color: var(--sk-ink);
+  background: rgba(23,40,77,.08); border: 1.5px solid rgba(23,40,77,.2);
+  transition: background-color .15s var(--ease), color .15s var(--ease);
+}
+.pd-side-btn:hover { background: rgba(23,40,77,.16); }
+.pd-side-btn.on { background: var(--sk-blue); color: #fff; border-color: var(--sk-navy); }
+.pd-side-btn:focus-visible { outline: 3px solid var(--sk-gold); outline-offset: 2px; }
+
+.pd-side-body { flex: 1 1 auto; overflow-y: auto; overflow-x: hidden; padding: 12px 14px 18px; }
+.pd-sec { display: none; }
+.pd-sec.on { display: block; }
+.pd-secwrap { display: flex; flex-direction: column; gap: 14px; }
+
+/* contextual help — asked for, not pushed */
+.pd-help {
+  flex: 0 0 auto; margin: 10px 14px 0; padding: 11px 12px;
+  font: 600 12px var(--font-body); line-height: 1.6; color: #3f4a68;
+  background: rgba(31,110,242,.09); border: 1.5px solid rgba(31,110,242,.3);
+  border-left: 4px solid var(--sk-blue); border-radius: 9px;
+}
+.pd-help b { color: var(--sk-navy); }
+.pd-help p { margin: 8px 0 0; }
+
+/* always-on camera guide in the View panel — the controls are all mouse/keys, so
+   they're invisible until someone tells you they're there. No question mark to hunt
+   for; it's just written out under the angle picker where there's room. */
+.pd-cammap {
+  margin: 2px 0 0; padding: 10px 12px 11px;
+  background: rgba(31,110,242,.07); border: 1.5px solid rgba(31,110,242,.26);
+  border-left: 4px solid var(--sk-blue); border-radius: 9px;
+}
+.pd-cammap b { display: block; margin-bottom: 6px; font: 800 9px var(--font-display); letter-spacing: 1.4px; text-transform: uppercase; color: var(--sk-navy); }
+.pd-cammap ul { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 6px; }
+.pd-cammap li { font: 600 11.5px var(--font-body); line-height: 1.5; color: #3f4a68; padding-left: 12px; position: relative; }
+.pd-cammap li::before { content: ""; position: absolute; left: 0; top: 8px; width: 4px; height: 4px; border-radius: 50%; background: var(--sk-blue); }
+.pd-cammap li b { display: inline; margin: 0; font: 800 11.5px var(--font-body); letter-spacing: 0; text-transform: none; color: var(--sk-blue-deep); }
+.pd-cammap li i { font-style: italic; color: var(--sk-navy); }
+
+/* "Riding" player picker — only shows for the shots that track one player */
+.pd-track-wrap { display: flex; flex-direction: column; gap: 4px; margin-top: 2px; padding: 7px 8px 8px; background: rgba(31,110,242,.08); border: 1.5px solid rgba(31,110,242,.28); border-radius: 8px; }
+.pd-track-wrap[hidden] { display: none; }
+.pd-track-cap { font: 800 8.5px var(--font-display); letter-spacing: 1.4px; text-transform: uppercase; color: var(--sk-blue-deep); }
+
+/* a group inside a panel — the caption system, now vertical */
+.pd-side .pd-group { gap: 6px; }
+.pd-side .pd-group-cap { align-self: flex-start; }
+.pd-side .pd-btn.full { width: 100%; justify-content: center; }
+.pd-side .pd-group-row { display: flex; gap: 6px; }
+.pd-side .pd-group-row > .pd-btn { flex: 1; justify-content: center; text-align: center; }
+body.ui-hidden .pd-phoneframe { display: none; }   /* frame guide off when recording */
+.hud, .readout { display: none; }
+
+/* custom field cursor — a Scheme Kings gold targeting reticle, ONLY in presenter
+   mode; hidden while the UI is hidden so screen-recordings stay clean */
+body.presenter canvas {
+  cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32'%3E%3Ccircle cx='16' cy='16' r='9.5' fill='none' stroke='%2317284d' stroke-width='4.5'/%3E%3Ccircle cx='16' cy='16' r='9.5' fill='none' stroke='%23F5A623' stroke-width='2.2'/%3E%3Cg stroke='%2317284d' stroke-width='4'%3E%3Cline x1='16' y1='2' x2='16' y2='8'/%3E%3Cline x1='16' y1='24' x2='16' y2='30'/%3E%3Cline x1='2' y1='16' x2='8' y2='16'/%3E%3Cline x1='24' y1='16' x2='30' y2='16'/%3E%3C/g%3E%3Cg stroke='%23F5A623' stroke-width='2'%3E%3Cline x1='16' y1='2' x2='16' y2='8'/%3E%3Cline x1='16' y1='24' x2='16' y2='30'/%3E%3Cline x1='2' y1='16' x2='8' y2='16'/%3E%3Cline x1='24' y1='16' x2='30' y2='16'/%3E%3C/g%3E%3Ccircle cx='16' cy='16' r='1.8' fill='%23F5A623'/%3E%3C/svg%3E") 16 16, crosshair;
+}
+body.ui-hidden canvas { cursor: none; }
+
+/* ================================================================
+   COVER — landing + loading gate (markup lives in index.html so it paints on the
+   first frame). Ported from the playbook covers, reskinned to the builder.
+   ================================================================ */
+#pd-cover {
+  position: fixed; inset: 0; z-index: 50; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; padding: 24px 20px; overflow: hidden;
+  background: #061225 radial-gradient(120% 90% at 50% 8%, #10305e 0%, #071227 55%, #040a18 100%);
+  transition: opacity .5s ease, transform .5s ease;
+}
+#pd-cover.lift { opacity: 0; transform: scale(1.04); pointer-events: none; }
+#pd-cover.hidden { display: none; }
+/* The backdrop starts at 0 and fades in on `canplay` (cover.js). The gradient
+   behind it is what you see on frame one, so the video arriving is a lift, never
+   a flash of nothing. Slow drift so a 10s loop doesn't read as a loop. */
+#cv-vid {
+  position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: 0;
+  opacity: 0; transition: opacity .9s ease;
+  filter: brightness(.62) saturate(1.05);
+}
+#cv-vid.in { opacity: 1; animation: cvZoom 34s ease-in-out infinite alternate; }
+@keyframes cvZoom { from { transform: scale(1); } to { transform: scale(1.09); } }
+/* the veil has to actually veil now that there's footage under it */
+#pd-cover #cv-veil {
+  background:
+    radial-gradient(120% 90% at 50% 12%, rgba(0,0,0,0) 38%, rgba(3,7,18,.72) 100%),
+    linear-gradient(180deg, rgba(4,10,24,.55), rgba(4,10,24,.18) 34%, rgba(4,10,24,.78) 100%);
+}
+body.covering .pd-dock, body.covering .pd-controls, body.covering .pd-side,
+body.covering .pd-coach { display: none !important; }
+#cv-veil { position: absolute; inset: 0; z-index: 1; pointer-events: none;
+  background: radial-gradient(120% 90% at 50% 12%, rgba(0,0,0,0) 40%, rgba(3,7,18,.7) 100%); }
+#pd-cover > .cv-in { position: relative; z-index: 2; display: flex; flex-direction: column; align-items: center; width: 100%; max-width: 940px; }
+.cv-logo { width: 96px; height: 96px; margin-bottom: 6px; filter: drop-shadow(0 6px 16px rgba(0,0,0,.6)); }
+.cv-logo img { width: 100%; height: 100%; object-fit: contain; }
+
+.cv-tour { width: min(900px, 94vw); margin: 6px 0 2px; }
+.cv-eyebrow { font: 800 12px/1 var(--font-display); letter-spacing: .22em; text-transform: uppercase;
+  color: var(--sk-gold); opacity: .9; margin-bottom: 14px; text-align: center; }
+.cv-stage { position: relative; display: flex; align-items: center; justify-content: center; gap: 14px; }
+.cv-track { position: relative; flex: 1 1 auto; min-width: 0; height: clamp(210px, 34vh, 280px); }
+.cv-slide { position: absolute; inset: 0; display: flex; gap: 22px; align-items: center; text-align: left;
+  opacity: 0; pointer-events: none; transform: translateX(16px) scale(.99);
+  transition: opacity .42s ease, transform .42s var(--ease); }
+.cv-slide.on { opacity: 1; pointer-events: auto; transform: none; }
+.cv-shot { flex: 0 0 auto; height: 100%; aspect-ratio: 16/10; border-radius: 12px; overflow: hidden; position: relative;
+  background: #0a1930; border: 2px solid rgba(245,166,35,.4); box-shadow: 0 12px 30px rgba(0,0,0,.55); }
+.cv-cap { flex: 1; min-width: 0; }
+.cv-num { font: 800 9px/1 var(--font-display); letter-spacing: .2em; text-transform: uppercase; color: var(--sk-gold); opacity: .75; margin-bottom: 8px; }
+.cv-title2 { font: 900 clamp(22px,2.5vw,30px)/1 var(--font-display); text-transform: uppercase; color: var(--sk-cream); margin-bottom: 8px; text-wrap: balance; }
+.cv-desc { font: 500 13.5px/1.55 var(--font-body); color: rgba(240,234,208,.82); margin: 0; max-width: 38ch; }
+.cv-arrow { flex: 0 0 auto; width: 40px; height: 40px; border-radius: 50%;
+  border: 1.5px solid rgba(245,166,35,.4); background: rgba(8,20,44,.7); color: var(--sk-cream);
+  font-size: 20px; cursor: pointer; display: flex; align-items: center; justify-content: center;
+  transition: background .15s, border-color .15s, transform .15s; }
+.cv-arrow:hover { background: rgba(31,110,242,.55); border-color: var(--sk-gold); transform: scale(1.08); }
+.cv-arrow:focus-visible { outline: 3px solid var(--sk-gold); outline-offset: 2px; }
+.cv-dots { display: flex; justify-content: center; gap: 8px; margin-top: 16px; }
+.cv-dot { width: 8px; height: 8px; border-radius: 50%; border: none; cursor: pointer; padding: 0;
+  background: rgba(240,234,208,.3); transition: background .2s, transform .2s; }
+.cv-dot.on { background: var(--sk-gold); transform: scale(1.25); }
+
+.cv-series { font: 800 11px/1 var(--font-display); letter-spacing: .24em; text-transform: uppercase; color: var(--sk-gold); opacity: .85; margin: 18px 0 6px; }
+.cv-title { font: 900 clamp(38px,6vw,72px)/.94 var(--font-display); text-transform: uppercase;
+  color: var(--sk-cream); text-align: center; text-wrap: balance; text-shadow: 0 4px 22px rgba(0,0,0,.6); margin: 0; }
+.cv-sub { font: 700 13px/1 var(--font-display); letter-spacing: .16em; text-transform: uppercase; color: rgba(240,234,208,.7); margin-top: 12px; }
+.cv-open { margin-top: 22px; display: inline-flex; align-items: center; gap: 9px; cursor: pointer;
+  font: 900 15px/1 var(--font-display); letter-spacing: .12em; text-transform: uppercase;
+  color: #3a2605; background: linear-gradient(180deg, var(--sk-gold-soft), var(--sk-gold)); border: none; border-radius: 999px;
+  padding: 15px 40px; box-shadow: 0 10px 26px rgba(0,0,0,.5), inset 0 0 0 2px rgba(255,255,255,.18);
+  transition: transform .16s var(--ease), filter .16s; }
+.cv-open:hover { transform: translateY(-3px); filter: brightness(1.06); }
+.cv-open:focus-visible { outline: 3px solid #fff; outline-offset: 3px; }
+.cv-open.warming { filter: grayscale(.35) brightness(.92); cursor: progress; }
+.cv-open .cv-open-dot { width: 9px; height: 9px; border-radius: 50%; background: #3a2605; opacity: .5; animation: cvPulse 1s ease-in-out infinite; display: none; }
+.cv-open.warming .cv-open-dot { display: inline-block; }
+@keyframes cvPulse { 0%,100% { opacity: .25; } 50% { opacity: .8; } }
+.cv-stamp { display: inline-flex; align-items: center; gap: 6px; margin-top: 16px;
+  font: 800 9.5px/1 var(--font-display); letter-spacing: .18em; text-transform: uppercase; color: rgba(245,166,35,.75); }
+.cv-stamp svg { width: 15px; height: 15px; }
+.cv-fatal { margin-top: 22px; width: min(540px,92vw); text-align: center; padding: 18px 22px 20px; border-radius: 10px;
+  background: rgba(8,18,38,.82); border: 1.5px solid rgba(245,166,35,.5); }
+.cv-fatal b { display: block; font: 900 17px/1.2 var(--font-display); letter-spacing: .1em; text-transform: uppercase; color: var(--sk-gold-soft); margin-bottom: 8px; }
+.cv-fatal span { display: block; font: 500 13px/1.5 var(--font-body); color: rgba(240,234,208,.82); }
+
+/* entrance choreography */
+@keyframes cvRise { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: none; } }
+@keyframes cvFade { from { opacity: 0; } to { opacity: 1; } }
+#pd-cover:not(.lift) .cv-logo   { animation: cvRise .7s var(--ease) .05s both; }
+#pd-cover:not(.lift) .cv-tour   { animation: cvFade .8s var(--ease) .2s both; }
+#pd-cover:not(.lift) .cv-series { animation: cvRise .7s var(--ease) .34s both; }
+#pd-cover:not(.lift) .cv-title  { animation: cvRise .8s var(--ease) .42s both; }
+#pd-cover:not(.lift) .cv-sub    { animation: cvRise .7s var(--ease) .56s both; }
+#pd-cover:not(.lift) .cv-open   { animation: cvFade .7s var(--ease) .66s both; }
+#pd-cover:not(.lift) .cv-stamp  { animation: cvRise .7s var(--ease) .8s both; }
+
+/* ---- the windows: coded miniatures of the REAL panels ---- */
+.cv-mk { position: absolute; inset: 0; width: 100%; height: 100%; }
+.cv-slide:not(.on) .cv-mk, .cv-slide:not(.on) .cv-mk * { animation-play-state: paused; }
+.cv-mk-panel { background-color: var(--sk-cream); background-image: var(--sk-noise); background-blend-mode: multiply;
+  border-left: 6px solid var(--sk-blue); display: flex; flex-direction: column; }
+.cv-mk-panel.def { border-left-color: #c4162e; }
+.cvp-head { font: 900 10px/1 var(--font-display); letter-spacing: 2px; text-transform: uppercase; color: var(--sk-navy);
+  border-bottom: 1.5px solid var(--sk-gold); padding: 7px 9px; }
+.cvp-body { flex: 1; padding: 7px 9px; display: flex; flex-direction: column; gap: 5px; min-height: 0; }
+.cvp-cap { font: 800 6.5px/1 var(--font-display); letter-spacing: 1.2px; text-transform: uppercase;
+  color: var(--sk-gold-soft); background: rgba(23,40,77,.85); border-radius: 3px; padding: 2px 5px; align-self: flex-start; }
+.cvp-draw { font: 900 8px/1 var(--font-display); letter-spacing: .8px; text-transform: uppercase; color: #3a2605;
+  background: var(--sk-gold-soft); border: 1.5px solid var(--sk-gold); border-radius: 6px; padding: 6px; text-align: center;
+  animation: cvFade .5s var(--ease) .15s both; }
+.cvp-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; }
+.cvp-card { background: var(--sk-cream-2); border: 1.2px solid var(--sk-navy); border-radius: 5px;
+  display: flex; flex-direction: column; align-items: center; padding: 3px 1px 2px; animation: cvRise .4s var(--ease) var(--d) both; }
+.cvp-card.on { border-color: var(--sk-blue); box-shadow: 0 0 0 1.5px var(--sk-blue); }
+.cvp-card svg { width: 100%; height: 16px; }
+.cvp-card svg path { fill: none; stroke: var(--sk-blue); stroke-width: 3.5; stroke-linecap: round; stroke-linejoin: round; }
+.cvp-card span { font: 800 5px/1 var(--font-display); letter-spacing: .3px; text-transform: uppercase; color: var(--sk-navy); }
+.cvp-row { display: flex; gap: 4px; }
+.cvp-row i { flex: 1; font: 800 7px/1 var(--font-display); letter-spacing: .5px; text-transform: uppercase; font-style: normal;
+  color: #8f1420; background: var(--sk-cream-2); border: 1.2px solid #dc9ca0; border-radius: 4px; padding: 5px 2px; text-align: center; }
+.cvp-row i.on { background: #c4162e; color: #fff; border-color: #8f1420; }
+.cv-mk-panel:not(.def) .cvp-row i { color: var(--sk-ink); border-color: var(--sk-blue); }
+.cv-mk-panel:not(.def) .cvp-row i.on { background: var(--sk-blue); color: #fff; }
+.cvp-mods { display: flex; flex-wrap: wrap; gap: 3px; margin-top: 2px; }
+.cvp-mods b { font: 800 5.5px/1 var(--font-display); letter-spacing: .4px; text-transform: uppercase;
+  background: rgba(31,110,242,.16); color: #123a8f; border: 1px solid rgba(31,110,242,.4); border-radius: 3px; padding: 3px 4px;
+  animation: cvRise .4s var(--ease) .7s both; }
+.cvp-reset { margin-top: auto; font: 800 7px/1 var(--font-display); letter-spacing: .6px; text-transform: uppercase;
+  color: #b23636; border: 1.5px solid #d84343; border-radius: 5px; padding: 5px; text-align: center; background: var(--sk-cream-2); }
+.cvp-sel { font: 800 7.5px/1 var(--font-display); letter-spacing: .4px; color: var(--sk-ink); background: var(--sk-cream-2);
+  border: 1.2px solid var(--sk-blue); border-radius: 5px; padding: 5px 6px; display: flex; justify-content: space-between; }
+.cvp-shots { display: flex; flex-direction: column; gap: 2px; }
+.cvp-shots em { font: 700 6.5px/1 var(--font-body); font-style: normal; color: #4c5878;
+  border-left: 2px solid rgba(23,40,77,.2); padding: 3px 5px; animation: cvFade .45s var(--ease) var(--d) both; }
+.cvp-input { font: 800 8px/1 var(--font-display); color: var(--sk-ink); background: var(--sk-cream-2);
+  border: 1.2px solid var(--sk-blue); border-radius: 5px; padding: 6px; display: flex; align-items: center; }
+.cvp-caret { width: 1px; height: 8px; background: var(--sk-navy); margin-left: 1px; animation: cvBlink 1s steps(2) infinite; }
+@keyframes cvBlink { 50% { opacity: 0; } }
+.cvp-save { font: 900 8.5px/1 var(--font-display); letter-spacing: .8px; text-transform: uppercase; color: #3a2605;
+  background: var(--sk-gold-soft); border: 1.5px solid var(--sk-gold); border-radius: 6px; padding: 6px; text-align: center; }
+.cvp-link { margin-top: auto; font: 700 6px/1 ui-monospace, Menlo, Consolas, monospace; color: #5d6885;
+  background: rgba(31,110,242,.1); border: 1px dashed rgba(31,110,242,.4); border-radius: 4px; padding: 4px; text-align: center; }
+.cvp-link b { color: var(--sk-blue-deep); }
+
+/* the field window: routes paint on, then the ball goes */
+.cv-mk-field { background: linear-gradient(180deg, #2f6b3a, #1f4d29); }
+.cvf-svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+.cvf-yards line { stroke: rgba(255,255,255,.18); stroke-width: 1; }
+.cvf-route { fill: none; stroke: #f5c518; stroke-width: 3; stroke-linecap: round;
+  stroke-dasharray: 200; stroke-dashoffset: 200; animation: cvDraw 1.1s var(--ease) var(--d, .1s) forwards; }
+.cvf-route.money { stroke: #e23b2e; }
+.cvf-ball { fill: none; stroke: #fff; stroke-width: 1.6; stroke-dasharray: 3 4; opacity: .9;
+  stroke-dashoffset: 160; animation: cvDraw 1s linear var(--d) forwards; }
+@keyframes cvDraw { to { stroke-dashoffset: 0; } }
+.cvf-chip { position: absolute; transform: translate(-50%,-50%);
+  font: 900 7px/1 var(--font-display); letter-spacing: .5px; color: #fff;
+  background: var(--sk-blue); border: 1.2px solid var(--sk-navy); border-radius: 3px; padding: 3px 4px;
+  box-shadow: 0 2px 5px rgba(0,0,0,.5); }
+.cvf-chip.money { background: var(--sk-blue); box-shadow: 0 0 0 1.5px #e23b2e, 0 2px 5px rgba(0,0,0,.5); }
+.cvf-chip.qb { background: var(--sk-navy); }
+
+@media (max-width: 860px) {
+  .cv-slide { flex-direction: column; gap: 10px; text-align: center; }
+  .cv-shot { height: 58%; width: auto; }
+  .cv-cap { flex: 0 0 auto; }
+  .cv-desc { max-width: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  #pd-cover *, .cv-mk * { animation: none !important; }
+  .cvf-route, .cvf-ball { stroke-dashoffset: 0; }
+  #cv-vid.in { opacity: 1; }   /* still show it — just don't drift it */
+}
+
+/* ---------------- shared patch material ---------------- */
+.pd-patch {
+  background-color: var(--sk-cream);
+  background-image: var(--sk-noise);
+  background-blend-mode: multiply;
+  border: 2.5px solid var(--sk-blue);
+  box-shadow: inset 0 0 0 2px rgba(245,166,35,.5), inset 0 1px 2px rgba(255,255,255,.7), 0 6px 16px rgba(0,0,0,.45);
+  border-radius: 12px;
+}
+
+/* ---------------- buttons (8 states) ---------------- */
+.pd-btn {
+  font: 800 13.5px var(--font-display); letter-spacing: .8px; text-transform: uppercase;
+  color: var(--sk-ink);
+  background-color: var(--sk-cream); background-image: var(--sk-noise); background-blend-mode: multiply;
+  border: 2px solid var(--sk-blue);
+  box-shadow: inset 0 0 0 1.5px rgba(245,166,35,.5), inset 0 1px 2px rgba(255,255,255,.7), 0 3px 9px rgba(0,0,0,.35);
+  border-radius: 10px; padding: 9px 13px; cursor: pointer;
+  transition: transform .16s var(--ease), box-shadow .16s var(--ease), background-color .16s var(--ease), color .16s var(--ease);
+}
+.pd-btn:hover { transform: translateY(-1px); box-shadow: inset 0 0 0 1.5px rgba(245,166,35,.85), inset 0 1px 2px rgba(255,255,255,.8), 0 7px 16px rgba(0,0,0,.4); }
+.pd-btn:active { transform: translateY(1px); box-shadow: inset 0 2px 5px rgba(0,0,0,.28), inset 0 0 0 1.5px rgba(245,166,35,.6); }
+.pd-btn:focus-visible { outline: 3px solid var(--sk-gold); outline-offset: 2px; }
+.pd-btn.go { border-color: var(--sk-gold); background-color: var(--sk-gold-soft); color: #3a2605; }
+.pd-btn.go:hover { background-color: var(--sk-gold); }
+.pd-btn.on { background-color: var(--sk-blue); color: var(--sk-cream); border-color: var(--sk-navy); box-shadow: inset 0 0 0 1.5px rgba(255,255,255,.35), 0 4px 12px rgba(31,110,242,.5); }
+.pd-btn.danger { color: #b23636; border-color: #d84343; }
+.pd-btn.danger:hover { background-color: #d84343; color: #fff; }
+.pd-btn.nav { padding: 8px 11px; font-size: 16px; line-height: 1; }
+.pd-btn.icon { display: inline-flex; align-items: center; gap: 7px; }
+
+/* defense toggle — crimson identity, dims when hidden */
+.pd-btn.def.on { border-color: #c4162e; background-color: #f6e2e0; color: #8f1420; box-shadow: inset 0 0 0 1.5px rgba(196,22,46,.4), inset 0 1px 2px rgba(255,255,255,.7), 0 3px 9px rgba(0,0,0,.3); }
+.pd-btn.def.on:hover { background-color: #f2d3d0; }
+.pd-btn.def:not(.on) { opacity: .55; }
+
+/* ---------------- mobile / TikTok preview framing ---------------- */
+/* the render canvas is reshaped to a 9:16 column (or its bottom third); everything
+   outside goes black. Same scene/camera — just a different framing of the stadium. */
+body.stage-phone, body.stage-phone-bottom { background: #000; }
+body.stage-phone #gl {
+  inset: auto; top: 0; left: 50%; transform: translateX(-50%);
+  width: calc(100vh * 9 / 16); height: 100vh;
+}
+body.stage-phone-bottom #gl {
+  inset: auto; bottom: 0; left: 50%; transform: translateX(-50%);
+  width: calc(100vh * 9 / 16); height: calc(100vh * 0.383);   /* ~bottom third, +15% taller */
+}
+/* 9:16 frame guide (preview aid — hidden while recording) */
+.pd-phoneframe {
+  display: none; position: fixed; top: 0; bottom: 0; left: 50%; transform: translateX(-50%);
+  width: calc(100vh * 9 / 16); box-sizing: border-box;
+  border: 2px solid rgba(245,197,61,.55); pointer-events: none; z-index: 4;
+}
+body.stage-phone .pd-phoneframe, body.stage-phone-bottom .pd-phoneframe { display: block; }
+
+/* (the floating left-side .pd-stage picker is gone — the preview-framing buttons
+    moved into the Studio drawer, where the rest of the filming tools live) */
+
+/* The phone/TikTok stages used to shuffle floating panels into the black margins.
+   They don't need to any more: the chrome is a dock + one side panel, and the 9:16
+   column is centred, so nothing sits over the frame. The canvas reshape above is
+   the whole feature now. */
+
+.pd-fs svg { display: block; }
+
+/* "press H to unhide" toast — lives outside the hidden layer so it stays reachable */
+.pd-reveal {
+  position: fixed; top: 16px; left: 50%; transform: translateX(-50%) translateY(-6px); z-index: 60;
+  font: 800 12px var(--font-display); letter-spacing: 1px; text-transform: uppercase; color: var(--sk-cream);
+  background: rgba(23,40,77,.9); border: 1.5px solid var(--sk-gold); border-radius: 999px; padding: 8px 18px;
+  opacity: 0; pointer-events: none; transition: opacity .3s var(--ease), transform .3s var(--ease);
+}
+.pd-reveal.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+/* ---------------- defence (inside the side panel) ----------------
+   Crimson stays the defence identity; it just doesn't shout from its own floating
+   box any more. Grouped Zone / Man / Other rather than eight equal buttons. */
+#pd-def-body { display: flex; flex-direction: column; gap: 9px; }
+.pd-def-opts { display: flex; flex-direction: column; gap: 5px; }
+.pd-def-opts .pd-group-cap { color: #ffd9d5; background: rgba(140,12,22,.92); margin-top: 3px; }
+.pd-def-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 5px; }
+/* what you've hand-changed, listed right above the button that undoes it */
+.pd-mods { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 2px; }
+.pd-mod {
+  font: 800 9.5px var(--font-display); letter-spacing: .6px; text-transform: uppercase;
+  border-radius: 6px; padding: 4px 7px; background: rgba(196,22,46,.14); color: #8f1420; border: 1.5px solid rgba(196,22,46,.35);
+}
+.pd-mod-align { background: rgba(31,110,242,.14); color: #123a8f; border-color: rgba(31,110,242,.35); }
+.pd-mod-sep { background: rgba(245,166,35,.2); color: #8a5300; border-color: rgba(245,166,35,.5); }
+.pd-mods-none { font: 600 10.5px var(--font-body); color: #5d6885; line-height: 1.5; }
+.pd-def-resetnote { font: 600 10px var(--font-body); line-height: 1.5; color: #5d6885; }
+#pd-def-reset:disabled { opacity: .4; cursor: not-allowed; }
+#pd-def-reset:disabled:hover { transform: none; background-color: var(--sk-cream); color: #b23636; }
+
+.pd-def-note { font: 700 10.5px var(--font-body); letter-spacing: .2px; line-height: 1.55; color: #3f4a68; }
+.pd-def-note b { color: var(--sk-navy); }
+.pd-def-note > span { color: #123a8f; }
+.pd-sep-head { display: flex; justify-content: space-between; align-items: center; margin-top: 5px; }
+.pd-sep-head span:last-child { color: #123a8f; font-weight: 800; }
+#pd-mansep input[type=range] { width: 100%; accent-color: #123a8f; cursor: pointer; }
+#pd-mansep-list { margin-top: 6px; display: flex; flex-direction: column; gap: 5px; }
+.pd-sep-row { background: rgba(23,40,77,.06); border-radius: 7px; padding: 5px 8px; }
+.pd-sep-row.ov { background: rgba(245,183,61,.2); }
+.pd-sep-row .rowrange { width: 100%; margin-top: 2px; accent-color: #123a8f; cursor: pointer; }
+.pd-sep-row.ov .rowrange { accent-color: var(--sk-gold); }
+.pd-sep-who { color: #243154; font-weight: 800; }
+.pd-sep-row.ov .pd-sep-who { color: #8a5300; }
+.pd-sep-row .rowval { color: #123a8f; font-weight: 800; }
+.pd-sep-base { color: #6b6250; font-size: 9px; }
+.pd-sep-row .rowreset { cursor: pointer; border: 0; border-radius: 4px; padding: 1px 5px; font: 800 9px var(--font-body); background: var(--sk-navy); color: var(--sk-cream); }
+.pd-def-opt {
+  font: 800 12px var(--font-display); letter-spacing: .5px; text-transform: uppercase; white-space: nowrap;
+  color: #8f1420; background-color: var(--sk-cream-2); background-image: var(--sk-noise); background-blend-mode: multiply;
+  border: 2px solid #dc9ca0; border-radius: 8px; padding: 9px 13px; cursor: pointer;
+  transition: transform .14s var(--ease), background-color .14s var(--ease), color .14s var(--ease), border-color .14s var(--ease);
+}
+.pd-def-opt:hover { border-color: #c4162e; transform: translateY(-1px); }
+.pd-def-opt:active { transform: translateY(1px); }
+.pd-def-opt:focus-visible { outline: 3px solid var(--sk-gold); outline-offset: 2px; }
+.pd-def-opt.on { background: #c4162e; color: #fff; border-color: #8f1420; box-shadow: inset 0 0 0 1.5px rgba(255,255,255,.32), 0 3px 10px rgba(196,22,46,.5); }
+
+/* labeled control group — each cluster reads as its own little UI with a caption */
+.pd-group { display: flex; flex-direction: column; gap: 4px; }
+.pd-group-cap { align-self: flex-start; font: 800 8.5px var(--font-display); letter-spacing: 1.6px; text-transform: uppercase; color: var(--sk-gold-soft); background: rgba(23,40,77,.85); border-radius: 5px; padding: 2px 8px; }
+.pd-group-row { display: flex; gap: 6px; }
+.pd-btn.wide { min-width: 128px; }
+.pd-brand-chip { display: flex; align-items: center; gap: 9px; padding: 5px 15px 5px 6px; cursor: default; }
+.pd-brand-chip img { width: 34px; height: 34px; }
+.pd-brand-chip .t { font: 900 15px var(--font-display); letter-spacing: 1.6px; color: var(--sk-navy); line-height: 1; }
+.pd-brand-chip .t small { display: block; font: 700 8.5px var(--font-body); letter-spacing: 1.8px; color: var(--sk-ink-soft); }
+.pd-sep { width: 1px; align-self: stretch; background: rgba(23,40,77,.18); margin: 2px 3px; }
+
+/* formation clicker as one seamless patch */
+.pd-form-group { display: inline-flex; align-items: stretch; }
+.pd-form-group .pd-btn { border-radius: 0; border-left-width: 1px; border-right-width: 1px; box-shadow: inset 0 1px 2px rgba(255,255,255,.7), 0 3px 9px rgba(0,0,0,.3); }
+.pd-form-group .pd-btn:first-child { border-radius: 10px 0 0 10px; border-left-width: 2px; }
+.pd-form-group .pd-btn:last-child { border-radius: 0 10px 10px 0; border-right-width: 2px; }
+.pd-form-name { min-width: 156px; text-align: center; cursor: default; letter-spacing: 1.1px; }
+
+/* ---------------- selected-player inspector (inside the Offense panel) ---------------- */
+.pd-panel {
+  display: none; flex-direction: column; gap: 9px;
+  background-color: var(--sk-cream-2); background-image: var(--sk-noise); background-blend-mode: multiply;
+  border: 2px solid var(--sk-blue); border-left-width: 7px;   /* brand accent bar (per style brief) */
+  box-shadow: inset 0 0 0 1.5px rgba(245,166,35,.45);
+  border-radius: 11px; padding: 10px 11px;
+}
+.pd-panel.show { display: flex; }
+.pd-ph { display: flex; align-items: center; justify-content: space-between; gap: 8px; border-bottom: 2px solid var(--sk-gold); padding-bottom: 7px; }
+.pd-ph-title { font: 900 18px var(--font-display); letter-spacing: 1.2px; color: var(--sk-navy); }
+.pd-ph-route { font: 800 11px var(--font-display); letter-spacing: 1px; color: var(--sk-ink-soft); }
+.pd-row-label { font: 800 9.5px var(--font-display); letter-spacing: 1.6px; color: var(--sk-ink-soft); margin-bottom: -3px; }
+
+/* segmented control (type / rollout) */
+.pd-seg { display: inline-flex; width: 100%; border-radius: 9px; overflow: hidden; border: 2px solid var(--sk-blue); box-shadow: inset 0 0 0 1.5px rgba(245,166,35,.4); }
+.pd-seg button {
+  flex: 1; font: 800 12.5px var(--font-display); letter-spacing: .6px; text-transform: uppercase;
+  color: var(--sk-ink); background: var(--sk-cream-2); border: none; border-right: 1.5px solid rgba(23,40,77,.2);
+  padding: 8px 4px; cursor: pointer; transition: background-color .15s var(--ease), color .15s var(--ease);
+}
+.pd-seg button:last-child { border-right: none; }
+.pd-seg button:hover { background: #ece5cc; }
+.pd-seg button.on { background: var(--sk-blue); color: #fff; }
+.pd-seg button:focus-visible { outline: 2px solid var(--sk-gold); outline-offset: -2px; }
+
+/* (the .pd-stem depth-stepper rules are gone — that markup was replaced by the
+    tray's STEM slider, .pd-tray-stem / #pd-stem-range, long ago) */
+.pd-actions { display: flex; gap: 7px; }
+.pd-actions .pd-btn { flex: 1; justify-content: center; }
+
+/* ---------------- route picker (inside the Offense panel) ----------------
+   Was a 22-card horizontal carousel with ‹ › pagers and three duplicated copies
+   faking an infinite loop — you had to page to find a route you could already
+   name. Now it's a grid: every route visible, one copy, no pager. */
+.pd-tray { display: flex; flex-direction: column; gap: 12px; }
+/* the headline action of the whole panel — full width, above the library */
+.pd-drawcustom {
+  display: flex; align-items: center; justify-content: center; gap: 9px; width: 100%;
+  padding: 13px 12px; font-size: 14px; letter-spacing: 1px;
+  border-color: var(--sk-gold); background-color: var(--sk-gold-soft); color: #3a2605;
+}
+.pd-drawcustom:hover { background-color: var(--sk-gold); }
+.pd-drawcustom.on { background-color: var(--sk-blue); background-image: none; color: #fff; border-color: var(--sk-navy); }
+.pd-drawcustom svg { flex: 0 0 auto; }
+.pd-tray-side:disabled, .pd-tray-stem input:disabled { opacity: .4; cursor: not-allowed; }
+.pd-tray-stem { display: flex; align-items: center; gap: 8px; }
+.pd-tray-side-cap { font: 800 9.5px var(--font-display); letter-spacing: 1.4px; color: var(--sk-ink-soft); text-transform: uppercase; }
+.pd-tray-stem input[type=range] { flex: 1; accent-color: var(--sk-gold); cursor: pointer; }
+.pd-stem-num { font: 900 12px var(--font-display); color: var(--sk-navy); min-width: 18px; text-align: right; }
+.pd-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.pd-card {
+  width: auto;
+  display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 9px 5px 7px;
+  background-color: var(--sk-cream-2); background-image: var(--sk-noise); background-blend-mode: multiply;
+  border: 2px solid var(--sk-navy); box-shadow: inset 0 0 0 1.5px rgba(245,166,35,.35), 0 3px 8px rgba(0,0,0,.3);
+  border-radius: 11px; cursor: pointer;
+  transition: transform .16s var(--ease), border-color .16s var(--ease), box-shadow .16s var(--ease);
+}
+.pd-card:hover { transform: translateY(-3px); border-color: var(--sk-blue); box-shadow: inset 0 0 0 1.5px rgba(245,166,35,.7), 0 8px 16px rgba(0,0,0,.4); }
+.pd-card:active { transform: translateY(-1px); }
+.pd-card:focus-visible { outline: 3px solid var(--sk-gold); outline-offset: 2px; }
+.pd-card.on { border-color: var(--sk-blue); box-shadow: 0 0 0 2px var(--sk-blue), 0 6px 14px rgba(31,110,242,.4); }
+.pd-card span { font: 800 10px var(--font-display); letter-spacing: .4px; color: var(--sk-navy); text-transform: uppercase; white-space: nowrap; }
+.pd-card svg { width: 100%; height: auto; }
+.pd-cat { flex: 0 0 auto; align-self: center; font: 800 9px var(--font-display); letter-spacing: 1.4px; color: var(--sk-ink-soft); padding: 0 2px; }
+
+/* ---------------- hint / live description (inside the control panel) ---------------- */
+.pd-hint {
+  font: 700 10.5px var(--font-display); letter-spacing: .5px; text-transform: uppercase; color: var(--sk-ink);
+  line-height: 1.4; min-height: 30px; display: flex; align-items: center;
+  background: rgba(23,40,77,.06); border: 1.5px solid rgba(23,40,77,.15); border-left: 4px solid var(--sk-gold);
+  border-radius: 8px; padding: 7px 10px; transition: border-color .18s var(--ease), background-color .18s var(--ease);
+}
+.pd-hint.throw { border-left-color: var(--sk-blue); background: rgba(31,110,242,.1); color: var(--sk-blue-deep); }
+
+/* ---------------- play scrubber (shown only while a play is live) ---------------- */
+.pd-scrub { display: none; align-items: center; gap: 9px; }
+.pd-scrub.show { display: flex; }
+.pd-scrub-cap { font: 800 9.5px var(--font-display); letter-spacing: 1.8px; color: var(--sk-ink-soft); text-transform: uppercase; }
+.pd-scrub-time { font: 900 12.5px var(--font-display); letter-spacing: .8px; color: var(--sk-navy); min-width: 42px; text-align: right; }
+.pd-scrub-range {
+  -webkit-appearance: none; appearance: none; flex: 1; height: 8px; margin: 0; cursor: pointer;
+  background: linear-gradient(var(--sk-blue), var(--sk-blue-deep));
+  border: 1.5px solid var(--sk-navy); border-radius: 999px; box-shadow: inset 0 1px 2px rgba(0,0,0,.35);
+}
+.pd-scrub-range:focus-visible { outline: 3px solid var(--sk-gold); outline-offset: 3px; }
+.pd-scrub-range::-webkit-slider-thumb {
+  -webkit-appearance: none; appearance: none; width: 20px; height: 20px; border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, var(--sk-gold-soft), var(--sk-gold));
+  border: 2px solid var(--sk-navy); box-shadow: 0 2px 5px rgba(0,0,0,.45); margin-top: -1px;
+}
+.pd-scrub-range::-moz-range-thumb {
+  width: 20px; height: 20px; border-radius: 50%; border: 2px solid var(--sk-navy);
+  background: radial-gradient(circle at 35% 30%, var(--sk-gold-soft), var(--sk-gold)); box-shadow: 0 2px 5px rgba(0,0,0,.45);
+}
+
+/* ================================================================
+   PLAY IDENTITY — name the play + save it (top bar)
+   ================================================================ */
+.pd-name-group { display: flex; gap: 6px; align-items: stretch; }
+.pd-playname {
+  font: 800 13.5px var(--font-display); letter-spacing: .8px; color: var(--sk-ink);
+  background-color: var(--sk-cream-2); background-image: var(--sk-noise); background-blend-mode: multiply;
+  border: 2px solid var(--sk-blue);
+  box-shadow: inset 0 0 0 1.5px rgba(245,166,35,.5), inset 0 1px 3px rgba(23,40,77,.18);
+  border-radius: 10px; padding: 9px 12px; width: 190px;
+  transition: border-color .16s var(--ease), box-shadow .16s var(--ease);
+}
+.pd-playname::placeholder { color: #6f7a99; }   /* 4.5:1 on cream — not the default muted gray */
+.pd-playname:hover { border-color: var(--sk-blue-deep); }
+.pd-playname:focus { outline: none; border-color: var(--sk-gold); box-shadow: inset 0 0 0 1.5px rgba(245,166,35,.9), 0 0 0 3px rgba(245,166,35,.35); }
+
+/* Save play — the primary action of the whole tool. Gold = do this. */
+.pd-save { display: inline-flex; align-items: center; gap: 7px; min-width: 116px; justify-content: center; }
+.pd-save .pd-save-ico { display: block; width: 14px; height: 14px; }
+.pd-save.saved { background-color: #dff0dc; border-color: #2f7d43; color: #1d5c2e; }
+.pd-save.saved:hover { background-color: #cfe8cb; }
+.pd-save.busy { opacity: .75; pointer-events: none; }
+.pd-save:disabled { opacity: .45; cursor: not-allowed; transform: none; box-shadow: inset 0 0 0 1.5px rgba(23,40,77,.2); }
+.pd-save:disabled:hover { transform: none; }
+/* locked = the future membership gate; canSave() in core/cloud.js drives it */
+.pd-save.locked { color: #6b6250; border-color: #b9a98a; background-color: #ece5cc; }
+
+/* ================================================================
+   UNDO / REDO — under the top bar, with the edits they affect
+   ================================================================ */
+/* An "Edit" group inside the top bar — so it wraps and scales with everything
+   else instead of floating at a fixed offset the wrapped bar would grow into. */
+.pd-undo .pd-btn { padding: 9px 11px; }
+.pd-undo .pd-btn:disabled { opacity: .38; cursor: not-allowed; transform: none; box-shadow: inset 0 0 0 1.5px rgba(23,40,77,.18); }
+.pd-undo .pd-btn:disabled:hover { transform: none; box-shadow: inset 0 0 0 1.5px rgba(23,40,77,.18); }
+
+/* ================================================================
+   PLAYS tab — saved plays live in their own dock tab now
+   ================================================================ */
+.pd-plays-body { display: flex; flex-direction: column; gap: 6px; }
+.pd-plays-msg { font: 600 12px var(--font-body); line-height: 1.6; color: #4c5878; padding: 10px 4px; }
+.pd-plays-msg b { color: var(--sk-navy); }
+.pd-lib-hint { font: 700 10px var(--font-body); letter-spacing: .3px; color: #5d6885; }
+.pd-lib-hint b { color: var(--sk-blue-deep); }
+/* save controls mirrored into the Your Plays tab, above the list */
+.pd-plays-save { display: flex; flex-direction: column; gap: 7px; padding-bottom: 12px; margin-bottom: 4px; border-bottom: 2px solid var(--sk-gold); }
+.pd-plays-save .pd-savedas { min-height: 0; }
+.pd-plays-listcap { align-self: flex-start; }
+.pd-plays-listwrap { display: flex; flex-direction: column; gap: 6px; }
+
+/* Join upsell — shown in the Plays tab for non-members */
+.pd-join { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 9px; padding: 6px 2px; }
+.pd-join-crest { width: 52px; height: 52px; margin-top: 4px; }
+.pd-join-title { font: 900 20px var(--font-display); letter-spacing: 1px; text-transform: uppercase; color: var(--sk-navy); }
+.pd-join-sub { margin: 0; font: 600 12.5px var(--font-body); line-height: 1.5; color: #4c5878; }
+.pd-join-sub b { color: var(--sk-navy); }
+.pd-join-list { margin: 4px 0 6px; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 6px; width: 100%; }
+.pd-join-list li { position: relative; text-align: left; font: 600 12px var(--font-body); line-height: 1.35; color: #3f4a68; padding: 6px 10px 6px 28px;
+  background: rgba(31,110,242,.07); border: 1.5px solid rgba(31,110,242,.2); border-radius: 8px; }
+.pd-join-list li::before { content: "✓"; position: absolute; left: 9px; top: 6px; color: #2f7d43; font-weight: 900; }
+.pd-join-list li b { color: var(--sk-navy); }
+.pd-join .pd-btn.go { text-decoration: none; }
+
+/* free / signed-out: the Save-play button reads as a locked members' perk. It stays
+   clickable on purpose — clicking it opens the pitch — so it's dimmed, not disabled. */
+body.no-save #pd-save { filter: grayscale(.45); opacity: .82; }
+body.no-save #pd-save .pd-save-tx::before { content: "🔒 "; font-size: .92em; }
+.pd-play-row { display: flex; gap: 6px; align-items: stretch; }
+.pd-play-open {
+  flex: 1; min-width: 0; text-align: left; cursor: pointer;
+  display: flex; flex-direction: column; gap: 2px;
+  background-color: var(--sk-cream-2); background-image: var(--sk-noise); background-blend-mode: multiply;
+  border: 2px solid var(--sk-navy); box-shadow: inset 0 0 0 1.5px rgba(245,166,35,.35);
+  border-radius: 9px; padding: 8px 10px;
+  transition: transform .14s var(--ease), border-color .14s var(--ease), box-shadow .14s var(--ease);
+}
+.pd-play-open:hover { transform: translateY(-1px); border-color: var(--sk-blue); box-shadow: inset 0 0 0 1.5px rgba(245,166,35,.7), 0 6px 14px rgba(0,0,0,.3); }
+.pd-play-open:active { transform: translateY(1px); }
+.pd-play-open:focus-visible { outline: 3px solid var(--sk-gold); outline-offset: 2px; }
+.pd-play-name { font: 800 13.5px var(--font-display); letter-spacing: .7px; color: var(--sk-navy); text-transform: uppercase;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pd-play-meta { font: 600 10px var(--font-body); letter-spacing: .3px; color: #5d6885; }
+.pd-play-del { flex: 0 0 auto; padding: 8px 10px; font-size: 12px; }
+
+/* plays grouped by formation: a collapsible section per formation */
+.pd-fgroup { display: flex; flex-direction: column; gap: 6px; }
+.pd-fhead {
+  display: flex; align-items: center; gap: 8px; cursor: pointer; width: 100%; text-align: left;
+  font: 900 12px var(--font-display); letter-spacing: 1.2px; text-transform: uppercase; color: var(--sk-navy);
+  background: rgba(23,40,77,.07); border: 1.5px solid rgba(23,40,77,.16); border-left: 4px solid var(--sk-gold);
+  border-radius: 8px; padding: 8px 10px;
+}
+.pd-fhead:hover { background: rgba(23,40,77,.12); }
+.pd-fhead:focus-visible { outline: 3px solid var(--sk-gold); outline-offset: 2px; }
+.pd-farrow { font-size: 10px; transition: transform .15s var(--ease); }
+.pd-fname { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pd-fcount { font: 800 10px var(--font-display); color: var(--sk-cream); background: var(--sk-blue); border-radius: 999px; padding: 2px 8px; }
+.pd-fplays { display: flex; flex-direction: column; gap: 6px; padding-left: 6px; }
+.pd-fgroup.collapsed .pd-fplays { display: none; }
+.pd-fgroup.collapsed .pd-farrow { transform: rotate(-90deg); }
+
+/* ================================================================
+   SAVE dialog — name the play + file it under a formation
+   ================================================================ */
+.pd-savedlg { position: fixed; inset: 0; z-index: 93; display: none; place-items: center; }
+.pd-savedlg.show { display: grid; }
+.pd-savedlg-back { position: absolute; inset: 0; background: rgba(4,10,24,.72); }
+.pd-savedlg-card { position: relative; width: min(400px, 92vw); padding: 22px 22px 20px; border-left-width: 9px !important;
+  display: flex; flex-direction: column; gap: 7px; }
+.pd-savedlg-x { position: absolute; top: 10px; right: 12px; border: 0; background: transparent; cursor: pointer;
+  font: 800 16px var(--font-body); color: var(--sk-ink-soft); }
+.pd-savedlg-x:hover { color: var(--sk-navy); }
+.pd-savedlg-title { margin: 0 0 6px; font: 900 22px var(--font-display); letter-spacing: 1px; color: var(--sk-navy); }
+.pd-dlg-input {
+  font: 700 14px var(--font-body); color: var(--sk-ink); background: #fffdf5;
+  border: 2px solid rgba(23,40,77,.3); border-radius: 9px; padding: 10px 12px; margin-bottom: 4px;
+  transition: border-color .16s var(--ease), box-shadow .16s var(--ease);
+}
+.pd-dlg-input::placeholder { color: #6f7a99; }
+.pd-dlg-input:focus { outline: none; border-color: var(--sk-blue); box-shadow: 0 0 0 3px rgba(31,110,242,.25); }
+.pd-savedlg-err { min-height: 14px; font: 700 11.5px var(--font-body); color: #b5202f; }
+.pd-savedlg-card .pd-btn.full { margin-top: 4px; }
+/* the "saved as" line under the Save button */
+.pd-savedas { font: 700 10px var(--font-body); letter-spacing: .3px; color: #2f7d43; min-height: 12px; }
+
+/* "unsaved edits to this play" — appears only after you change a loaded play */
+.pd-edits { display: flex; flex-direction: column; gap: 7px; margin-top: 4px; padding: 10px 11px;
+  background: rgba(245,166,35,.12); border: 1.5px solid rgba(245,166,35,.45);
+  border-left: 4px solid var(--sk-gold); border-radius: 9px; }
+.pd-edits[hidden] { display: none; }
+.pd-edits-cap { font: 700 10.5px var(--font-body); line-height: 1.4; color: #6b4a00; }
+.pd-edits-cap b { color: #8a5300; }
+.pd-edits-list { display: flex; flex-wrap: wrap; gap: 4px; }
+.pd-edits .pd-mod { background: rgba(245,166,35,.22); color: #8a5300; border-color: rgba(245,166,35,.55); }
+
+/* ================================================================
+   SHARE box
+   ================================================================ */
+.pd-sharebox {
+  position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 92;
+  width: min(430px, 92vw); padding: 18px 18px 15px; border-left-width: 9px !important;
+  display: flex; flex-direction: column; gap: 10px;
+}
+.pd-sharebox-head { font: 800 12px var(--font-display); letter-spacing: 1.2px; text-transform: uppercase; color: var(--sk-navy); }
+.pd-sharebox-url {
+  font: 600 13px var(--font-body); color: var(--sk-ink); background: #fffdf5;
+  border: 2px solid rgba(23,40,77,.3); border-radius: 9px; padding: 10px 12px; width: 100%; box-sizing: border-box;
+}
+.pd-sharebox-url:focus { outline: none; border-color: var(--sk-blue); box-shadow: 0 0 0 3px rgba(31,110,242,.25); }
+.pd-sharebox-btns { display: flex; gap: 8px; }
+.pd-sharebox-btns .pd-btn { flex: 1; justify-content: center; }
+
+/* ================================================================
+   FIRST RUN coach-mark
+   ================================================================ */
+/* Top-right corner — it used to sit on top of the tab buttons, which is exactly
+   where you're trying to click while you read it. */
+.pd-coach {
+  position: fixed; top: 12px; right: 12px; z-index: 30; width: 250px;
+  transform: scale(var(--ui-scale)); transform-origin: top right;
+  display: flex; flex-direction: column; align-items: stretch; gap: 9px;
+  font: 700 12px var(--font-body); color: var(--sk-cream);
+  background: rgba(23,40,77,.94); border: 2px solid var(--sk-gold); border-radius: 14px;
+  padding: 13px 14px; box-shadow: 0 12px 30px rgba(0,0,0,.5);
+  transition: opacity .25s var(--ease), transform .25s var(--ease);
+}
+.pd-coach.gone { opacity: 0; transform: scale(var(--ui-scale)) translateY(-8px); }
+.pd-coach-step { display: flex; align-items: flex-start; gap: 8px; line-height: 1.4; }
+.pd-coach-step b {
+  flex: 0 0 auto; display: grid; place-items: center; width: 18px; height: 18px; border-radius: 50%;
+  background: var(--sk-gold); color: #3a2605; font: 900 11px var(--font-display);
+}
+.pd-coach-run { color: var(--sk-gold-soft); font-weight: 800; }
+.pd-coach-x {
+  cursor: pointer; border: 0; border-radius: 8px; padding: 8px 14px; margin-top: 2px;
+  font: 800 11px var(--font-display); letter-spacing: 1px; text-transform: uppercase;
+  background: var(--sk-gold); color: #3a2605;
+}
+.pd-coach-x:hover { background: var(--sk-gold-soft); }
+body.ui-hidden .pd-coach, body.view-only .pd-coach { display: none; }
+
+/* ================================================================
+   VIEWER — what a share link opens. Read-only: the authoring chrome is
+   gone, the field is the whole page. Must survive a phone, because links
+   get opened on phones even though the editor is desktop-only.
+   ================================================================ */
+body.view-only .pd-dock, body.view-only .pd-side, body.view-only .pd-plays { display: none !important; }
+/* the viewer gets its own minimal transport, floated bottom-right */
+body.view-only .pd-viewer-run { position: fixed; right: 12px; bottom: 12px; z-index: var(--z-bar); }
+
+.pd-viewer { position: fixed; top: 12px; left: 12px; right: 12px; z-index: var(--z-bar); display: flex; justify-content: center; pointer-events: none; }
+.pd-viewer-card {
+  pointer-events: auto; display: flex; align-items: center; gap: 12px;
+  padding: 8px 12px; border-left-width: 8px !important; max-width: 100%;
+}
+.pd-viewer-crest { width: 32px; height: 32px; flex: 0 0 auto; }
+.pd-viewer-meta { display: flex; flex-direction: column; min-width: 0; }
+.pd-viewer-name { font: 900 16px var(--font-display); letter-spacing: 1px; color: var(--sk-navy); text-transform: uppercase;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pd-viewer-sub { font: 700 9px var(--font-body); letter-spacing: 1.2px; text-transform: uppercase; color: var(--sk-ink-soft); }
+.pd-viewer .pd-btn { flex: 0 0 auto; text-decoration: none; display: inline-flex; align-items: center; }
+
+@media (max-width: 720px) {
+  .pd-viewer { top: 8px; left: 8px; right: 8px; }
+  .pd-viewer-card { width: 100%; flex-wrap: wrap; gap: 8px; padding: 8px 10px; }
+  .pd-viewer-meta { flex: 1 1 auto; }
+  .pd-viewer .pd-btn { flex: 1 1 auto; justify-content: center; }
+}
+
+/* export explainer — says what the button does and where the file lands */
+.pd-xnote {
+  display: flex; flex-direction: column; gap: 7px; margin-top: 2px; padding: 10px 11px;
+  font: 600 11.5px var(--font-body); line-height: 1.55; color: #3f4a68;
+  background: rgba(31,110,242,.08); border: 1.5px solid rgba(31,110,242,.28);
+  border-left: 4px solid var(--sk-blue); border-radius: 9px;
+}
+.pd-xnote[hidden] { display: none; }
+.pd-xnote p { margin: 0; }
+.pd-xnote b { color: var(--sk-navy); }
+.pd-xnote .pd-row-label { margin: 3px 0 -3px; }
+.pd-xnote .pd-btn.busy { opacity: .75; pointer-events: none; }
+
+/* (the Studio drawer is a dock TAB now — its controls are plain panel groups) */
+.pd-studio-note { font: 700 10px var(--font-body); letter-spacing: .3px; line-height: 1.55; color: #4c5878; }
+.pd-studio-note b { color: var(--sk-blue-deep); }
+
+/* ================================================================
+   CAMERA picker — a real select, brand-skinned
+   ================================================================ */
+.pd-select {
+  width: 100%; cursor: pointer;
+  font: 800 12.5px var(--font-display); letter-spacing: .6px; color: var(--sk-ink);
+  background-color: var(--sk-cream-2); background-image: var(--sk-noise); background-blend-mode: multiply;
+  border: 2px solid var(--sk-blue);
+  box-shadow: inset 0 0 0 1.5px rgba(245,166,35,.5), inset 0 1px 2px rgba(255,255,255,.7);
+  border-radius: 9px; padding: 8px 10px;
+  transition: border-color .16s var(--ease), box-shadow .16s var(--ease);
+}
+.pd-select:hover { border-color: var(--sk-blue-deep); }
+.pd-select:focus-visible { outline: 3px solid var(--sk-gold); outline-offset: 2px; }
+.pd-field { display: flex; flex-direction: column; gap: 4px; }
+
+/* the inspector's inner rows, now that it's a panel card rather than a wide dock */
+.pd-panel .pd-dockgrp { display: flex; flex-direction: column; gap: 4px; }
+.pd-panel .pd-actions .pd-btn { padding: 8px 10px; font-size: 11px; white-space: nowrap; }
+
+/* ================================================================
+   Sign-in modal + toast (ported from war_room's save layer)
+   ================================================================ */
+#sk-login { position: fixed; inset: 0; z-index: 90; display: grid; place-items: center;
+  opacity: 0; transition: opacity .2s var(--ease); }
+#sk-login.open { opacity: 1; }
+.sk-login-backdrop { position: absolute; inset: 0; background: rgba(4,10,24,.72); }
+.sk-login-card {
+  position: relative; width: min(384px, 92vw); padding: 26px 26px 20px; text-align: center;
+  border-left-width: 9px !important;
+  transform: translateY(8px); transition: transform .22s var(--ease);
+}
+#sk-login.open .sk-login-card { transform: translateY(0); }
+.sk-login-crest { width: 44px; height: 44px; margin-bottom: 8px; }
+.sk-login-x { position: absolute; top: 8px; right: 10px; border: 0; background: transparent; cursor: pointer;
+  font: 700 22px var(--font-body); line-height: 1; color: var(--sk-ink-soft); padding: 4px 8px; border-radius: 6px; }
+.sk-login-x:hover { color: var(--sk-navy); background: rgba(23,40,77,.08); }
+.sk-login-title { margin: 0 0 6px; font: 900 22px var(--font-display); letter-spacing: 1px; color: var(--sk-navy); text-wrap: balance; }
+.sk-login-sub { margin: 0 0 16px; font: 600 12.5px var(--font-body); line-height: 1.5; color: #4c5878; }
+.sk-login-form { display: flex; flex-direction: column; gap: 9px; }
+.sk-login-input {
+  font: 600 14px var(--font-body); color: var(--sk-ink);
+  background: #fffdf5; border: 2px solid rgba(23,40,77,.3); border-radius: 9px; padding: 11px 12px;
+  transition: border-color .16s var(--ease), box-shadow .16s var(--ease);
+}
+.sk-login-input::placeholder { color: #6f7a99; }
+.sk-login-input:focus { outline: none; border-color: var(--sk-blue); box-shadow: 0 0 0 3px rgba(31,110,242,.25); }
+.sk-login-err { min-height: 15px; font: 700 11.5px var(--font-body); color: #b5202f; }
+.sk-login-go { padding: 12px; font-size: 15px; }
+.sk-login-foot { margin: 13px 0 0; font: 600 10.5px var(--font-body); color: #5d6885; }
+
+#sk-toast {
+  position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%) translateY(10px); z-index: 95;
+  font: 800 12.5px var(--font-display); letter-spacing: 1px; text-transform: uppercase; color: var(--sk-cream);
+  background: rgba(23,40,77,.96); border: 1.5px solid var(--sk-gold); border-radius: 999px; padding: 11px 22px;
+  box-shadow: 0 10px 26px rgba(0,0,0,.5);
+  opacity: 0; pointer-events: none; transition: opacity .22s var(--ease), transform .22s var(--ease);
+}
+#sk-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+@media (prefers-reduced-motion: reduce) {
+  .pd-btn, .pd-card, .pd-seg button, .pd-panel, .pd-scrub,
+  .pd-playname, .pd-select, .sk-login-card, .sk-login-input, #sk-toast, #sk-login { transition: none; animation: none; }
+  .pd-cards { scroll-behavior: auto; }
+}

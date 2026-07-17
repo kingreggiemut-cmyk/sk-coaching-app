@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <!-- Relative base: the app resolves all its assets against wherever it's actually
+       served from, so it works dropped at ANY path (/play-builder/, /playbooks/…) with
+       no code change. Netlify serves directory URLs with a trailing slash, which is
+       what makes "./" resolve to this folder. -->
+  <base href="./" />
+  <title>King Reggie's Play Builder — Scheme Kings</title>
+  <link rel="stylesheet" href="styles/ui.css" />
+  <style>
+    html, body { margin: 0; height: 100%; background: #05140b; overflow: hidden; font-family: system-ui, sans-serif; }
+    #gl { display: block; position: fixed; inset: 0; }   /* full-window by default; mobile modes reshape it via body classes */
+    .hud { position: fixed; left: 12px; bottom: 10px; color: #bfe6c8; font-size: 12px; letter-spacing: .12em;
+      text-transform: uppercase; font-weight: 700; text-shadow: 0 1px 3px #000; pointer-events: none; }
+    .readout { position: fixed; right: 12px; top: 10px; color: #ffe36b; font-size: 12px; font-variant-numeric: tabular-nums;
+      background: rgba(0,0,0,.4); padding: 6px 10px; border-radius: 6px; }
+  </style>
+</head>
+<body>
+  <canvas id="gl"></canvas>
+  <div class="hud" id="hud">drag to orbit · scroll to zoom</div>
+  <div class="readout" id="readout"></div>
+
+  <!-- ===== COVER: the landing + loading gate. Lives in the HTML (not built by a
+       module) so it paints on the FIRST frame, while the 3D world is still coming
+       down the wire. Wired up by core/cover.js. ===== -->
+  <section id="pd-cover">
+    <!-- No src here on purpose: cover.js sets it AFTER first paint, and it fades in
+         on canplay. The cover must never wait on a video to appear. -->
+    <video id="cv-vid" autoplay muted loop playsinline preload="auto"></video>
+    <div id="cv-veil"></div>
+    <div class="cv-in">
+      <div class="cv-logo"><img src="assets/sk-logo.png" alt="Scheme Kings"></div>
+      <div class="cv-tour">
+        <div class="cv-eyebrow">What's inside &middot; flip through</div>
+        <div class="cv-stage">
+          <button class="cv-arrow" id="cv-prev" aria-label="Previous">&#8249;</button>
+          <div class="cv-track" id="cv-track"></div>
+          <button class="cv-arrow" id="cv-next" aria-label="Next">&#8250;</button>
+        </div>
+        <div class="cv-dots" id="cv-dots"></div>
+      </div>
+      <div class="cv-series">3D Play Designer</div>
+      <h1 class="cv-title">King Reggie's Play Builder</h1>
+      <div class="cv-sub">Draw it &middot; Run it &middot; Watch it live</div>
+      <button class="cv-open" id="cv-open"><span class="cv-open-dot"></span><span class="cv-open-lbl">Open the builder</span></button>
+      <div class="cv-stamp" id="cv-stamp"></div>
+    </div>
+  </section>
+
+  <script>
+    window.addEventListener('error', (e) => {
+      const r = document.getElementById('readout');
+      if (r) r.textContent = 'ERR: ' + (e.message || e.error) + ' @ ' + String(e.filename || '').split('/').pop() + ':' + e.lineno;
+    });
+    window.addEventListener('unhandledrejection', (e) => {
+      const r = document.getElementById('readout'); if (r) r.textContent = 'REJ: ' + e.reason;
+    });
+  </script>
+  <!-- Vendored Three.js r128 (offline, global THREE) -->
+  <script src="vendor/three.min.js"></script>
+  <!-- Supabase client — SAME project + default session storage as the coaching app,
+       so a signed-in member is already signed in here. If this CDN is blocked the
+       drawer still works completely; only "Save play" goes unavailable. -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script type="module" src="core/app.js"></script>
+</body>
+</html>
