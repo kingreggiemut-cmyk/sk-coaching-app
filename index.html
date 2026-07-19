@@ -13624,6 +13624,11 @@ const GP_CREED_SEED = {
     { t:'Punish the Crash',     s:'When they chase the sweep, the counter is already dialed. Tune this.' },
     { t:'Win With Leverage',    s:'Angles beat athletes. Tune this - it is your creed.' },
   ]},
+  wvu: { keys: [
+    { t:"Read Him, Don't Block Him", s:'Leave the end unblocked and read him. He is wrong no matter what.' },
+    { t:'Show Them Something New',   s:'Motion on everything. Nobody in this offense is ever just one thing.' },
+    { t:'Speed All Over the Field',  s:'Get the fastest guys the ball in space. They only need one crease.' },
+  ]},
 };
 function gpSeedKeys(sk){
   const first = String(sk || '').split('-')[0].toLowerCase();
@@ -13675,9 +13680,9 @@ const DRIVE_SLOTS = [
 /* CFB 27 schemes are live; the rest wait for their War Rooms. Only Oregon's
    playbook has the new War Room (saveSheetRemote) today - GoGo and Wingback
    run sheet-less with the skeleton state, no dead-end War Room CTA. */
-const GP_LIVE = ['oregon', 'gogo', 'wingback'];
+const GP_LIVE = ['oregon', 'gogo', 'wingback', 'wvu'];
 const gpLive = sk => GP_LIVE.includes(String(sk || '').split('-')[0].toLowerCase());
-const gpHasWarRoom = sk => /^oregon/i.test(String(sk || ''));
+const gpHasWarRoom = sk => /^(oregon|wvu)/i.test(String(sk || ''));
 /* sheet sections → game-mode tabs (the buckets ARE the nav); the colors are
    the SAME section inks the call sheet uses, so the sheet you built and the
    sheet you play with read as one object */
@@ -14367,6 +14372,23 @@ const GP_RECOMMENDED = {
       { base:'motion-rpo-read-flat-wheel',       off:'motion-pa-hb-wheel', note:'Same motion. Run the RPO wheel first, then PA off it.' },
       { base:'hb-swing',                          off:'spot-lead-swing',    note:'Once they flow hard to the swing, this is your call.' },
       { base:'jet-touch-pass-and-jet-hb-punch',   off:'jet-hb-seam',        note:'Show the jet punch first, then hit the seam behind it.' },
+    ],
+  },
+  // West Virginia Offense (scheme_key wvu-cfb27). Keys verbatim from the playbook.
+  wvu: {
+    formations: ['Empty Y Off Trips','Trio HB Wk','Y Off Trips Wk','Spread Y-Slot'],
+    xFactor: { player:'TAVON AUSTIN', play:'mtn-wr-counter-rt' },
+    run:      ['mtn-rpo-read-flat','mtn-triple-option-rt','jet-qb-power','qb-zone','mtn-wr-counter-rt'],
+    pass:     ['sprint-smash','flood-hb-flat','mtn-pa-slide','jet-chip-wasp','corner-strike'],
+    beatMan:  ['rz-dusty','jet-chip-wasp','corner-strike'],
+    beatZone: ['flood-hb-flat','mtn-pa-wr-zone-flood','corner-strike'],
+    bombs:    ['corner-strike','jet-chip-wasp'],
+    thirdLong:['sprint-smash','corner-strike','jet-chip-wasp'],
+    redZone:  ['jet-qb-power','qb-zone','rz-dusty'],
+    constraints: [
+      { base:'jet-touch-pass',       off:'jet-qb-power',         note:'They chase the jet, the QB power hits up the gut.' },
+      { base:'mtn-triple-option-rt', off:'mtn-pa-wr-zone-flood', note:'They crash the option, the play action floods over the top.' },
+      { base:'mtn-rpo-read-flat',    off:'mtn-pa-slide',         note:'They key the read, the play action slides in behind them.' },
     ],
   },
 };
