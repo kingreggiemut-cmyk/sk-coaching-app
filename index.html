@@ -5253,6 +5253,17 @@ button.sks-h.door:hover { filter: brightness(1.12); transform: rotate(0); }
   color: var(--ink); line-height: 1.05; }
 .skwb-opener i { font-style: normal; font-family: var(--font-display); font-weight: 800;
   text-transform: uppercase; letter-spacing: .7px; font-size: 8px; color: color-mix(in srgb, var(--sc) 70%, #000); }
+.skwb-open-e { flex: 1; }
+/* the "everything here is yours" badge, edit mode only */
+.skwb-edit-badge { display: inline-flex; align-items: center; gap: 10px; margin: 0 0 15px;
+  font-family: var(--font-display); font-weight: 900; text-transform: uppercase; letter-spacing: 1px;
+  font-size: 15px; color: var(--ink-gold); background-color: var(--gold);
+  background-image: linear-gradient(180deg, rgba(255,255,255,.5), rgba(0,0,0,.07) 60%), var(--noise);
+  background-blend-mode: soft-light, soft-light;
+  padding: 9px 16px; border-radius: 999px; transform: rotate(-1deg);
+  box-shadow: 0 0 0 3px #fff, 0 8px 20px rgba(0,0,0,.35); }
+.skwb-edit-badge span { font-family: var(--font-body); font-weight: 600; font-size: 11px; letter-spacing: .3px;
+  text-transform: none; color: color-mix(in srgb, var(--ink-gold) 85%, #000); }
 /* the rules - printed lead-ins, handwritten answers */
 .skwb-rules { display: flex; flex-direction: column; gap: 6px; }
 .skwb-rule { display: flex; align-items: baseline; flex-wrap: wrap; gap: 6px;
@@ -13620,7 +13631,8 @@ function gpSeedKeys(sk){
 }
 function gpBlankCreed(sk){
   return { keys: gpSeedKeys(sk), feed_player:'', feed_play:'', feed_touches:'',
-           when_stuck:'', when_keyed:'', stop_calling:'', stop_after:'', rule:'' };
+           when_stuck:'', go_to_run:'', go_to_pass:'', stop_calling:'', stop_after:'', rule:'',
+           opener0:'', opener1:'', opener2:'' };
 }
 // creed keys for any surface: saved plan → seed fallback. Never empty.
 function gpCreedKeys(plan, sk){
@@ -14209,10 +14221,13 @@ function gpWristbandHTML(ctx, opts){
     : (String(val || '').trim()
         ? `<span class="skwb-val">${achEsc(String(val).trim())}</span>`
         : `<span class="skwb-val dim">${achEsc(ghost || '—')}</span>`);
-  // openers: the first call from each bucket until we have three
-  const openers = [];
+  // openers: default to the first call from each bucket, but the member can swap
+  // any of the three (stored as opener0/1/2 on the creed).
+  const autoOpeners = [];
   GM_TABS.forEach(t => { const k = Array.isArray(sheet[t.id]) && sheet[t.id][0];
-    if (k && openers.length < 3 && !openers.some(o => o.k === k)) openers.push({ k, t }); });
+    if (k && autoOpeners.length < 3 && !autoOpeners.some(o => o.k === k)) autoOpeners.push({ k, t }); });
+  const tabFor = k => GM_TABS.find(t => (sheet[t.id] || []).includes(k)) || GM_TABS[0];
+  const openerKey = i => c['opener' + i] || (autoOpeners[i] ? autoOpeners[i].k : '');
   const menu = GM_TABS.map(t => {
     const ks = (Array.isArray(sheet[t.id]) ? sheet[t.id] : []).slice(0, 3);
     if (!ks.length) return '';
@@ -14231,20 +14246,29 @@ function gpWristbandHTML(ctx, opts){
       <span class="skwb-crown">♛</span>
     </div>
     <div class="skwb-body">
+      ${edit ? `<div class="skwb-edit-badge">✎ Make it yours<span>this whole sheet is editable, tap any line ↓</span></div>` : ''}
       <div class="skwb-sec-l">The Keys</div>
       <div class="skwb-keys">
         ${keys.map((k, i) => `<div class="skwb-key"><i>${i + 1}</i>${edit ? gpBlank('key' + i, k.t, 'your key ' + (i + 1)) : `<span class="skwb-val">${achEsc(k.t)}</span>`}</div>`).join('')}
       </div>
-      ${openers.length ? `<div class="skwb-sec-l">Openers</div>
-      <div class="skwb-openers">${openers.map((o, i) =>
-        `<div class="skwb-opener" style="--sc:${o.t.c}"><b>${i + 1}</b><span>${achEsc(pName(o.k))}</span><i>${o.t.label}</i></div>`).join('')}</div>` : ''}
+      ${(() => {
+        const slots = edit ? [0, 1, 2] : [0, 1, 2].filter(i => openerKey(i));
+        if (!slots.length) return '';
+        return `<div class="skwb-sec-l">Openers</div><div class="skwb-openers">${slots.map(i => {
+          const k = openerKey(i), t = k ? tabFor(k) : null;
+          return `<div class="skwb-opener" style="--sc:${t ? t.c : 'var(--tc)'}"><b>${i + 1}</b>${edit
+            ? `<span class="skwb-open-e">${gpBlank('opener' + i, pName(k), 'pick a call')}</span>`
+            : `<span>${achEsc(pName(k))}</span>`}${t ? `<i>${t.label}</i>` : ''}</div>`;
+        }).join('')}</div>`;
+      })()}
       <div class="skwb-sec-l">My Rules</div>
       <div class="skwb-rules">
         <div class="skwb-rule"><em>Feed</em>${line('feed_player', c.feed_player, 'pick your guy')}
           <em>with</em>${line('feed_play', pName(c.feed_play), 'the call')}
-          <em>·</em>${line('feed_touches', c.feed_touches, '8-12')}<em>touches</em></div>
+          <em>·</em>${line('feed_touches', c.feed_touches, '8-10')}<em>touches</em></div>
         <div class="skwb-rule"><em>When I'm stuck I</em>${line('when_stuck', c.when_stuck, 'write it')}</div>
-        <div class="skwb-rule"><em>When they key me I</em>${line('when_keyed', c.when_keyed, 'write it')}</div>
+        <div class="skwb-rule"><em>My go-to run play:</em>${line('go_to_run', pName(c.go_to_run), 'pick a run')}</div>
+        <div class="skwb-rule"><em>My go-to pass play:</em>${line('go_to_pass', pName(c.go_to_pass), 'pick a pass')}</div>
         <div class="skwb-rule"><em>Stop calling</em>${line('stop_calling', pName(c.stop_calling), 'my crutch play')}
           <em>after</em>${line('stop_after', c.stop_after, '4')}<em>times</em></div>
         <div class="skwb-rule"><em>My rule:</em>${line('rule', c.rule, 'the one rule you refuse to break')}</div>
@@ -14585,8 +14609,10 @@ function gpBlankMenu(ev, field){
   let opts = [], freeGhost = 'write my own';
   if (/^key\d$/.test(field)) { opts = gpSeedKeys(g.sk).map(k => [k.t, k.t]); }
   else if (field === 'feed_player') { const x = g.sheet && g.sheet.xFactor && g.sheet.xFactor.player; opts = x ? [[x, x]] : []; }
-  else if (field === 'feed_play' || field === 'stop_calling') { opts = sheetPlays.map(k => [k, pName(k)]); }
-  else if (field === 'feed_touches') { opts = [['6-8', '6-8'], ['8-12', '8-12'], ['12+', '12+']]; }
+  else if (field === 'feed_play' || field === 'stop_calling' || /^opener\d$/.test(field)) { opts = sheetPlays.map(k => [k, pName(k)]); }
+  else if (field === 'go_to_run') { opts = ((g.sheet && g.sheet.run) || []).map(k => [k, pName(k)]); }
+  else if (field === 'go_to_pass') { opts = ((g.sheet && g.sheet.pass) || []).map(k => [k, pName(k)]); }
+  else if (field === 'feed_touches') { opts = [['8-10', '8-10'], ['6-8', '6-8'], ['5-7', '5-7'], ['3-5', '3-5']]; }
   else if (field === 'when_stuck') { opts = [['go tempo', 'go tempo'], ['check to the run', 'check to the run'], ['take a shot', 'take a shot'], ['get to my X-Factor', 'get to my X-Factor']]; }
   else if (field === 'stop_after') { opts = [['3', '3'], ['4', '4'], ['5', '5'], ['6', '6']]; }
   const pop = document.createElement('div');
