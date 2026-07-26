@@ -12714,6 +12714,7 @@ const SK_PLAYBOOK_LOCAL = {
   gogo:     'GO GO Offense CFB 27.html',
   wvu:      'wvu.html',
   wingback: 'Wingback Offense CFB27.html',
+  ohiostate:'Ohio ST Playbook.html',
 };
 function skIsLocalDev(){
   return /^(localhost|127\.|0\.0\.0\.0|192\.168\.)/.test(location.hostname) || location.protocol === 'file:';
@@ -12744,6 +12745,7 @@ const SK_SCHEME_LOGO = {
   gogo:     'GO GO Assets/GOGO Logo.webp',
   wingback: 'Wingback Offense/New Wing Back Offense Logo.webp',
   wvu:      'West Virginia Assets/West Viginia Logo.png',
+  ohiostate:'Ohio ST Assets/Ohio St Logo.webp',
 };
 function skLogoFor(schemeKey){
   const first = String(schemeKey || '').split('-')[0].toLowerCase();
@@ -13629,6 +13631,11 @@ const GP_CREED_SEED = {
     { t:'Show Them Something New',   s:'Motion on everything. Nobody in this offense is ever just one thing.' },
     { t:'Speed All Over the Field',  s:'Get the fastest guys the ball in space. They only need one crease.' },
   ]},
+  ohiostate: { keys: [
+    { t:'Motion Everything',            s:'Something moves on almost every snap, so they never see the same picture twice.' },
+    { t:"Ball in Our Playmakers' Hands", s:'Elite athletes everywhere. The whole job is getting them the ball with room to work.' },
+    { t:'Everything Has a Counter',     s:'Same motion, same look, a completely different answer already installed.' },
+  ]},
 };
 function gpSeedKeys(sk){
   const first = String(sk || '').split('-')[0].toLowerCase();
@@ -13680,9 +13687,9 @@ const DRIVE_SLOTS = [
 /* CFB 27 schemes are live; the rest wait for their War Rooms. Only Oregon's
    playbook has the new War Room (saveSheetRemote) today - GoGo and Wingback
    run sheet-less with the skeleton state, no dead-end War Room CTA. */
-const GP_LIVE = ['oregon', 'gogo', 'wingback', 'wvu'];
+const GP_LIVE = ['oregon', 'gogo', 'wingback', 'wvu', 'ohiostate'];
 const gpLive = sk => GP_LIVE.includes(String(sk || '').split('-')[0].toLowerCase());
-const gpHasWarRoom = sk => /^(oregon|wvu)/i.test(String(sk || ''));
+const gpHasWarRoom = sk => /^(oregon|wvu|ohiostate)/i.test(String(sk || ''));
 /* sheet sections → game-mode tabs (the buckets ARE the nav); the colors are
    the SAME section inks the call sheet uses, so the sheet you built and the
    sheet you play with read as one object */
@@ -14389,6 +14396,22 @@ const GP_RECOMMENDED = {
       { base:'jet-touch-pass',       off:'jet-qb-power',         note:'They chase the jet, the QB power hits up the gut.' },
       { base:'mtn-triple-option-rt', off:'mtn-pa-wr-zone-flood', note:'They crash the option, the play action floods over the top.' },
       { base:'mtn-rpo-read-flat',    off:'mtn-pa-slide',         note:'They key the read, the play action slides in behind them.' },
+    ],
+  },
+  // Ohio State Offense (scheme_key ohiostate-cfb27). Keys verbatim from the playbook.
+  ohiostate: {
+    formations: ['Y Off Trips Stack','Empty Chips 2TE','Doubles Y Off Wk','Pistol Doubles Y Off'],
+    xFactor: { player:'JEREMIAH SMITH', play:'corner-strike' },
+    run:      ['orbit-triple-option','exit-rpo-read-wr-screen','qb-zone','rpo-counter-bubble','rpo-alert-power'],
+    pass:     ['sprint-out-screen','curl-flat','pa-y-cross','orbit-pa-cross','corner-strike'],
+    beatMan:  ['corner-strike','fade-smash','orbit-pa-y-corner'],
+    beatZone: ['exit-pa-fk-screen-wheel-zone','curl-flat','pa-y-cross'],
+    bombs:    ['corner-strike','exit-pa-fk-screen-wheel-man','curl-flat'],
+    thirdLong:['corner-strike','fade-smash','shot-hb-wheel'],
+    redZone:  ['qb-zone','orbit-rpo-peak-pop','rpo-alert-power'],
+    constraints: [
+      { base:'orbit-triple-option',     off:'orbit-pa-y-corner',            note:'They crash the option, the PA Y corner hits the same look over the top.' },
+      { base:'exit-rpo-read-wr-screen', off:'exit-pa-fk-screen-wheel-zone', note:'They widen to take the screen, the exit wheel goes behind them.' },
     ],
   },
 };
