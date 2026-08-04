@@ -4678,6 +4678,13 @@ body.game-madden .game-badge-madden { opacity: 1; }
   display: inline-flex; align-items: center; justify-content: center; font-size: 10px; color: #2e7d43; background: rgba(46,125,67,.08); }
 .sksheet-grid { display: grid; gap: 14px; grid-template-columns: repeat(4, 1fr);
   grid-template-areas: "form form form xf" "run pass man zone" "run pass tds third" "rz rz con con"; }
+/* the defensive sheet is a different document: 12 blocks, not 10 */
+.sksheet-grid.def { grid-template-areas:
+  "form form form  xf"
+  "base base rund  rund"
+  "manb zonb matc  zonc"
+  "manc manc third rz"
+  "con  con  con   con"; }
 .sks { border: 2px solid color-mix(in srgb, var(--sc) 45%, transparent); border-radius: 8px;
   padding: 12px 11px 12px; background: color-mix(in srgb, var(--sc) 4%, transparent); min-height: 74px; }
 .sks-h { display: inline-block; font-family: var(--font-display); font-weight: 900; text-transform: uppercase;
@@ -4711,7 +4718,9 @@ span.sks-note:hover { transform: rotate(var(--r)); box-shadow: 0 3px 7px rgba(0,
 .gp-empty-line { font-family: var(--font-body); font-size: 13px; line-height: 1.6; color: var(--cream-muted); max-width: 560px; }
 .sksheet .gp-empty-line { color: var(--ink-soft); margin: 0 auto; }
 @media (max-width: 1020px) { .sksheet-grid { grid-template-columns: 1fr 1fr;
-  grid-template-areas: "form form" "xf xf" "run pass" "man zone" "tds third" "rz rz" "con con"; } }
+  grid-template-areas: "form form" "xf xf" "run pass" "man zone" "tds third" "rz rz" "con con"; }
+  .sksheet-grid.def { grid-template-areas: "form form" "xf xf" "base base" "rund rund"
+    "manb zonb" "matc zonc" "manc manc" "third rz" "con con"; } }
 @media (max-width: 620px) { .sksheet-grid { display: flex; flex-direction: column; } .sks { min-height: 0; } }
 
 /* ── the desk below the sheet: scripts + notebook ── */
@@ -12822,6 +12831,7 @@ const SK_PLAYBOOK_LOCAL = {
   wvu:      'wvu.html',
   wingback: 'Wingback Offense CFB27.html',
   ohiostate:'Ohio ST Playbook.html',
+  bamadefense:'Alabama Playbook.html',
 };
 function skIsLocalDev(){
   return /^(localhost|127\.|0\.0\.0\.0|192\.168\.)/.test(location.hostname) || location.protocol === 'file:';
@@ -12854,6 +12864,9 @@ const SK_SCHEME_LOGO = {
   wingback: 'Wingback Offense/New Wing Back Offense Logo.webp',
   wvu:      'West Virginia Assets/West Viginia Logo.png',
   ohiostate:'Ohio ST Assets/Ohio St Logo.webp',
+  // a defence keyed off its own first word needs its own entry - "bamadefense"
+  // never matches the "bama" offence, so it fell through to the SK placeholder
+  bamadefense:'Bama Assets/Bama Logo 1.webp',
 };
 function skLogoFor(schemeKey){
   const first = String(schemeKey || '').split('-')[0].toLowerCase();
@@ -13806,11 +13819,12 @@ const DRIVE_SLOTS = [
    run sheet-less with the skeleton state, no dead-end War Room CTA. */
 const GP_LIVE = ['oregon', 'gogo', 'wingback', 'wvu', 'ohiostate', 'bamadefense'];
 const gpLive = sk => GP_LIVE.includes(String(sk || '').split('-')[0].toLowerCase());
-/* a defensive scheme shares its team's first word, so it would otherwise link
-   straight into that team's OFFENSIVE playbook. It only gets a War Room door
-   once its own file is registered in SK_PLAYBOOK_FILE. */
+/* A defence that SHARES its team's first word ("wvu-34defense") would link
+   straight into that team's OFFENSIVE playbook, so it stays closed until an
+   explicit file is registered. A defence with its own first word
+   ("bamadefense-cfb27" -> bamadefense.html) resolves correctly on its own. */
 const gpHasWarRoom = sk => gpIsDef(sk)
-  ? !!SK_PLAYBOOK_FILE[sk]
+  ? /def/.test(String(sk || '').split('-')[0].toLowerCase()) || !!SK_PLAYBOOK_FILE[sk]
   : /^(oregon|wvu|ohiostate)/i.test(String(sk || ''));
 /* sheet sections → game-mode tabs (the buckets ARE the nav); the colors are
    the SAME section inks the call sheet uses, so the sheet you built and the
@@ -13844,13 +13858,29 @@ function gpSide(sk){
 }
 const gpIsDef = sk => gpSide(sk) === 'defense';
 /* same section ids, defensive words - a coordinator's actual call sheet */
-const SK_DEF_LABELS = {
-  formations:'Fronts & Shells', xfactor:'X-Factor', run:'Stop the Run', pass:'Stop the Pass',
-  beatMan:'Man Calls', beatZone:'Zone Calls', bombs:'Pressures', thirdLong:'3rd & Long',
-  redZone:'Red Zone', constraints:'Disguise Pairs',
-};
-const skRelabel = (arr, sk) => gpIsDef(sk)
-  ? arr.map(s => ({ ...s, label: SK_DEF_LABELS[s.id] || s.label })) : arr;
+/* ── THE DEFENSIVE CALL SHEET ───────────────────────────────────────────────
+   These ids are NOT a relabelling of the offensive ones - they are the exact
+   section ids a defensive War Room writes into saved_sheets (GP_SECTIONS in
+   the playbook: base / rundef / manblitz / zoneblitz / matchcov / zonecov /
+   mancov / thirdLong / redZone). They HAVE to match or a saved defensive sheet
+   reads back empty. Offense keeps SKS_SECS exactly as it was. */
+const SKS_SECS_DEF = [
+  { id:'formations', label:'Fronts',          area:'form',  c:'#1E54B7' },
+  { id:'xfactor',    label:'X-Factor',        area:'xf',    c:'#b3541e' },
+  { id:'base',       label:'Base Calls',      area:'base',  c:'#2e7d43' },
+  { id:'rundef',     label:'Run Defense',     area:'rund',  c:'#8a6b4a' },
+  { id:'manblitz',   label:'Man Blitzes',     area:'manb',  c:'#c2554e' },
+  { id:'zoneblitz',  label:'Zone Blitzes',    area:'zonb',  c:'#1b8a80' },
+  { id:'matchcov',   label:'Match Coverages', area:'matc',  c:'#b98a1c' },
+  { id:'zonecov',    label:'Zone Coverages',  area:'zonc',  c:'#7a5cc2' },
+  { id:'mancov',     label:'Man Coverages',   area:'manc',  c:'#a0342e' },
+  { id:'thirdLong',  label:'3rd & Long',      area:'third', c:'#5b6bb5' },
+  { id:'redZone',    label:'Red Zone',        area:'rz',    c:'#c2554e' },
+  { id:'constraints',label:'Disguised Calls', area:'con',   c:'#8a6b4a' },
+];
+const SK_NONPLAY = ['formations', 'xfactor', 'constraints'];
+const SKS_CAPS_DEF = { base:5, rundef:5, manblitz:3, zoneblitz:3, matchcov:3,
+                       zonecov:3, mancov:3, thirdLong:3, redZone:3 };
 /* ── PREVIEW: see the whole two-sided app before a real defense has synced ──
    Owner only, opt in by adding ?demo=defense to the URL. It mirrors your first
    offensive scheme's data under a defensive name, so every defensive surface
@@ -13868,9 +13898,18 @@ const gpDemoSrc = () => ((window._gpAll || []).find(r => !gpIsDef(r.scheme_key))
 // every query for the demo key reads that borrowed scheme instead
 const gpDataKey = sk => (sk === GP_DEMO_DEF_KEY && gpDemoSrc()) || sk;
 const gpIsDemo  = sk => sk === GP_DEMO_DEF_KEY;
-function skSecs(sk){ return skRelabel(SKS_SECS, sk); }
-function gmTabsFor(sk){ return skRelabel(GM_TABS, sk); }
-function skSecLabel(id, sk){ return (gpIsDef(sk) && SK_DEF_LABELS[id]) || (SKS_SECS.find(s => s.id === id) || {}).label || id; }
+function skSecs(sk){ return gpIsDef(sk) ? SKS_SECS_DEF : SKS_SECS; }
+function skCaps(sk){ return gpIsDef(sk) ? SKS_CAPS_DEF : SKS_CAPS; }
+function gmTabsFor(sk){
+  return gpIsDef(sk) ? SKS_SECS_DEF.filter(s => !SK_NONPLAY.includes(s.id)) : GM_TABS;
+}
+function skSecLabel(id, sk){ return (skSecs(sk).find(s => s.id === id) || {}).label || id; }
+/* a blank sheet must carry the right side's buckets or nothing saves into them */
+function skBlankSheet(sk){
+  const s = { formations:[], xFactor:null, constraints:[], stickyTags:{} };
+  gmTabsFor(sk).forEach(x => s[x.id] = []);
+  return s;
+}
 
 // pretty display name for a scheme key - map first, prettified key as fallback
 function gmSchemeName(sk){
@@ -14159,7 +14198,7 @@ function skSheetHTML(sk, sheet, look, nm, opts){
   };
   const sec = s => {
     let slots = '';
-    const isPlaySec = !['formations', 'xfactor', 'constraints'].includes(s.id);
+    const isPlaySec = !SK_NONPLAY.includes(s.id);
     if (s.id === 'formations'){
       slots = (sheet.formations || []).map((f, i) => `<span class="sks-note sks-form" style="--r:${rot(i + 2)}deg"><b>${achEsc(f)}</b></span>`).join('');
     } else if (s.id === 'xfactor'){
@@ -14178,7 +14217,7 @@ function skSheetHTML(sk, sheet, look, nm, opts){
         ? keys.map(bigRow).join('')
         : keys.map((k, i) => note(k, i + s.label.length, s.id)).join('');
       if (opts.edit && isPlaySec){
-        const cap = SKS_CAPS[s.id] || 3;
+        const cap = skCaps(sk)[s.id] || 3;
         if (keys.length < cap)
           slots += `<button class="sks-add" onclick="gpChooser('${s.id}')">${keys.length ? `+ ${cap - keys.length} more` : `+ pick ${cap}`}</button>`;
       }
@@ -14187,7 +14226,7 @@ function skSheetHTML(sk, sheet, look, nm, opts){
     // section headers are doors: a tagged drive hangs its paperclip here
     const drive = bySec && bySec[s.id];
     // in game mode every play section header is a zoom door: tap it, that block takes the paper
-    const zoomable = opts.zoom && !['formations', 'xfactor', 'constraints'].includes(s.id);
+    const zoomable = opts.zoom && !SK_NONPLAY.includes(s.id);
     const head = zoomable
       ? `<button class="sks-h door" onclick="gmZoom('${s.id === zoomSec ? '' : s.id}')">${s.label}${s.id === zoomSec ? '<i class="sks-zx">✕ close</i>' : ''}</button>`
       : bySec
@@ -14205,7 +14244,7 @@ function skSheetHTML(sk, sheet, look, nm, opts){
         ? `<button class="sksheet-keys door" onclick="openGamePlan('${sk}','plan')" title="Your creed - tap to edit">${keysStrip}</button>`
         : `<div class="sksheet-keys">${keysStrip}</div>`}
     </div>
-    <div class="sksheet-grid${zoomSec ? ' zoomed' : ''}">${skSecs(sk).map(sec).join('')}</div>
+    <div class="sksheet-grid${gpIsDef(sk) ? ' def' : ''}${zoomSec ? ' zoomed' : ''}">${skSecs(sk).map(sec).join('')}</div>
   </div>`;
 }
 
@@ -14386,7 +14425,7 @@ async function openGamePlan(sk, tab){
    Auto-shows once per scheme; the ? button in the wall header reopens it. ── */
 function gpHowToMock(kind, sk){
   const D = gpIsDef(sk);
-  if (kind === 'sheet') return `<div class="gphm gphm-sheet">${skSecs(sk).filter(s => !['formations','xfactor','constraints'].includes(s.id))
+  if (kind === 'sheet') return `<div class="gphm gphm-sheet">${skSecs(sk).filter(s => !SK_NONPLAY.includes(s.id))
     .map(s => `<span style="--sc:${s.c}">${achEsc(s.label)}</span>`).join('')}</div>`;
   if (kind === 'plan') return D
     ? `<div class="gphm gphm-plan">
@@ -14597,7 +14636,7 @@ function gpSheetTabHTML(g){
     ${rec ? tik('Use Recommended', 'the coach’s sheet', false, 'gpUseRecommended()', 'gold') : ''}
     ${tik('X-Factor', sheet.xFactor ? '✓ built' : 'pick the guy', !!sheet.xFactor, 'gpXfChooser()')}
     ${gmTabsFor(g.sk).map(t => { const n = Array.isArray(sheet[t.id]) ? sheet[t.id].length : 0;
-      return tik(t.label, n ? `✓ ${n} of ${SKS_CAPS[t.id] || 3}` : `pick ${SKS_CAPS[t.id] || 3}`, !!n, `gpChooser('${t.id}')`); }).join('')}
+      return tik(t.label, n ? `✓ ${n} of ${skCaps(g.sk)[t.id] || 3}` : `pick ${skCaps(g.sk)[t.id] || 3}`, !!n, `gpChooser('${t.id}')`); }).join('')}
     ${(() => { const n = gmConstraints(sheet).length; return tik(skSecLabel('constraints', g.sk), n ? `✓ ${n} pair${n !== 1 ? 's' : ''}` : 'pair them up', !!n, 'gpConChooser()'); })()}
   </div>`;
   return hint + skSheetHTML(g.sk, sheet, g.look, g.name,
@@ -14692,13 +14731,35 @@ const GP_RECOMMENDED = {
       { base:'exit-rpo-read-wr-screen', off:'exit-pa-fk-screen-wheel-zone', note:'They widen to take the screen, the exit wheel goes behind them.' },
     ],
   },
+  /* DEFENSE. Ported verbatim from the Alabama Defense playbook's own
+     GP.recommended, with the constraint indexes resolved out of its
+     constraintOptions. `side` is what stops a defense inheriting an
+     offensive sheet (and the other way round). */
+  bamadefense: {
+    side: 'defense',
+    formations: ['425 Over G', '425 Even', '425 3 High'],
+    xFactor: { player:'THE STAR NICKEL', play:'ss-blitz-3' },
+    base:      ['quarters-palms','3-double-cloud','ss-blitz-2','ss-blitz-3','quarters-run-defense'],
+    rundef:    ['quarters-run-defense','pinch-blitz','quarters-palms'],
+    manblitz:  ['pinch-blitz','ws-blitz-1','ss-slb-blitz','lb-blitz-0'],
+    zoneblitz: ['ss-blitz-2','ss-blitz-3','ws-blitz-3','edge-blitz-3'],
+    matchcov:  ['quarters-palms','quarters-run-defense'],
+    zonecov:   ['3-double-cloud','cover-2-lurk'],
+    mancov:    ['ws-blitz-1','pinch-blitz','ss-slb-blitz'],
+    thirdLong: ['edge-blitz-3','cover-2-lurk','ws-blitz-3'],
+    redZone:   ['edge-blitz-3','pinch-blitz','quarters-run-defense'],
+    constraints: [
+      { base:'3-double-cloud', off:'lb-blitz-0',      note:'the same three high picture, one drops everybody out and one brings six' },
+      { base:'ss-blitz-2',     off:'quarters-palms',  note:'two high on both, so the nickel pressure and the match coverage look identical' },
+      { base:'ws-blitz-3',     off:'ws-blitz-1',      note:'same walked-down safety, one plays zone behind it and one plays man' },
+    ],
+  },
 };
 function gpRecommendedFor(sk){
   const first = String(sk || '').split('-')[0].toLowerCase();
-  // "wvu-34defense" must never inherit the WVU OFFENSE sheet - a defensive
-  // scheme only gets a coach's sheet when one is authored as <team>_def
-  if (gpIsDef(sk)) return GP_RECOMMENDED[first + '_def'] || null;
-  return GP_RECOMMENDED[first] || null;
+  const rec = GP_RECOMMENDED[first + '_def'] || GP_RECOMMENDED[first] || null;
+  // sides must agree, or "wvu-34defense" would inherit the WVU OFFENSE sheet
+  return (rec && (rec.side === 'defense') === gpIsDef(sk)) ? rec : null;
 }
 function gpUseRecommended(){
   const g = window._gp; if (!g) return;
@@ -14734,8 +14795,7 @@ function gpEligible(g, secId){
   return list.length ? list : all.filter(p => !chosen.has(p.play_key));
 }
 function gpEnsureSheet(g){
-  if (!g.sheet) g.sheet = { formations:[], xFactor:null, constraints:[], stickyTags:{},
-    run:[], pass:[], beatMan:[], beatZone:[], bombs:[], thirdLong:[], redZone:[] };
+  if (!g.sheet) g.sheet = skBlankSheet(g.sk);
   return g.sheet;
 }
 async function gpSheetSave(g){
@@ -14766,7 +14826,7 @@ function gpSheetRemove(secId, pk){
 function gpChooser(secId){
   const g = window._gp; if (!g) return;
   const sec = skSecs(g.sk).find(s => s.id === secId) || {};
-  const cap = SKS_CAPS[secId] || 3;
+  const cap = skCaps(g.sk)[secId] || 3;
   const cur = (g.sheet && Array.isArray(g.sheet[secId])) ? g.sheet[secId].length : 0;
   const list = gpEligible(g, secId);
   const rows = list.map(p => {
@@ -14884,16 +14944,18 @@ function gpSectionDoor(sk, secId){
     constraints:'If they stop X, Y is already dialed.',
   };
   const INTENT_DEF = {
-    run:'The calls you line up in when they want to run it down your throat.',
-    pass:'Your dropback answers. What you play when they have to throw it.',
-    beatMan:'Lock them up. Man calls travel with their best guy wherever he goes.',
-    beatZone:'Zone calls. Take away the grass and make him hold the ball.',
-    bombs:'Pressures. The call that ends the drive instead of just slowing it.',
-    thirdLong:'They need chunks. Do not give up the easy one underneath.',
-    redZone:'Short field, no room behind you. These get you off the field.',
-    formations:'Your base fronts and shells. If it is not up here, you are not in it today.',
+    base:'Your every-down calls. The defense you live in when nothing special is on.',
+    rundef:'Run stopping calls. Set the edge, fill the gaps, make them one dimensional.',
+    manblitz:'Pressure with man behind it. Somebody comes free and everybody is covered.',
+    zoneblitz:'Pressure with zone behind it. Bring one, drop one, let the QB guess wrong.',
+    matchcov:'Match coverage. Zone eyes that turn into man the second the routes declare.',
+    zonecov:'Zone shells. Keep everything in front, rally and tackle, no free deep balls.',
+    mancov:'Man coverage. Lock them up outside and dare them to win one on one.',
+    thirdLong:'Their must-pass downs. Your best disguise and your best pressure.',
+    redZone:'Short field, no easy leverage. Make them settle for field goals.',
+    formations:'Your fronts at a glance. Every call on this sheet lines up out of one of these.',
     xfactor:'The guy you move around. He should never be blocked by who they expect.',
-    constraints:'Show one call, play another. What you disguise it out of.',
+    constraints:'Two calls that look identical pre-snap, so the picture always lies.',
   };
   const copy = (gpIsDef(sk) ? INTENT_DEF : INTENT)[secId] || '';
   gpDrawerHTML(`<div class="gp-drawer-eye" style="color:${sec.c || 'var(--gold)'}">${sec.label || 'Section'}</div>
@@ -14933,6 +14995,12 @@ function gpDrawerClose(){
 }
 
 /* ── TAB: THE PLAN (the creed) - sentences with handwritten blanks ── */
+/* the play keys sitting in a set of sheet buckets, de-duped */
+function gpCreedPool(g, ids){
+  const out = [];
+  ids.forEach(id => ((g.sheet && g.sheet[id]) || []).forEach(k => { if (!out.includes(k)) out.push(k); }));
+  return out;
+}
 function gpBlank(field, val, ghost){
   const filled = String(val || '').trim();
   const just = window._creedJust === field ? ' just' : '';
@@ -14951,8 +15019,10 @@ function gpBlankMenu(ev, field){
   if (/^key\d$/.test(field)) { opts = gpSeedKeys(g.sk).map(k => [k.t, k.t]); }
   else if (field === 'feed_player') { const x = g.sheet && g.sheet.xFactor && g.sheet.xFactor.player; opts = x ? [[x, x]] : []; }
   else if (field === 'feed_play' || field === 'stop_calling' || /^opener\d$/.test(field)) { opts = sheetPlays.map(k => [k, pName(k)]); }
-  else if (field === 'go_to_run') { opts = ((g.sheet && g.sheet.run) || []).map(k => [k, pName(k)]); }
-  else if (field === 'go_to_pass') { opts = ((g.sheet && g.sheet.pass) || []).map(k => [k, pName(k)]); }
+  // defence: the run stopper comes off Run Defense, the coverage off the three
+  // coverage buckets. Offence keeps run / pass.
+  else if (field === 'go_to_run')  { opts = gpCreedPool(g, gpIsDef(g.sk) ? ['rundef'] : ['run']).map(k => [k, pName(k)]); }
+  else if (field === 'go_to_pass') { opts = gpCreedPool(g, gpIsDef(g.sk) ? ['matchcov','zonecov','mancov'] : ['pass']).map(k => [k, pName(k)]); }
   else if (field === 'feed_touches') { opts = [['8-10', '8-10'], ['6-8', '6-8'], ['5-7', '5-7'], ['3-5', '3-5']]; }
   else if (field === 'when_stuck') { opts = (gpIsDef(g.sk)
     ? ['bring pressure', 'drop eight', 'change the picture', 'get my X-Factor free']
