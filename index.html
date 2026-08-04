@@ -4523,8 +4523,16 @@ body.game-madden .game-badge-madden { opacity: 1; }
      tall as its icon + name), the big card is front and centre below it. */
   .gmp { grid-template-columns: 1fr; grid-template-rows: auto minmax(0, 1fr);
     gap: 10px; padding: 10px 12px 16px; }
-  .gmp-rail { flex-direction: row; overflow-x: auto; overflow-y: hidden; flex: 0 0 auto; gap: 8px; padding-bottom: 2px; }
-  .gmp-chip { flex: 0 0 auto; width: 66px; padding: 7px 4px 6px; }
+  /* The Back button floats over the top-left of the centre column, so the
+     picker starts below it - the first rail chip used to sit underneath it. */
+  .gpp-host .gmp { padding-top: 58px; }
+  /* The rail WRAPS instead of scrolling sideways: with two sides, a sideways
+     strip put the whole Defense group off the right edge where nobody would
+     find it. Each side header takes a full row and its chips sit under it. */
+  .gmp-rail { flex-direction: row; flex-wrap: wrap; overflow: visible;
+    flex: 0 0 auto; gap: 7px; row-gap: 3px; padding-bottom: 2px; }
+  .gmp-rail-h { flex: 1 1 100%; padding: 3px 2px 0; }
+  .gmp-chip { flex: 0 0 auto; width: 58px; padding: 6px 4px 5px; }
   .gmp-chip img { width: 30px; height: 30px; }
   .gmp-chip span { font-size: 8.5px; }
   .gmp-stage { justify-content: flex-start; gap: 12px; padding-top: 4px; }
@@ -4546,8 +4554,13 @@ body.game-madden .game-badge-madden { opacity: 1; }
   .gmp-picks { width: 100%; }
   .gmp-pick-chip { flex: 1 1 46%; min-width: 0; }
   .gmp-pick-chip span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  /* the side switcher gets its own full-width row so both taps are thumb-sized */
+  /* the side switcher gets its own full-width row so both taps are thumb-sized.
+     The scheme name has to be allowed to shrink, or End Game's auto margin eats
+     the free space and knocks the ✕ onto a row of its own. */
   .gm-topbar { flex-wrap: wrap; row-gap: 8px; }
+  .gm-brand { flex: 1 1 auto; min-width: 0; font-size: 12.5px; letter-spacing: 1.6px;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .gm-end-btn, .gm-x { flex: 0 0 auto; }
   .gm-sw { order: 3; flex: 1 1 100%; margin-left: 0; justify-content: stretch; }
   .gm-sw-b { flex: 1; min-height: 40px; font-size: 12px; }
 }
@@ -14048,6 +14061,16 @@ function gpPickApply(side){
   const go = document.querySelector(`#center-content [data-go="${side}"]`); if (go) go.setAttribute('onclick', `openGamePlan('${cur.sk}')`);
   gpPickChipSync(p, 'gp');
   (host || document).querySelectorAll('.gmp-dot').forEach(d => d.classList.toggle('on', +d.dataset.idx === col.i));
+  gpPickReveal(host);
+}
+/* On a phone the two sides are stacked, so tapping a rail chip for the side
+   you are NOT looking at would silently change something off-screen. Bring
+   that column into view instead. */
+function gpPickReveal(host){
+  if (!host || innerWidth > 900) return;
+  const b = host.getBoundingClientRect();
+  if (b.top >= 0 && b.bottom <= innerHeight) return;      // already looking at it
+  host.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
 }
 /* the rail is one flat list across both sides - resync it off the state */
 function gpPickChipSync(p, ns){
@@ -15524,6 +15547,7 @@ function gmPickApply(side){
   gpPickChipSync(p, 'gm');
   (host || document).querySelectorAll('.gmp-dot').forEach(d => d.classList.toggle('on', +d.dataset.idx === col.i));
   gmPickFoot();
+  gpPickReveal(host);
 }
 function gmPickGo(side, i){
   const p = window._gmPick, col = p && p.cols[side]; if (!col) return;
