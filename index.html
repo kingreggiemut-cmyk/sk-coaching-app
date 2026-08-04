@@ -14454,7 +14454,7 @@ function gpHowTo(sk){
          'It rides in the margin the whole game'],
       cta:'Write Your Plan', go:`openGamePlan('${sk}','plan')` },
     { c:'#c2554e', eye:'The Answers', h:'The Board', mock:'board',
-      b:[D ? 'Pin what stops what: vs heavy, vs spread, vs tempo' : 'Pin what beats what: vs man, vs zone, vs the blitz',
+      b:[D ? 'Pin what stops what: vs heavy, vs spread, your go-to blitzes' : 'Pin what beats what: vs man, vs zone, vs the blitz',
          'When they show it, you already know your answer', 'One tap to it while you play'],
       cta:'Build the Board', go:`openGamePlan('${sk}','plays')` },
     ...(D ? [] : [{ c:'#2e7d43', eye:'The Script', h:'Drives', mock:'drives',
@@ -15154,10 +15154,10 @@ const ANSWER_COLS = [
 ];
 /* the defensive board asks the other four questions */
 const ANSWER_COLS_DEF = [
-  { id:'dRun',   label:'Vs Heavy',     c:'#2e7d43' },
-  { id:'dSpread',label:'Vs Spread',    c:'#1b8a80' },
-  { id:'dTempo', label:'Vs Tempo',     c:'#7a5cc2' },
-  { id:'money',  label:'Money Downs',  c:'#b98a1c' },
+  { id:'dRun',   label:'Vs Heavy',      c:'#2e7d43' },
+  { id:'dSpread',label:'Vs Spread',     c:'#1b8a80' },
+  { id:'dBlitz', label:'Go-To Blitzes', c:'#b3541e' },
+  { id:'money',  label:'Money Downs',   c:'#b98a1c' },
 ];
 const gpAnswerCols = sk => gpIsDef(sk) ? ANSWER_COLS_DEF : ANSWER_COLS;
 const GP_CASE_COLORS = ['#2e7d43', '#1E54B7', '#b3541e', '#7a5cc2', '#1b8a80', '#b98a1c', '#a0342e'];
