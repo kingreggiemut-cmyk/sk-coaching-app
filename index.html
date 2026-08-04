@@ -4270,8 +4270,10 @@ body.game-madden .game-badge-madden { opacity: 1; }
 /* the cards: playing cards, crest only, team-colored. The one you're on stands
    upright and big; the neighbors lie flat on the table, small and greyed. Moving
    the deck animates the standing card down flat while the next one rises. */
+/* one card width + the gap the arrows keep off it, so they always hug the card */
+.gmp-deck { --cw: clamp(230px, 20vw, 330px); --agap: clamp(10px, 1.3vw, 28px); }
 .gmp-card { position: absolute; cursor: pointer; border: none; padding: 0;
-  width: clamp(230px, 20vw, 330px); aspect-ratio: 5/7; border-radius: 16px;
+  width: var(--cw); aspect-ratio: 5/7; border-radius: 16px;
   transform-origin: 50% 100%; transform-style: preserve-3d;
   display: flex; align-items: center; justify-content: center;
   background: linear-gradient(165deg, color-mix(in srgb, var(--tc, #1E54B7) 92%, #fff 8%), color-mix(in srgb, var(--tc, #1E54B7) 60%, #000 40%));
@@ -4298,8 +4300,13 @@ body.game-madden .game-badge-madden { opacity: 1; }
   background: rgba(8,14,32,.72); border: 2px solid rgba(240,231,203,.3);
   color: var(--cream); font-size: 22px; line-height: 1; transition: all .16s var(--ease); }
 .gmp-arrow:hover { border-color: var(--gold); color: var(--gold); transform: translateY(-50%) scale(1.08); }
-.gmp-arrow.prev { left: clamp(4px, 3vw, 60px); }
-.gmp-arrow.next { right: clamp(4px, 3vw, 60px); }
+/* pinned a fixed gap off the CARD's edge, not the container's - the outer
+   space belongs to the other side's deck once both are in play. prev is
+   pulled back by its own width so the gap is real on both sides. */
+.gmp-arrow.prev { left: calc(50% - var(--cw) / 2 - var(--agap)); right: auto;
+  transform: translate(-100%, -50%); }
+.gmp-arrow.next { left: calc(50% + var(--cw) / 2 + var(--agap)); right: auto; }
+.gmp-arrow.prev:hover { transform: translate(-100%, -50%) scale(1.08); }
 .gmp-name { font-family: var(--font-display); font-weight: 900; text-transform: uppercase;
   letter-spacing: 1.5px; font-size: clamp(24px, 3.2vw, 46px); line-height: 1;
   color: var(--cream); text-align: center; text-shadow: 0 4px 18px rgba(0,0,0,.7); }
@@ -4328,16 +4335,30 @@ body.game-madden .game-badge-madden { opacity: 1; }
 .gmp.dual .gmp-foot { grid-column: 1 / -1; }
 /* half the stage each, so the card takes its size from whichever runs out
    first - the width of its column or the height of the deck */
-.gmp.dual .gmp-card { --cw: clamp(150px, min(15vw, 19vh), 260px); width: var(--cw);
-  transform:
+.gmp.dual .gmp-deck { --cw: clamp(160px, min(18vw, 25vh), 300px); --agap: clamp(8px, .9vw, 20px); }
+.gmp.dual .gmp-card { transform:
     translateX(calc(var(--o) * var(--cw) * .88))
     translateY(calc(var(--lay) * var(--cw) * .17))
     scale(var(--s)) rotateX(calc(var(--lay) * 56deg)); }
 .gmp.dual .gmp-name { font-size: clamp(18px, 2.1vw, 30px); }
 .gmp.dual .gmp-arrow { width: clamp(34px, 2.6vw, 42px); font-size: 18px; }
-.gmp.dual .gmp-arrow.prev { left: clamp(0px, 1vw, 16px); }
-.gmp.dual .gmp-arrow.next { right: clamp(0px, 1vw, 16px); }
 .gmp-col.off { opacity: .42; filter: grayscale(.75); }
+
+/* ── THE EMPTY SEAT - the side you have not built yet, holding its place ── */
+.gmp-col.ghost .gmp-eyebrow { color: rgba(240,231,203,.42); }
+.gmp-ghost-card { width: var(--cw); aspect-ratio: 5/7; border-radius: 16px;
+  display: grid; place-items: center; opacity: .5;
+  border: 2.5px dashed rgba(240,231,203,.26); background: rgba(8,14,32,.3); }
+.gmp-ghost-card span { font-size: clamp(34px, 4vw, 54px); opacity: .34; filter: grayscale(1); }
+.gmp-name.dim { color: rgba(240,231,203,.4); }
+.gmp-meta.dim { color: rgba(240,231,203,.34); text-transform: none; letter-spacing: .5px;
+  font-family: var(--font-body); font-size: 12px; }
+.gmp-chip.ghost { display: flex; flex-direction: column; align-items: center; gap: 5px;
+  padding: 11px 6px 8px; border-radius: 10px; border: 2px dashed rgba(240,231,203,.16);
+  background: rgba(8,14,32,.3); }
+.gmp-chip.ghost i { font-style: normal; font-size: 20px; line-height: 1; color: rgba(240,231,203,.3); }
+.gmp-chip.ghost span { font-family: var(--font-display); font-weight: 900; text-transform: uppercase;
+  letter-spacing: 1px; font-size: 8.5px; color: rgba(240,231,203,.34); }
 .gmp-hd { font-family: var(--font-display); font-weight: 900; text-transform: uppercase;
   letter-spacing: 3px; font-size: clamp(13px, 1.3vw, 17px); color: var(--gold); line-height: 1.3; }
 .gmp-hd span { display: block; font-weight: 700; letter-spacing: 1.5px; font-size: 10.5px;
@@ -4367,6 +4388,7 @@ body.game-madden .game-badge-madden { opacity: 1; }
   padding: 7px 16px; min-height: 32px; color: rgba(240,231,203,.62); background: transparent;
   transition: background .16s, color .16s; }
 .gm-sw-b.on { background: var(--gold); color: var(--ink-gold); box-shadow: 0 2px 10px rgba(245,166,35,.4); }
+.gm-sw-b.locked { color: rgba(240,231,203,.3); cursor: default; }
 
 /* ── THE HUB: paper left, fat nav sidebar right ── */
 #gm-root.hub .gm-body { padding: 0; max-width: none; overflow: hidden; }
@@ -4506,18 +4528,17 @@ body.game-madden .game-badge-madden { opacity: 1; }
   .gmp-chip img { width: 30px; height: 30px; }
   .gmp-chip span { font-size: 8.5px; }
   .gmp-stage { justify-content: flex-start; gap: 12px; padding-top: 4px; }
-  .gmp-card { width: clamp(150px, 54vw, 232px); }
+  .gmp-deck { --cw: clamp(150px, 46vw, 232px); --agap: 8px; }
   .gmp-arrow { width: 38px; }
-  .gmp-arrow.prev { left: 0; } .gmp-arrow.next { right: 0; }
   /* two decks will not fit side by side on a phone - stack them and let the
      stage scroll, so the Take the Field button is always reachable */
   .gmp.dual .gmp-stage { display: flex; flex-direction: column; align-items: stretch;
     overflow-y: auto; -webkit-overflow-scrolling: touch; gap: 14px;
     padding-bottom: calc(8px + env(safe-area-inset-bottom, 0px)); }
   .gmp.dual .gmp-col { flex: 0 0 auto; }
-  .gmp.dual .gmp-deck { height: clamp(220px, 34vh, 300px); flex: 0 0 auto; }
-  .gmp.dual .gmp-card { --cw: clamp(140px, 42vw, 200px); width: var(--cw);
-    transform: translateX(calc(var(--o) * var(--cw) * .88))
+  .gmp.dual .gmp-deck { height: clamp(220px, 34vh, 300px); flex: 0 0 auto;
+    --cw: clamp(140px, 42vw, 200px); --agap: 6px; }
+  .gmp.dual .gmp-card { transform: translateX(calc(var(--o) * var(--cw) * .88))
       translateY(calc(var(--lay) * 22px)) scale(var(--s)) rotateX(calc(var(--lay) * 56deg)); }
   .gmp.dual .gmp-name { font-size: clamp(20px, 6vw, 30px); }
   .gmp-foot { position: sticky; bottom: 0; padding: 10px 0 4px;
@@ -12793,6 +12814,7 @@ function skIsLocalDev(){
   return /^(localhost|127\.|0\.0\.0\.0|192\.168\.)/.test(location.hostname) || location.protocol === 'file:';
 }
 function playbookUrlFor(schemeKey, query){
+  schemeKey = gpDataKey(schemeKey);        // the demo defense opens its borrowed playbook
   const q = query ? ('?' + String(query).replace(/^\?/, '')) : '';
   if (skIsLocalDev()){
     const first = String(schemeKey || '').split('-')[0].toLowerCase();
@@ -13745,6 +13767,7 @@ async function gpLoadPlan(sk){
   return plan;
 }
 async function gpSavePlan(sk, plan){
+  if (gpIsDemo(sk)) return;               // the preview never writes
   plan.updated = new Date().toISOString();
   try { localStorage.setItem(GP_PLAN_LS(sk), JSON.stringify(plan)); } catch (_) {}
   try {
@@ -13815,6 +13838,23 @@ const SK_DEF_LABELS = {
 };
 const skRelabel = (arr, sk) => gpIsDef(sk)
   ? arr.map(s => ({ ...s, label: SK_DEF_LABELS[s.id] || s.label })) : arr;
+/* ── PREVIEW: see the whole two-sided app before a real defense has synced ──
+   Owner only, opt in by adding ?demo=defense to the URL. It mirrors your first
+   offensive scheme's data under a defensive name, so every defensive surface
+   (split pickers, defensive call sheet, the in-game side switcher) renders
+   with real content. All writes are blocked, so it can never leave junk in
+   the database. Drop the query string and it is gone. */
+const GP_DEMO_DEF_KEY = 'demo-34defense-cfb27';
+function gpDemoOn(){
+  try { return /(^|[?&])demo=defense(&|$)/.test(location.search) && skIsOwner(); } catch (_) { return false; }
+}
+const gpDemoRow = () => ({ scheme_key: GP_DEMO_DEF_KEY, name: 'Demo 3-4 Defense',
+                           primary_color: '#26364f', secondary_color: '#EAAA00' });
+// the real scheme the demo borrows its plays and sheet from
+const gpDemoSrc = () => ((window._gpAll || []).find(r => !gpIsDef(r.scheme_key)) || {}).scheme_key || null;
+// every query for the demo key reads that borrowed scheme instead
+const gpDataKey = sk => (sk === GP_DEMO_DEF_KEY && gpDemoSrc()) || sk;
+const gpIsDemo  = sk => sk === GP_DEMO_DEF_KEY;
 function skSecs(sk){ return skRelabel(SKS_SECS, sk); }
 function gmTabsFor(sk){ return skRelabel(GM_TABS, sk); }
 function skSecLabel(id, sk){ return (gpIsDef(sk) && SK_DEF_LABELS[id]) || (SKS_SECS.find(s => s.id === id) || {}).label || id; }
@@ -13908,16 +13948,35 @@ async function openGamePlans(){
    One shared state shape for both pickers. With no defensive playbook synced
    there is exactly one column and the screen looks the way it always has; the
    moment a defense shows up the stage splits itself in two. ── */
+const GP_SIDES = ['offense', 'defense'];
 function gpBuildPick(list){
   const cols = {};
   const off = list.filter(r => !gpIsDef(r.sk));
   const def = list.filter(r =>  gpIsDef(r.sk));
   if (off.length) cols.offense = { side:'offense', label:'Offense', list: off, i: 0, on: true };
   if (def.length) cols.defense = { side:'defense', label:'Defense', list: def, i: 0, on: true };
-  const sides = Object.keys(cols);
-  return { cols, sides, dual: sides.length > 1 };
+  const sides = GP_SIDES.filter(s => cols[s]);           // the sides that really exist
+  // The stage ALWAYS shows both seats - offense left, defense right. The side
+  // you have not built yet sits there as an empty seat instead of hiding the
+  // whole layout, so the split is visible before the first defense syncs and
+  // simply fills in when it does.
+  return { cols, sides, ghosts: GP_SIDES.filter(s => !cols[s]), multi: sides.length > 1, dual: true };
 }
 const gpPickCol = s => (window._gpPick && window._gpPick.cols[s]) || null;
+/* the empty seat - same footprint as a real column, obviously not built yet */
+function gpGhostColHTML(side){
+  const label = side === 'defense' ? 'Defense' : 'Offense';
+  return `<div class="gmp-col ghost" data-side="${side}">
+    <div class="gmp-eyebrow">${label}</div>
+    <div class="gmp-deck">
+      <div class="gmp-ghost-card"><span>${side === 'defense' ? '🛡' : '▲'}</span></div>
+    </div>
+    <div class="gmp-name dim">No ${label} Plan Yet</div>
+    <div class="gmp-meta dim">${side === 'defense'
+      ? 'your defensive game plans land here'
+      : 'your offensive game plans land here'}</div>
+  </div>`;
+}
 function gpColOffset(col, i){ const N = col.list.length; let o = i - col.i; if (o > N / 2) o -= N; if (o < -N / 2) o += N; return o; }
 /* one column of cards + its name, action and dots. tapFn(sk) is what the
    standing card does; both pickers hand in their own. */
@@ -13946,8 +14005,10 @@ function gpColHTML(col, ns, tapFn, actLabel, metaFn, labelOverride){
 }
 /* the scheme rail, grouped by side once both exist */
 function gpPickRailHTML(p, ns){
-  return p.sides.map(s => { const col = p.cols[s];
-    const head = p.dual ? `<div class="gmp-rail-h">${col.label}</div>` : '';
+  return GP_SIDES.map(s => {
+    const col = p.cols[s];
+    const head = `<div class="gmp-rail-h">${s === 'offense' ? 'Offense' : 'Defense'}</div>`;
+    if (!col) return head + `<div class="gmp-chip ghost"><i>+</i><span>none yet</span></div>`;
     return head + col.list.map((r, i) => { const c = gpTeamColors(r.sk);
       return `<button class="gmp-chip${i === col.i ? ' on' : ''}" style="--tc:${c.tc}; --tc2:${c.tc2}"
         onclick="${ns}PickGo('${s}',${i})" title="${achEsc(r.name)}">
@@ -13959,12 +14020,13 @@ function gpPickRender(){
   const p = window._gpPick; if (!p) return;
   const tap = sk => `openGamePlan('${sk}')`;
   const meta = () => 'Build and manage this plan';
-  const cols = p.sides.map(s => gpColHTML(p.cols[s], 'gp', tap, 'Open Game Plan →', meta,
-    p.dual ? null : 'Game Plans')).join('');
+  const cols = GP_SIDES.map(s => p.cols[s]
+    ? gpColHTML(p.cols[s], 'gp', tap, 'Open Game Plan →', meta)
+    : gpGhostColHTML(s)).join('');
   const cur = p.cols[p.sides[0]].list[p.cols[p.sides[0]].i], col = gpTeamColors(cur.sk);
-  showInCenter(`<div class="gpp-host"><div class="gmp${p.dual ? ' dual' : ''}" style="--tc:${col.tc}; --tc2:${col.tc2}">
+  showInCenter(`<div class="gpp-host"><div class="gmp dual" style="--tc:${col.tc}; --tc2:${col.tc2}">
     <div class="gmp-rail">${gpPickRailHTML(p, 'gp')}</div>
-    <div class="gmp-stage">${p.dual ? `<div class="gmp-hd">Game Plans</div>` : ''}${cols}</div>
+    <div class="gmp-stage"><div class="gmp-hd">Game Plans<span>build a plan for each side of the ball</span></div>${cols}</div>
   </div></div>`, true);
   gpPickWire();
 }
@@ -13991,7 +14053,7 @@ function gpPickApply(side){
 function gpPickChipSync(p, ns){
   const root = ns === 'gm' ? document.querySelector('#gm-root') : document.querySelector('#center-content');
   if (!root) return;
-  const chips = [...root.querySelectorAll('.gmp-chip')];
+  const chips = [...root.querySelectorAll('.gmp-chip:not(.ghost)')];   // the empty-seat chip is not in the state
   let n = 0;
   p.sides.forEach(s => { const col = p.cols[s];
     col.list.forEach((_, i) => { const el = chips[n++]; if (el) el.classList.toggle('on', i === col.i); });
@@ -14246,6 +14308,8 @@ async function gpLoadAll(){
     window._gpAll = (pbs || []).filter(p => gpLive(p.scheme_key))
       .sort((a, b) => liveOrder(a.scheme_key) - liveOrder(b.scheme_key));
   } catch (_) { window._gpAll = []; }
+  if (gpDemoOn() && window._gpAll.length && !window._gpAll.some(r => r.scheme_key === GP_DEMO_DEF_KEY))
+    window._gpAll.push(gpDemoRow());
   return window._gpAll;
 }
 /* team colors for a scheme (falls back to SK blue/gold). Accents on paper are
@@ -14262,12 +14326,13 @@ async function openGamePlan(sk, tab){
   await gpLoadAll();
   if (!(window._gp && window._gp.sk === sk)){
     showInCenter('<div class="loading-msg">Opening your game plan…</div>', true);
+    const q = gpDataKey(sk);                     // the demo defense borrows a real scheme's data
     const [sheetRes, drivesRes, savedRes, rowsRes, plan] = await Promise.all([
-      db.from('saved_sheets').select('data, updated_at').eq('member_id', currentUser.id).eq('scheme_key', sk).maybeSingle(),
+      db.from('saved_sheets').select('data, updated_at').eq('member_id', currentUser.id).eq('scheme_key', q).maybeSingle(),
       gpIsDef(sk) ? Promise.resolve({ data: [] })
-        : db.from('saved_drives').select('id, scheme_key, title, data, created_at').eq('member_id', currentUser.id).eq('scheme_key', sk).order('created_at', { ascending: false }),
-      db.from('saved_plays').select('play_key, notes, created_at').eq('member_id', currentUser.id).eq('scheme_key', sk).order('created_at', { ascending: false }),
-      db.from('plays').select('play_key, name, formation, type, tags, images').eq('scheme_key', sk),
+        : db.from('saved_drives').select('id, scheme_key, title, data, created_at').eq('member_id', currentUser.id).eq('scheme_key', q).order('created_at', { ascending: false }),
+      db.from('saved_plays').select('play_key, notes, created_at').eq('member_id', currentUser.id).eq('scheme_key', q).order('created_at', { ascending: false }),
+      db.from('plays').select('play_key, name, formation, type, tags, images').eq('scheme_key', q),
       gpLoadPlan(sk),
       ensureSchemeNameMap(),
     ]);
@@ -14651,6 +14716,7 @@ function gpEnsureSheet(g){
   return g.sheet;
 }
 async function gpSheetSave(g){
+  if (gpIsDemo(g.sk)) { showHubToast('Preview only - not saved'); return; }
   try {
     await db.from('saved_sheets').upsert(
       { member_id: currentUser.id, scheme_key: g.sk, data: g.sheet, updated_at: new Date().toISOString() },
@@ -15360,6 +15426,8 @@ async function openGameMode(){
     ensureSchemeNameMap(),
   ]);
   const sheets = sheetsRes.data || [];
+  if (gpDemoOn() && sheets.length && !sheets.some(s => s.scheme_key === GP_DEMO_DEF_KEY))
+    sheets.push({ scheme_key: GP_DEMO_DEF_KEY, data: sheets[0].data });
   if (!sheets.length) {
     gmSetBody(`<div class="gm-empty">
       <div class="gm-empty-h">No game plan yet</div>
@@ -15390,36 +15458,42 @@ function gmPickRender(){
   const p = window._gmPick; if (!p) return;
   // single side: the standing card takes you straight onto the field, same as always.
   // both sides: each deck picks that side's plan and ONE button takes you out with them.
-  const tap = p.dual ? (sk => `gmPickToggle('${gpSide(sk)}')`) : (sk => `gmStart('${sk}')`);
-  const cols = p.sides.map(s => gpColHTML(p.cols[s], 'gm', tap, p.dual ? null : '▶ Take the Field',
-    gmPickMeta, p.dual ? null : 'Start a Game')).join('');
+  // both sides in hand: each deck becomes an include toggle. One side only:
+  // the standing card takes you straight out, same as it always did.
+  const tap = p.multi ? (sk => `gmPickToggle('${gpSide(sk)}')`) : (sk => `gmStart('${sk}')`);
+  const cols = GP_SIDES.map(s => p.cols[s]
+    ? gpColHTML(p.cols[s], 'gm', tap, null, gmPickMeta)
+    : gpGhostColHTML(s)).join('');
   const cur = p.cols[p.sides[0]].list[p.cols[p.sides[0]].i], col = gpTeamColors(cur.sk);
-  gmSetBody(`<div class="gmp${p.dual ? ' dual' : ''}" style="--tc:${col.tc}; --tc2:${col.tc2}">
+  gmSetBody(`<div class="gmp dual" style="--tc:${col.tc}; --tc2:${col.tc2}">
     <div class="gmp-rail">${gpPickRailHTML(p, 'gm')}</div>
     <div class="gmp-stage">
-      ${p.dual ? '<div class="gmp-hd">Start a Game<span>tap a card to take that side out, or leave one home</span></div>' : ''}
+      <div class="gmp-hd">Start a Game<span>${p.multi
+        ? 'tap a card to take that side out, or leave one home'
+        : 'take your plan out - the other side opens up when you build one'}</span></div>
       ${cols}
-      ${p.dual ? `<div class="gmp-foot">
+      <div class="gmp-foot">
         <div class="gmp-picks" id="gmp-picks"></div>
         <button class="gmp-go" id="gmp-go" onclick="gmStartPicked()">▶ Take the Field</button>
-      </div>` : ''}
+      </div>
     </div>
   </div>`);
-  if (p.dual) gmPickFoot();
+  gmPickFoot();
 }
 /* in dual mode each side is a toggle - you never HAVE to take both out */
 function gmPickToggle(side){
   const p = window._gmPick, col = p && p.cols[side]; if (!col) return;
-  const other = p.sides.find(s => s !== side);
-  if (col.on && other && !p.cols[other].on) return;     // never leave the field empty
+  // never leave the field empty - the last side on cannot be switched off
+  if (col.on && !p.sides.some(s => s !== side && p.cols[s].on)) return;
   col.on = !col.on;
   document.querySelector(`#gm-root .gmp-col[data-side="${side}"]`)?.classList.toggle('off', !col.on);
   gmPickFoot();
 }
 function gmPickFoot(){
-  const p = window._gmPick; if (!p || !p.dual) return;
+  const p = window._gmPick; if (!p) return;
   p.sides.forEach(s => document.querySelector(`#gm-root .gmp-col[data-side="${s}"]`)?.classList.toggle('off', !p.cols[s].on));
   const picks = document.getElementById('gmp-picks'); if (!picks) return;
+  if (!p.multi) { picks.innerHTML = ''; return; }        // nothing to choose between yet
   picks.innerHTML = p.sides.map(s => { const col = p.cols[s], cur = col.list[col.i];
     return `<button class="gmp-pick-chip${col.on ? ' on' : ''}" onclick="gmPickToggle('${s}')">
       <i>${col.on ? '✓' : '+'}</i><b>${col.label}</b><span>${achEsc(col.on ? cur.name : 'sitting this one out')}</span></button>`; }).join('');
@@ -15435,7 +15509,7 @@ function gmPickApply(side){
   const p = window._gmPick, col = p && p.cols[side];
   const deck = col && document.querySelector(`#gm-root .gmp-deck[data-deck="${side}"]`);
   if (!p || !deck) { gmPickRender(); return; }
-  const tap = p.dual ? `gmPickToggle('${side}')` : null;
+  const tap = p.multi ? `gmPickToggle('${side}')` : null;
   deck.querySelectorAll('.gmp-card').forEach(card => {
     const i = +card.dataset.idx, o = gpColOffset(col, i);
     card.setAttribute('style', gmPickCardStyle(o, col.list[i].sk));
@@ -15447,8 +15521,6 @@ function gmPickApply(side){
   if (host) { host.style.setProperty('--tc', c.tc); host.style.setProperty('--tc2', c.tc2); }
   const nm = document.querySelector(`#gm-root [data-name="${side}"]`); if (nm) nm.textContent = cur.name;
   const meta = document.querySelector(`#gm-root [data-meta="${side}"]`); if (meta) meta.textContent = gmPickMeta(col);
-  const go = document.querySelector(`#gm-root [data-go="${side}"]`);
-  if (go && !p.dual) go.setAttribute('onclick', `gmStart('${cur.sk}')`);
   gpPickChipSync(p, 'gm');
   (host || document).querySelectorAll('.gmp-dot').forEach(d => d.classList.toggle('on', +d.dataset.idx === col.i));
   gmPickFoot();
@@ -15518,12 +15590,13 @@ function gmSetBody(html){
    loaded at once; gmUseSide swaps the whole payload onto gm in one assign. */
 async function gmLoadSide(sk){
   const isDef = gpIsDef(sk);
+  const q = gpDataKey(sk);                  // the demo defense borrows a real scheme's data
   const [sheetRes, playsRes, notesRes, drivesRes, plan] = await Promise.all([
-    db.from('saved_sheets').select('data').eq('member_id', currentUser.id).eq('scheme_key', sk).maybeSingle(),
-    db.from('plays').select('play_key, name, formation, type, subtype, tags, reads, adjustments, when_to_use, images').eq('scheme_key', sk),
-    db.from('saved_plays').select('play_key, notes').eq('member_id', currentUser.id).eq('scheme_key', sk),
+    db.from('saved_sheets').select('data').eq('member_id', currentUser.id).eq('scheme_key', q).maybeSingle(),
+    db.from('plays').select('play_key, name, formation, type, subtype, tags, reads, adjustments, when_to_use, images').eq('scheme_key', q),
+    db.from('saved_plays').select('play_key, notes').eq('member_id', currentUser.id).eq('scheme_key', q),
     isDef ? Promise.resolve({ data: [] })   // defense never scripts drives
-      : db.from('saved_drives').select('id, title, data').eq('member_id', currentUser.id).eq('scheme_key', sk).order('created_at', { ascending: true }),
+      : db.from('saved_drives').select('id, title, data').eq('member_id', currentUser.id).eq('scheme_key', q).order('created_at', { ascending: true }),
     gpLoadPlan(sk),
     ensureSchemeNameMap(),
   ]);
@@ -15579,7 +15652,7 @@ async function gmStart(a, b){
   // session row - analytics must never block the game surface
   try {
     const { data } = await db.from('game_sessions')
-      .insert({ member_id: currentUser.id, scheme_key: (offP || defP).sk })
+      .insert({ member_id: currentUser.id, scheme_key: gpDataKey((offP || defP).sk) })
       .select('session_id').single();
     if (data) gm.session.id = data.session_id;
   } catch (_) {}
@@ -15592,7 +15665,13 @@ async function gmStart(a, b){
 /* THE SWITCHER - swap the whole side of the ball in one assign. Both sides
    were loaded up front, so flipping mid-drive is instant and offline-safe. */
 function gmUseSide(side){
-  if (!gm || !gm.sides || !gm.sides[side] || gm.side === side) return;
+  if (!gm || !gm.sides || gm.side === side) return;
+  if (!gm.sides[side]) {                       // the locked pill - say why, do nothing
+    showHubToast(side === 'defense'
+      ? 'No defense out with you this game'
+      : 'No offense out with you this game');
+    return;
+  }
   const p = gm.sides[side];
   gm.side = side;
   Object.assign(gm, p);
@@ -15603,11 +15682,14 @@ function gmUseSide(side){
   gmHubView();
 }
 function gmBothSides(){ return !!(gm && gm.sides && gm.sides.offense && gm.sides.defense); }
+/* Always both pills, so the control is where you expect it every game. The
+   side you did not bring is locked and says why when you press it. */
 function gmSideSwitchHTML(){
-  if (!gmBothSides()) return '';
+  if (!gm || !gm.sides) return '';
   return `<div class="gm-sw" role="tablist" aria-label="Side of the ball">
-    ${['offense', 'defense'].map(s => `<button class="gm-sw-b${gm.side === s ? ' on' : ''}" role="tab"
-      aria-selected="${gm.side === s}" onclick="gmUseSide('${s}')">${s === 'offense' ? 'Offense' : 'Defense'}</button>`).join('')}
+    ${GP_SIDES.map(s => { const have = !!gm.sides[s], label = s === 'offense' ? 'Offense' : 'Defense';
+      return `<button class="gm-sw-b${gm.side === s ? ' on' : ''}${have ? '' : ' locked'}" role="tab"
+        aria-selected="${gm.side === s}" onclick="gmUseSide('${s}')">${have ? '' : '🔒 '}${label}</button>`; }).join('')}
   </div>`;
 }
 
