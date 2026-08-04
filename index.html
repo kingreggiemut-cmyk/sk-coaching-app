@@ -4680,7 +4680,7 @@ body.game-madden .game-badge-madden { opacity: 1; }
   grid-template-areas: "form form form xf" "run pass man zone" "run pass tds third" "rz rz con con"; }
 /* the defensive sheet is a different document: 12 blocks, not 10 */
 .sksheet-grid.def { grid-template-areas:
-  "form form form  xf"
+  "form form form  form"
   "base base rund  rund"
   "manb zonb matc  zonc"
   "manc manc third rz"
@@ -4719,7 +4719,7 @@ span.sks-note:hover { transform: rotate(var(--r)); box-shadow: 0 3px 7px rgba(0,
 .sksheet .gp-empty-line { color: var(--ink-soft); margin: 0 auto; }
 @media (max-width: 1020px) { .sksheet-grid { grid-template-columns: 1fr 1fr;
   grid-template-areas: "form form" "xf xf" "run pass" "man zone" "tds third" "rz rz" "con con"; }
-  .sksheet-grid.def { grid-template-areas: "form form" "xf xf" "base base" "rund rund"
+  .sksheet-grid.def { grid-template-areas: "form form" "base base" "rund rund"
     "manb zonb" "matc zonc" "manc manc" "third rz" "con con"; } }
 @media (max-width: 620px) { .sksheet-grid { display: flex; flex-direction: column; } .sks { min-height: 0; } }
 
@@ -13864,9 +13864,10 @@ const gpIsDef = sk => gpSide(sk) === 'defense';
    the playbook: base / rundef / manblitz / zoneblitz / matchcov / zonecov /
    mancov / thirdLong / redZone). They HAVE to match or a saved defensive sheet
    reads back empty. Offense keeps SKS_SECS exactly as it was. */
+/* NB: no X-Factor block. Defense does not have one - the playbook's own
+   GP_SECTIONS goes straight from FRONTS to BASE CALLS. */
 const SKS_SECS_DEF = [
   { id:'formations', label:'Fronts',          area:'form',  c:'#1E54B7' },
-  { id:'xfactor',    label:'X-Factor',        area:'xf',    c:'#b3541e' },
   { id:'base',       label:'Base Calls',      area:'base',  c:'#2e7d43' },
   { id:'rundef',     label:'Run Defense',     area:'rund',  c:'#8a6b4a' },
   { id:'manblitz',   label:'Man Blitzes',     area:'manb',  c:'#c2554e' },
@@ -14634,7 +14635,7 @@ function gpSheetTabHTML(g){
   const rec = gpRecommendedFor(g.sk);
   const tickets = `<div class="gpw-tickets">
     ${rec ? tik('Use Recommended', 'the coach’s sheet', false, 'gpUseRecommended()', 'gold') : ''}
-    ${tik('X-Factor', sheet.xFactor ? '✓ built' : 'pick the guy', !!sheet.xFactor, 'gpXfChooser()')}
+    ${gpIsDef(g.sk) ? '' : tik('X-Factor', sheet.xFactor ? '✓ built' : 'pick the guy', !!sheet.xFactor, 'gpXfChooser()')}
     ${gmTabsFor(g.sk).map(t => { const n = Array.isArray(sheet[t.id]) ? sheet[t.id].length : 0;
       return tik(t.label, n ? `✓ ${n} of ${skCaps(g.sk)[t.id] || 3}` : `pick ${skCaps(g.sk)[t.id] || 3}`, !!n, `gpChooser('${t.id}')`); }).join('')}
     ${(() => { const n = gmConstraints(sheet).length; return tik(skSecLabel('constraints', g.sk), n ? `✓ ${n} pair${n !== 1 ? 's' : ''}` : 'pair them up', !!n, 'gpConChooser()'); })()}
@@ -14738,7 +14739,6 @@ const GP_RECOMMENDED = {
   bamadefense: {
     side: 'defense',
     formations: ['425 Over G', '425 Even', '425 3 High'],
-    xFactor: { player:'THE STAR NICKEL', play:'ss-blitz-3' },
     base:      ['quarters-palms','3-double-cloud','ss-blitz-2','ss-blitz-3','quarters-run-defense'],
     rundef:    ['quarters-run-defense','pinch-blitz','quarters-palms'],
     manblitz:  ['pinch-blitz','ws-blitz-1','ss-slb-blitz','lb-blitz-0'],
@@ -14778,9 +14778,28 @@ function gpUseRecommended(){
   openGamePlan(g.sk, 'sheet');
 }
 
+/* Every defensive call lines up out of one of the scheme's FRONTS, so that is
+   the pool - nothing else belongs on the sheet. It also fences off plays left
+   in the table by an earlier sync of the same scheme_key (a playbook gets
+   duplicated from another team's file, so its placeholder OFFENSE can still be
+   sitting under the defensive key until the playbook is re-synced). */
+function gpFronts(g){
+  const rec = gpRecommendedFor(g.sk);
+  const list = ((g.sheet && g.sheet.formations) || []).length
+    ? g.sheet.formations : ((rec && rec.formations) || []);
+  return list.map(f => String(f).trim().toLowerCase());
+}
 /* which plays belong in which section - the War Room's own filters, ported */
 function gpEligible(g, secId){
   const all = Object.values(g.look || {});
+  const chosenD = new Set((g.sheet && Array.isArray(g.sheet[secId])) ? g.sheet[secId] : []);
+  if (gpIsDef(g.sk)) {
+    const fronts = gpFronts(g);
+    const list = all.filter(p => !chosenD.has(p.play_key)
+      && (!fronts.length || fronts.includes(String(p.formation || '').trim().toLowerCase())));
+    // a front list that matches nothing must never blank the chooser
+    return list.length ? list : all.filter(p => !chosenD.has(p.play_key));
+  }
   const has = t => p => (p.tags || []).includes(t);
   const f = secId === 'run' ? has('run-play')
     : secId === 'pass' ? (p => p.type !== 'Run Game' && !(p.tags || []).includes('run-play'))
