@@ -7,3 +7,120 @@
 # stays fully scanned/protected.
 [build.environment]
   SECRETS_SCAN_OMIT_KEYS = "SUPABASE_URL,SUPABASE_ANON_KEY"
+
+# ---------------------------------------------------------------------------
+# ASSET CACHING. Netlify defaults every file to `max-age=0, must-revalidate`,
+# so a repeat visit re-checks ~47 files before the playbook can paint - and the
+# Squarespace iframe pays that on every page view. The art is large and changes
+# rarely, so cache it for a week.
+# Deliberately scoped to the ASSET FOLDERS only: the .html playbooks keep the
+# default so a deploy is live immediately. A rule that fails to match simply
+# does nothing, which is why these are listed explicitly rather than as a broad
+# /playbooks/* rule that could pin stale HTML for a week.
+# Both raw and %20 spellings are listed because the match runs against the URL.
+# ---------------------------------------------------------------------------
+
+[[headers]]
+  for = "/playbooks/3d Stadium assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=604800"
+
+[[headers]]
+  for = "/playbooks/3d%20Stadium%20assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=604800"
+
+[[headers]]
+  for = "/playbooks/Alabama Assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=604800"
+
+[[headers]]
+  for = "/playbooks/Alabama%20Assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=604800"
+
+[[headers]]
+  for = "/playbooks/Assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=604800"
+
+[[headers]]
+  for = "/playbooks/Bama Assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=604800"
+
+[[headers]]
+  for = "/playbooks/Bama%20Assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=604800"
+
+[[headers]]
+  for = "/playbooks/Florida ST Assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=604800"
+
+[[headers]]
+  for = "/playbooks/Florida%20ST%20Assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=604800"
+
+[[headers]]
+  for = "/playbooks/GO GO Assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=604800"
+
+[[headers]]
+  for = "/playbooks/GO%20GO%20Assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=604800"
+
+[[headers]]
+  for = "/playbooks/Ohio ST Assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=604800"
+
+[[headers]]
+  for = "/playbooks/Ohio%20ST%20Assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=604800"
+
+[[headers]]
+  for = "/playbooks/Oregon Assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=604800"
+
+[[headers]]
+  for = "/playbooks/Oregon%20Assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=604800"
+
+[[headers]]
+  for = "/playbooks/USC Assets CFB 26/*"
+  [headers.values]
+    Cache-Control = "public, max-age=604800"
+
+[[headers]]
+  for = "/playbooks/USC%20Assets%20CFB%2026/*"
+  [headers.values]
+    Cache-Control = "public, max-age=604800"
+
+[[headers]]
+  for = "/playbooks/West Virginia Assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=604800"
+
+[[headers]]
+  for = "/playbooks/West%20Virginia%20Assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=604800"
+
+[[headers]]
+  for = "/playbooks/Wingback Offense/*"
+  [headers.values]
+    Cache-Control = "public, max-age=604800"
+
+[[headers]]
+  for = "/playbooks/Wingback%20Offense/*"
+  [headers.values]
+    Cache-Control = "public, max-age=604800"
