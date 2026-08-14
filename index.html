@@ -13824,15 +13824,25 @@ const DRIVE_SLOTS = [
 /* CFB 27 schemes are live; the rest wait for their War Rooms. Only Oregon's
    playbook has the new War Room (saveSheetRemote) today - GoGo and Wingback
    run sheet-less with the skeleton state, no dead-end War Room CTA. */
-const GP_LIVE = ['oregon', 'gogo', 'wingback', 'wvu', 'ohiostate', 'bamadefense', 'bears'];
-const gpLive = sk => GP_LIVE.includes(String(sk || '').split('-')[0].toLowerCase());
+/* EVERYTHING synced is live except the legacy CFB 26 playbooks, which predate
+   the War Room and have no sheet to build from. Deliberately a DENY list, not
+   an allow list: a brand new playbook has to show up the moment it syncs,
+   without anyone remembering to add its name here. GP_ORDER only decides where
+   a scheme sorts in the rail - anything unlisted falls to the end. */
+const GP_ORDER = ['oregon', 'gogo', 'wingback', 'wvu', 'ohiostate', 'bamadefense', 'bears'];
+const gpLive = sk => !/cfb26/i.test(String(sk || ''));
 /* A defence that SHARES its team's first word ("wvu-34defense") would link
    straight into that team's OFFENSIVE playbook, so it stays closed until an
    explicit file is registered. A defence with its own first word
    ("bamadefense-cfb27" -> bamadefense.html) resolves correctly on its own. */
-const gpHasWarRoom = sk => gpIsDef(sk)
-  ? /def/.test(String(sk || '').split('-')[0].toLowerCase()) || !!SK_PLAYBOOK_FILE[sk]
-  : /^(oregon|wvu|ohiostate|bears)/i.test(String(sk || ''));
+/* Same reasoning as gpLive: name the ones WITHOUT a War Room, so a new
+   playbook gets its door automatically. GoGo and Wingback are sheet-less. */
+const GP_NO_WARROOM = ['gogo', 'wingback'];
+const gpHasWarRoom = sk => {
+  const first = String(sk || '').split('-')[0].toLowerCase();
+  if (GP_NO_WARROOM.includes(first)) return false;
+  return gpIsDef(sk) ? (/def/.test(first) || !!SK_PLAYBOOK_FILE[sk]) : true;
+};
 /* sheet sections → game-mode tabs (the buckets ARE the nav); the colors are
    the SAME section inks the call sheet uses, so the sheet you built and the
    sheet you play with read as one object */
@@ -14374,7 +14384,7 @@ async function gpLoadAll(){
   try {
     const { data: pbs } = await db.from('playbooks')
       .select('scheme_key, name, primary_color, secondary_color').order('name');
-    const liveOrder = k => { const i = GP_LIVE.indexOf(String(k || '').split('-')[0].toLowerCase()); return i < 0 ? 99 : i; };
+    const liveOrder = k => { const i = GP_ORDER.indexOf(String(k || '').split('-')[0].toLowerCase()); return i < 0 ? 99 : i; };
     window._gpAll = (pbs || []).filter(p => gpLive(p.scheme_key))
       .sort((a, b) => liveOrder(a.scheme_key) - liveOrder(b.scheme_key));
   } catch (_) { window._gpAll = []; }
