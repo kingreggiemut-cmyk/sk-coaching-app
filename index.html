@@ -12832,6 +12832,7 @@ const SK_PLAYBOOK_LOCAL = {
   wingback: 'Wingback Offense CFB27.html',
   ohiostate:'Ohio ST Playbook.html',
   bamadefense:'Alabama Playbook.html',
+  bears:    'Bears Playbook Madden 27.html',
 };
 function skIsLocalDev(){
   return /^(localhost|127\.|0\.0\.0\.0|192\.168\.)/.test(location.hostname) || location.protocol === 'file:';
@@ -12867,6 +12868,7 @@ const SK_SCHEME_LOGO = {
   // a defence keyed off its own first word needs its own entry - "bamadefense"
   // never matches the "bama" offence, so it fell through to the SK placeholder
   bamadefense:'Bama Assets/Bama Logo 1.webp',
+  bears:    'Bears Assets/Bears Logo 1.webp',
 };
 function skLogoFor(schemeKey){
   const first = String(schemeKey || '').split('-')[0].toLowerCase();
@@ -13757,6 +13759,11 @@ const GP_CREED_SEED = {
     { t:"Ball in Our Playmakers' Hands", s:'Elite athletes everywhere. The whole job is getting them the ball with room to work.' },
     { t:'Everything Has a Counter',     s:'Same motion, same look, a completely different answer already installed.' },
   ]},
+  bears: { keys: [
+    { t:'The QB Is the Center of Everything', s:'Caleb is live on almost every snap. They have to account for him as a runner before anything else.' },
+    { t:'Motion and Creativity',              s:'They never line up against the same picture twice, and every look hides three different plays.' },
+    { t:'Built for Explosives',               s:'Second in the NFL in explosive plays. Every call carries a way to break big.' },
+  ]},
   defense: { keys: [
     { t:'Make Them Earn It',    s:'No free yards, no easy answers. Every snap costs them something.' },
     { t:'Never the Same Look',  s:'Show one picture, play another. They never get a clean read.' },
@@ -13817,7 +13824,7 @@ const DRIVE_SLOTS = [
 /* CFB 27 schemes are live; the rest wait for their War Rooms. Only Oregon's
    playbook has the new War Room (saveSheetRemote) today - GoGo and Wingback
    run sheet-less with the skeleton state, no dead-end War Room CTA. */
-const GP_LIVE = ['oregon', 'gogo', 'wingback', 'wvu', 'ohiostate', 'bamadefense'];
+const GP_LIVE = ['oregon', 'gogo', 'wingback', 'wvu', 'ohiostate', 'bamadefense', 'bears'];
 const gpLive = sk => GP_LIVE.includes(String(sk || '').split('-')[0].toLowerCase());
 /* A defence that SHARES its team's first word ("wvu-34defense") would link
    straight into that team's OFFENSIVE playbook, so it stays closed until an
@@ -13825,7 +13832,7 @@ const gpLive = sk => GP_LIVE.includes(String(sk || '').split('-')[0].toLowerCase
    ("bamadefense-cfb27" -> bamadefense.html) resolves correctly on its own. */
 const gpHasWarRoom = sk => gpIsDef(sk)
   ? /def/.test(String(sk || '').split('-')[0].toLowerCase()) || !!SK_PLAYBOOK_FILE[sk]
-  : /^(oregon|wvu|ohiostate)/i.test(String(sk || ''));
+  : /^(oregon|wvu|ohiostate|bears)/i.test(String(sk || ''));
 /* sheet sections → game-mode tabs (the buckets ARE the nav); the colors are
    the SAME section inks the call sheet uses, so the sheet you built and the
    sheet you play with read as one object */
@@ -14730,6 +14737,22 @@ const GP_RECOMMENDED = {
     constraints: [
       { base:'orbit-triple-option',     off:'orbit-pa-y-corner',            note:'They crash the option, the PA Y corner hits the same look over the top.' },
       { base:'exit-rpo-read-wr-screen', off:'exit-pa-fk-screen-wheel-zone', note:'They widen to take the screen, the exit wheel goes behind them.' },
+    ],
+  },
+  // Bears Offense (scheme_key bears-madden27). Keys verbatim from the playbook.
+  bears: {
+    formations: ['Pistol Wing Slot','Empty Bunch Wide','Wing Pair Heavy','Doubles Clamp Stack'],
+    xFactor: { player:'ROME ODUNZE', play:'deep-flood' },
+    run:      ['orbit-rpo-read-te-slide','return-rpo-zone-alert','rpo-alert-bubble','rpo-stretch-alert-lookie-wing-pair-heavy'],
+    pass:     ['deep-flood','motion-pa-x-zig-flood','motion-pa-verts','portland-yheel-double-clamp-stack','drag-curl-out-empty-bunch-wide'],
+    beatMan:  ['motion-pa-x-zig-flood','drag-curl-out-empty-bunch-wide','deep-flood'],
+    beatZone: ['portland-yheel-double-clamp-stack','deep-flood','drag-curl-out-empty-bunch-wide'],
+    bombs:    ['flood-seam','motion-pa-verts','portland-yheel-double-clamp-stack'],
+    thirdLong:['drag-curl-out-empty-bunch-wide','portland-yheel-double-clamp-stack','rpo-qb-screen-draw'],
+    redZone:  ['motion-jet-touch-pass','rpo-qb-screen-draw','return-rpo-zone-alert'],
+    constraints: [
+      { base:'return-rpo-zone-alert', off:'return-paz-over-out-double-gun-double-clamp-stack', note:'They fly out to stop the bubble, the PA Z crosser hits the middle they just emptied.' },
+      { base:'motion-orbit-swing-screen-empty-bunch-wide', off:'motion-orbit-fake-swing-wheel-empty-bunch-wide', note:'They jump the swing, the fake swing wheels the tight end up behind them.' },
     ],
   },
   /* DEFENSE. Ported verbatim from the Alabama Defense playbook's own
