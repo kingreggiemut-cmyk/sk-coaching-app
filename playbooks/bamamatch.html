@@ -984,21 +984,26 @@ if(/[?&]field=1/.test(location.search) && /[?&]dive=1/.test(location.search))
   #warCover{ --cvg:#7a0000; --cvg2:#bb0000; --cvy:#e4e8eb; --cvc:#F0EAD0; --cvgold:#e23b3b;
     --cve:cubic-bezier(.22,1,.36,1);
     position:fixed; inset:0; z-index:50; display:flex; flex-direction:column;
-    align-items:center; justify-content:center; padding:24px 20px; overflow:hidden;
+    align-items:center; justify-content:flex-start; padding:24px 20px;
+    /* A short frame used to clip this: OPEN PLAYBOOK sat under the bottom edge
+       with no way to reach it. Scroll instead of swallow. margin-block:auto on
+       the inner column keeps it centred whenever there IS room, without the
+       flex-centring clip that eats the top of an overflowing child. */
+    overflow-y:auto; overflow-x:hidden; -webkit-overflow-scrolling:touch;
     background:#0f0606; transition:opacity .5s ease, transform .5s ease; }
   #warCover.lift{ opacity:0; transform:scale(1.04); pointer-events:none; }
   #warCover.hidden{ display:none; }
   /* the card deck stays hidden behind the landing until the playbook opens */
   body.covering #deckUI{ display:none !important; }
-  #cv-vid{ position:absolute; inset:0; width:100%; height:100%; object-fit:cover; z-index:0;
+  #cv-vid{ position:fixed; inset:0; width:100%; height:100%; object-fit:cover; z-index:0;
     filter:brightness(.66) saturate(1.05); animation:cvZoom 34s ease-in-out infinite alternate; }
   @keyframes cvZoom{ from{ transform:scale(1); } to{ transform:scale(1.1); } }
-  #cv-veil{ position:absolute; inset:0; z-index:1; pointer-events:none;
+  #cv-veil{ position:fixed; inset:0; z-index:1; pointer-events:none;
     background:
       radial-gradient(120% 90% at 50% 12%, rgba(0,0,0,0) 40%, rgba(3,10,6,.7) 100%),
       linear-gradient(180deg, rgba(3,10,6,.5), rgba(3,10,6,.2) 32%, rgba(3,10,6,.72) 100%); }
   #warCover > .cv-in{ position:relative; z-index:2; display:flex; flex-direction:column;
-    align-items:center; width:100%; max-width:940px; }
+    align-items:center; width:100%; max-width:940px; margin-block:auto; }
   .cv-logo{ width:124px; height:124px; margin-bottom:8px; filter:drop-shadow(0 6px 16px rgba(0,0,0,.6)); }
   .cv-logo img{ width:100%; height:100%; object-fit:contain; }
   /* carousel */
@@ -1165,6 +1170,28 @@ if(/[?&]field=1/.test(location.search) && /[?&]dive=1/.test(location.search))
     .cv-cap{ text-align:center; } .cv-desc{ margin:0 auto; }
     .cv-track{ height:clamp(250px,46vh,320px); }
     .cv-logo{ width:92px; height:92px; }
+  }
+  /* SHORT FRAMES. An embed on a phone is wide enough and nowhere near tall
+     enough, so the cover packs down rather than running off the bottom. */
+  @media (max-height:700px){
+    #warCover{ padding:14px 16px 18px; }
+    .cv-logo{ width:64px; height:64px; margin-bottom:2px; }
+    .cv-eyebrow{ margin-bottom:8px; }
+    .cv-tour{ margin:2px 0 0; }
+    .cv-track{ height:clamp(140px,26vh,210px); }
+    .cv-dots{ margin-top:10px; }
+    .cv-series{ margin:10px 0 4px; }
+    .cv-title{ font-size:clamp(26px,7vw,44px); }
+    .cv-sub{ margin-top:7px; }
+    .cv-open{ margin-top:12px; }
+    .cv-stamp{ margin-top:9px; }
+  }
+  /* nothing like enough room for the carousel: lead with the title and the
+     button, which is the only thing that has to be reachable */
+  @media (max-height:520px){
+    .cv-tour{ display:none; }
+    .cv-logo{ width:50px; height:50px; }
+    .cv-title{ font-size:clamp(24px,6vw,38px); }
   }
   @media (prefers-reduced-motion:reduce){ #cv-vid, #warCover *{ animation:none !important; } }
 </style>
@@ -13079,12 +13106,13 @@ window.ORPB = { openSection, closeTakeover };
 
 /* dot editor handle: drag each dot onto its player, then EXPORT the JSON.
    Same job as the E key, just visible so it is never lost. */
-#mbd .mbd-edit{ position:absolute; right:1.2vw; bottom:1.2vh; z-index:9; cursor:pointer;
+#mbd .mbd-edit{ display:none; position:absolute; right:1.2vw; bottom:1.2vh; z-index:9; cursor:pointer;
   padding:.5em 1.1em .56em; border-radius:999px; border:1px solid rgba(240,231,203,.28);
   background:rgba(10,8,12,.66); color:rgba(240,231,203,.7); font-family:var(--font-display);
   font-weight:800; font-size:clamp(10px,.66vw,16px); letter-spacing:.16em; text-transform:uppercase;
   backdrop-filter:blur(4px); transition:background .18s, color .18s, border-color .18s; }
 #mbd .mbd-edit:hover{ background:rgba(158,27,50,.55); color:var(--cream); border-color:rgba(255,201,209,.5); }
+#mbd.mbdEditing .mbd-edit{ display:block; }
 #mbd .mbd-edit.on{ background:var(--crimson); color:#fff; border-color:rgba(255,201,209,.7); }
 /* the editor's own panel, parked right above the handle */
 #mbd .mbd-edbar{ display:none; position:absolute; right:1.2vw; bottom:5.6vh; z-index:10;
