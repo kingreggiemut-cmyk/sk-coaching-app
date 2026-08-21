@@ -10172,6 +10172,11 @@ body.dioEditing #dioGizmo.on{ display:flex; }
    (and border:none, which was eating the pill's rim) */
 #takeover.open #orpbBack{ display:inline-flex; color:#ffffff; border:2px solid #c7cbd0; }
 #orpbBack:hover{ filter:brightness(1.18); transform:translateX(-2px); }
+/* FAUX FULLSCREEN. iPhone Safari has no page fullscreen at all, so rather
+   than pretend, the playbook asks the page it is embedded in to blow the
+   iframe up over everything (the skFullscreen postMessage further down). While
+   that is on, our own document is locked so nothing scrolls behind it. */
+html.faux-fs, html.faux-fs body{ width:100%; height:100%; margin:0; overflow:hidden; }
 #fsBtn{ position:fixed; right:16px; top:16px; z-index:500; height:42px;
   display:inline-flex; align-items:center; gap:9px; padding:0 17px 0 15px; border-radius:999px; cursor:pointer;
   border:2px solid rgba(199,203,208,.85); color:#f4f6f7;
@@ -12724,6 +12729,11 @@ window.ORPB = { openSection, closeTakeover };
         const p = req.call(root);
         if(p && p.catch) p.catch(()=>setFaux(true));   // e.g. iframe denied it
       }catch(e){ setFaux(true); }
+      /* Some browsers, iPhone Safari worst of all, accept the call, hand back
+         no promise and then never go fullscreen. Nothing rejects, so nothing
+         tells us it failed and the page we sit in never hears that it should
+         expand the frame. Check the result rather than trust the call. */
+      setTimeout(function(){ if(!nativeEl() && !fauxFS) setFaux(true); }, 260);
     } else {
       setFaux(true);                                    // iPhone Safari path
     }

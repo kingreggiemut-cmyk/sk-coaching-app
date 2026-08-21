@@ -17494,6 +17494,11 @@ window.ORPB = { openSection, openCategory, openPlay, closeTakeover,
         const p = req.call(root);
         if(p && p.catch) p.catch(()=>setFaux(true));   // e.g. iframe denied it
       }catch(e){ setFaux(true); }
+      /* Some browsers, iPhone Safari worst of all, accept the call, hand back
+         no promise and then never go fullscreen. Nothing rejects, so nothing
+         tells us it failed and the page we sit in never hears that it should
+         expand the frame. Check the result rather than trust the call. */
+      setTimeout(function(){ if(!nativeEl() && !fauxFS) setFaux(true); }, 260);
     } else {
       setFaux(true);                                    // iPhone Safari path
     }
