@@ -1531,9 +1531,16 @@ function openSection(id){
   if(!O){ hud.textContent = 'Section engine still loading...'; return; }
   if(id === 'dna')  return openMatchScreen('quarters');   /* Quarters Breakdown card */
   if(id === 'run')  return openMatchScreen('bunch');      /* Match Vs Bunch card */
+  if(id === 'personnel') return openMatchScreen('palms');   /* Palms Breakdown card */
+  if(id === 'pass') return openMatchScreen('empty');        /* Match Vs Empty card */
   if(id === 'series') return openMatchScreen('advanced');  /* Advanced Tips card */
   return O.openSection(id);            // about, personnel, dna, series
 }
+
+/* The one list of cards that are not built yet, read by the phone deck AND
+   the match board so they can never drift apart again. Empty = every card on
+   this playbook is live. */
+var SOON_CARDS = new Set();
 
 /* the phone-only home: open the pack, the REAL collector cards (the same
    canvas art the 3D table renders, via cardURL) lay out as a tappable grid */
@@ -1571,8 +1578,8 @@ function addMhCard(n){
   try { img.src = n.art ? encodeURI(n.art) : cardURL(n); } catch(e){}
   img.alt = (n.cfg && n.cfg.name) || n.id || '';
   btn.appendChild(img);
-  /* same two cards that are stamped on the board: grey, stamped, dead */
-  if(n.id === 'personnel' || n.id === 'pass'){
+  /* whatever the board stamps, the phone stamps: grey, stamped, dead */
+  if(SOON_CARDS.has(n.id)){
     btn.classList.add('mh-soon');
     btn.disabled = true;
     const st = document.createElement('span'); st.className = 'mh-stamp';
@@ -5983,10 +5990,10 @@ let dioVid = null;
 /* every asset you can drop into the scene from the editor */
 const DIO_ASSETS = [
   'WVU Stadium Front.webp','Brick Ground.webp',
-  '../Bama Assets/Bama Sports Bar.webp','../Bama Assets/Bama Diner .webp','../Bama Assets/Bama Mecantile.webp','../Bama Assets/Bama Logo 2.webp',
-  '../Bama Assets/Bama Clock tower.webp','../Bama Assets/Bama Gameday goods.webp','../Bama Assets/Bama Water Tower.webp','WVU Trees.webp',
-  '../Bama Assets/Bama Medium Buildings 1.webp','../Bama Assets/Bama Medium Buildings 2.webp',
-  '../Bama Assets/Bama Skyscraper.webp','../Bama Assets/Bama Skyscraper 2.webp',
+  'Bama Assets/Bama Sports Bar.webp','Bama Assets/Bama Diner .webp','Bama Assets/Bama Mecantile.webp','Bama Assets/Bama Logo 2.webp',
+  'Bama Assets/Bama Clock tower.webp','Bama Assets/Bama Gameday goods.webp','Bama Assets/Bama Water Tower.webp','WVU Trees.webp',
+  'Bama Assets/Bama Medium Buildings 1.webp','Bama Assets/Bama Medium Buildings 2.webp',
+  'Bama Assets/Bama Skyscraper.webp','Bama Assets/Bama Skyscraper 2.webp',
 ];
 
 /* the shipped default layout. The editor overrides this and saves to localStorage.
@@ -6003,21 +6010,21 @@ const DIO_DEFAULT = [
   { id:'ground',  kind:'ground',    src:'Brick Ground.webp',                           x:0,      y:89,     z:-991,   size:1558,  spin:0,    tilt:52,  face:false, hazy:false, order:-9,  lock:true },
   { id:'sky',     kind:'sky',       src:'WVU Background Video.mp4',                     x:0,      y:218.5,  z:-640,   size:615.5, spin:0,    tilt:-2,  face:false, hazy:false, order:-20, lock:true },
   { id:'stadium', kind:'stadium',                                                      x:STADIUM_PROP.x, y:STADIUM_PROP.y, z:STADIUM_PROP.z, size:STADIUM_PROP.size, spin:0, tilt:STADIUM_PROP.tilt, face:false, hazy:false, order:0 },
-  { id:'sky-l1',  kind:'billboard', src:'../Bama Assets/Bama Skyscraper.webp',    x:-239.6, y:32.31,  z:-204.8, size:308,    spin:-142, tilt:-5,  face:true,  hazy:true,  order:-3 },
-  { id:'sky-l2',  kind:'billboard', src:'../Bama Assets/Bama Skyscraper 2.webp', x:531.4,  y:116.71, z:-680,   size:539,    spin:0,    tilt:0,   face:true,  hazy:true,  order:-4 },
-  { id:'sky-r1',  kind:'billboard', src:'../Bama Assets/Bama Skyscraper 2.webp', x:288.1,  y:-26.63, z:-283.5, size:390,    spin:-25,  tilt:0,   face:true,  hazy:true,  order:-3 },
-  { id:'sky-r2',  kind:'billboard', src:'../Bama Assets/Bama Skyscraper.webp',    x:550.4,  y:-13.13, z:-680,   size:427,   spin:0,    tilt:0,   face:true,  hazy:true,  order:-4 },
+  { id:'sky-l1',  kind:'billboard', src:'Bama Assets/Bama Skyscraper.webp',    x:-239.6, y:32.31,  z:-204.8, size:308,    spin:-142, tilt:-5,  face:true,  hazy:true,  order:-3 },
+  { id:'sky-l2',  kind:'billboard', src:'Bama Assets/Bama Skyscraper 2.webp', x:531.4,  y:116.71, z:-680,   size:539,    spin:0,    tilt:0,   face:true,  hazy:true,  order:-4 },
+  { id:'sky-r1',  kind:'billboard', src:'Bama Assets/Bama Skyscraper 2.webp', x:288.1,  y:-26.63, z:-283.5, size:390,    spin:-25,  tilt:0,   face:true,  hazy:true,  order:-3 },
+  { id:'sky-r2',  kind:'billboard', src:'Bama Assets/Bama Skyscraper.webp',    x:550.4,  y:-13.13, z:-680,   size:427,   spin:0,    tilt:0,   face:true,  hazy:true,  order:-4 },
   { id:'tree-l',  kind:'billboard', src:'WVU Trees.webp',                              x:475.3,  y:-143.73,z:-396,   size:82,    spin:0,    tilt:0,   face:true,  hazy:true,  order:-4 },
   { id:'tree-r',  kind:'billboard', src:'WVU Trees.webp',                              x:496.5,  y:-146.87,z:-412.1, size:61,    spin:0,    tilt:0,   face:true,  hazy:true,  order:-4 },
-  { id:'bar',     kind:'billboard', src:'../Bama Assets/Bama Sports Bar.webp',          x:-130.7, y:12.17,  z:-143,   size:128.5,  spin:24,   tilt:-3,  face:true,  hazy:false, order:0 },
-  { id:'bldg1',   kind:'billboard', src:'../Bama Assets/Bama Medium Buildings 1.webp',     x:-211.8, y:43.73,  z:-276.1, size:135,    spin:42,   tilt:0,   face:true,  hazy:false, order:0 },
-  { id:'gameday', kind:'billboard', src:'../Bama Assets/Bama Gameday goods.webp',x:-164.8, y:-8.78,  z:-99.1,  size:140.5,  spin:38,   tilt:0,   face:true,  hazy:false, order:0 },
-  { id:'mid1',    kind:'billboard', src:'../Bama Assets/Bama Medium Buildings 2.webp',      x:-246.3, y:1.16,   z:-220.1, size:199.46, spin:32,   tilt:-3,  face:true,  hazy:false, order:0 },
-  { id:'water',   kind:'billboard', src:'../Bama Assets/Bama Water Tower.webp',   x:286.9,  y:82.5,   z:-319.7, size:141,    spin:15,   tilt:7.5,   face:true,  hazy:false, order:0 },
-  { id:'logo',    kind:'billboard', src:'../Bama Assets/Bama Logo 2.webp',         x:377.3,  y:-133.33,z:-291.4, size:58,    spin:0,    tilt:0,   face:true,  hazy:false, order:0 },
-  { id:'clock',   kind:'billboard', src:'../Bama Assets/Bama Clock tower.webp',      x:-164.1, y:60.87,  z:-305.3, size:195,    spin:0,    tilt:0,   face:true,  hazy:false, order:0 },
-  { id:'mid2',    kind:'billboard', src:'../Bama Assets/Bama Mecantile.webp',    x:103.2,  y:9.15,   z:-116.7, size:116.5,  spin:-35,  tilt:1.5,  face:true,  hazy:false, order:0 },
-  { id:'bites',   kind:'billboard', src:'../Bama Assets/Bama Diner .webp',        x:153.8,  y:-5.78,  z:-68,    size:106,    spin:0,    tilt:0,   face:true,  hazy:false, order:2 },
+  { id:'bar',     kind:'billboard', src:'Bama Assets/Bama Sports Bar.webp',          x:-130.7, y:12.17,  z:-143,   size:128.5,  spin:24,   tilt:-3,  face:true,  hazy:false, order:0 },
+  { id:'bldg1',   kind:'billboard', src:'Bama Assets/Bama Medium Buildings 1.webp',     x:-211.8, y:43.73,  z:-276.1, size:135,    spin:42,   tilt:0,   face:true,  hazy:false, order:0 },
+  { id:'gameday', kind:'billboard', src:'Bama Assets/Bama Gameday goods.webp',x:-164.8, y:-8.78,  z:-99.1,  size:140.5,  spin:38,   tilt:0,   face:true,  hazy:false, order:0 },
+  { id:'mid1',    kind:'billboard', src:'Bama Assets/Bama Medium Buildings 2.webp',      x:-246.3, y:1.16,   z:-220.1, size:199.46, spin:32,   tilt:-3,  face:true,  hazy:false, order:0 },
+  { id:'water',   kind:'billboard', src:'Bama Assets/Bama Water Tower.webp',   x:286.9,  y:82.5,   z:-319.7, size:141,    spin:15,   tilt:7.5,   face:true,  hazy:false, order:0 },
+  { id:'logo',    kind:'billboard', src:'Bama Assets/Bama Logo 2.webp',         x:377.3,  y:-133.33,z:-291.4, size:58,    spin:0,    tilt:0,   face:true,  hazy:false, order:0 },
+  { id:'clock',   kind:'billboard', src:'Bama Assets/Bama Clock tower.webp',      x:-164.1, y:60.87,  z:-305.3, size:195,    spin:0,    tilt:0,   face:true,  hazy:false, order:0 },
+  { id:'mid2',    kind:'billboard', src:'Bama Assets/Bama Mecantile.webp',    x:103.2,  y:9.15,   z:-116.7, size:116.5,  spin:-35,  tilt:1.5,  face:true,  hazy:false, order:0 },
+  { id:'bites',   kind:'billboard', src:'Bama Assets/Bama Diner .webp',        x:153.8,  y:-5.78,  z:-68,    size:106,    spin:0,    tilt:0,   face:true,  hazy:false, order:2 },
 ];
 
 const DIO = {
@@ -6296,8 +6303,8 @@ function dioBuildDeckDOM(){
     { x:16, y:28, r:-5.0 }, { x:42, y:25, r: 2.2 }, { x:69, y:29, r:-3.0 },
     { x:30, y:55, r: 3.8 }, { x:57, y:56, r:-2.4 }, { x:84, y:52, r: 3.2 },
   ];
-  /* not built yet: greyed out, stamped, and not clickable */
-  const SOON = new Set(['personnel', 'pass']);
+  /* every card on this board is built now, so this comes back empty */
+  const SOON = SOON_CARDS;
   const board = document.createElement('div'); board.className = 'match-board';
   board.innerHTML = '<img class="mb-face" src="' + encodeURI('Bama Assets/Bama Match Board.webp')
     + '" alt="" draggable="false">';
@@ -13066,9 +13073,39 @@ window.ORPB = { openSection, closeTakeover };
   font-weight:800; font-size:clamp(11px,.78vw,19px); letter-spacing:.18em; text-transform:uppercase;
   backdrop-filter:blur(4px); transition:background .18s, border-color .18s; }
 #mbd .mbd-back:hover{ background:rgba(158,27,50,.55); border-color:rgba(255,201,209,.55); }
-#mbd .mbd-note{ position:absolute; left:20vw; right:2vw; bottom:1.2vh; z-index:6; text-align:center;
+#mbd .mbd-note{ position:absolute; left:20vw; right:13vw; bottom:1.2vh; z-index:6; text-align:center;
   font-family:var(--font-display); font-weight:700; font-size:clamp(11px,.72vw,18px); letter-spacing:.14em;
   text-transform:uppercase; color:rgba(240,231,203,.5); }
+
+/* dot editor handle: drag each dot onto its player, then EXPORT the JSON.
+   Same job as the E key, just visible so it is never lost. */
+#mbd .mbd-edit{ position:absolute; right:1.2vw; bottom:1.2vh; z-index:9; cursor:pointer;
+  padding:.5em 1.1em .56em; border-radius:999px; border:1px solid rgba(240,231,203,.28);
+  background:rgba(10,8,12,.66); color:rgba(240,231,203,.7); font-family:var(--font-display);
+  font-weight:800; font-size:clamp(10px,.66vw,16px); letter-spacing:.16em; text-transform:uppercase;
+  backdrop-filter:blur(4px); transition:background .18s, color .18s, border-color .18s; }
+#mbd .mbd-edit:hover{ background:rgba(158,27,50,.55); color:var(--cream); border-color:rgba(255,201,209,.5); }
+#mbd .mbd-edit.on{ background:var(--crimson); color:#fff; border-color:rgba(255,201,209,.7); }
+/* the editor's own panel, parked right above the handle */
+#mbd .mbd-edbar{ display:none; position:absolute; right:1.2vw; bottom:5.6vh; z-index:10;
+  width:min(340px,27vw); padding:12px 13px 13px; border-radius:10px;
+  background:rgba(16,6,10,.95); border:1px solid var(--crimson);
+  box-shadow:0 20px 44px rgba(0,0,0,.62); text-align:left;
+  font-family:var(--font-body); font-size:12px; line-height:1.45; color:#ffd9dd; }
+#mbd.mbdEditing .mbd-edbar{ display:block; }
+#mbd .mbd-edbar b{ display:block; color:#ff8fa0; font-family:var(--font-display);
+  font-weight:900; font-size:14px; letter-spacing:.14em; text-transform:uppercase; }
+#mbd .mbd-edbar p{ margin:5px 0 0; color:rgba(255,217,221,.74); }
+#mbd .mbd-edbar .mbd-now{ margin-top:6px; color:#9ad7ff; font:600 11px ui-monospace,monospace; }
+#mbd .mbd-edbar .mbd-edrow{ display:flex; gap:7px; flex-wrap:wrap; margin-top:9px; }
+#mbd .mbd-edbar button{ padding:7px 11px; border-radius:6px; cursor:pointer;
+  font-family:var(--font-display); font-weight:900; font-size:11px; letter-spacing:.1em;
+  text-transform:uppercase; border:1px solid var(--crimson); }
+#mbd .mbd-edbar .mbd-x{ background:var(--crimson); color:#fff; }
+#mbd .mbd-edbar .mbd-r{ background:#2a1119; color:#ffc9d1; }
+#mbd .mbd-edbar .mbd-out{ display:none; width:100%; height:76px; margin-top:8px; padding:6px;
+  background:#12060a; color:#ffd9dd; border:1px solid var(--crimson); border-radius:6px;
+  font:11px ui-monospace,monospace; }
 
 /* ==========================================================================
    ADVANCED TIPS: the macro rotator holds the stage, the two deep dives run
@@ -13294,7 +13331,13 @@ window.ORPB = { openSection, closeTakeover };
      screen. Tuck it back inside. */
   #mbd .mbd-film .mbd-ribbon{ right:6px; top:-11px; font-size:10px; padding:.25em .6em .3em; }
   #mbd .mbd-film em{ font-size:11px; }
-  #mbd .mbd-note{ display:none; }
+  #mbd .mbd-note, #mbd .mbd-edit{ display:none; }
+  /* twelve pins on one phone-width picture: the empty trips sit about 7% apart,
+     which is 25px of room. A 24px pin buries its neighbour, so it comes down. */
+  #mbd .mbd-dot{ width:clamp(16px,4.9vw,26px); border-width:1.5px;
+    font-size:clamp(9px,2.6vw,13px); box-shadow:0 3px 8px rgba(0,0,0,.7), 0 0 0 2px rgba(158,27,50,.26); }
+  /* the one you tapped rides over whatever it is touching */
+  #mbd .mbd-dot.on, #mbd .mbd-dot.lit{ z-index:6; }
   /* the rules card still pops over the picture, so it can be read where it is */
   #mbd .mbd-panel{ position:fixed; right:auto; left:50%; translate:-50% 0; top:auto; bottom:2vh;
     /* the padding sits OUTSIDE the width without this, so 92vw measured 385px
@@ -13405,6 +13448,130 @@ window.ORPB = { openSection, closeTakeover };
              'No quadrant of his own to hold, so he goes where the ball goes.'] }
       ]
     },
+    /* COVER 4 PALMS vs 3x1 - the trips answer. Rules straight off Reggie's
+       Palms script: MEG corners, the apex and safety both counting 3 to 2,
+       and the solo safety free as the robber. Trips is to the SCREEN LEFT in
+       this shot, single receiver to the right. */
+    palms: {
+      title: 'Cover 4 Palms vs 3x1',
+      shot: 'Bama Assets/Palms Vs Trips Screen Shot.jpg',
+      art:  'Bama Assets/4-2-5 Over G Cover 4 Palms Play.jpg',
+      video: 'https://youtu.be/NNbbEUff9VE',
+      notes: [
+        { t:'The numbering', b:[
+          '<b>#1</b> is always the outside receiver.',
+          '<b>#2</b> is the next man in, slot or tight end.',
+          '<b>#3</b> is the inside most man in the trips.',
+          'Everything counts <b>outside in</b>.'
+        ] },
+        { t:'Why Palms vs trips', b:[
+          'Takes away the <b>corner routes and flood</b> concepts trips lives on.',
+          'You still get a <b>free robber</b> on the back side.',
+          'Two high shell, so it gives up nothing pre snap.',
+          'Still fits the run with the safeties.'
+        ] }
+      ],
+      legend2: '<b>Trips TE</b>If the solo side is an inline tight end instead of a wideout: the corner takes him man if he goes vertical or runs a corner. If he breaks inside, the safety picks him up across the field and the corner comes off looking for work from the trips side.',
+      spots: [
+        { id:'pCBt', k:'d', x:15.5, y:62, n:'CB', t:'Trips Corner', s:'MEG &middot; man everywhere he goes', reads:['pr1T'],
+          r:['<b>MEG on #1.</b> Man everywhere he goes, no exceptions.',
+             'Vertical, inside, across the field, it does not matter. He travels.',
+             '<b>No switching and no passing off.</b> This is pure man.'] },
+        { id:'pNKt', k:'d', x:20.3, y:58.3, n:'QF', t:'Nickel / Apex', s:'Trips side &middot; reads 3 to 2', reads:['pr3T','pr2T'],
+          r:['<b>#3 goes fast to the flat</b> (arrow, whip, quick out) and he takes him right away, matching him to the flat and running with him.',
+             '<b>#3 goes vertical or into the middle</b> (5 yards or more, seam or crosser) and he snaps his eyes to <b>#2</b> and mans him up.',
+             'Once he is on #2 he takes him <b>anywhere on the field</b>, short or deep.'] },
+        { id:'pSAt', k:'d', x:31, y:50.6, n:'FS', t:'Trips Safety', s:'Reads 3 to 2', reads:['pr3T','pr2T'],
+          r:['<b>#3 goes vertical</b> and the safety takes him. Seam, post, corner, anything vertical.',
+             '<b>#3 stays shallow and #2 goes vertical</b> and he picks up #2 and takes him wherever he goes.',
+             '<b>Both #2 and #3 stay shallow</b> and he is free help over the top, usually doubling #1 on a post or a deep dig.'] },
+        { id:'pMIK', k:'d', x:43.7, y:55.4, n:'3 REC', t:'Mike', s:'3 receiver hook', reads:['pr3T'],
+          r:['First rule: <b>wall off #3</b> if he goes vertical or crosses. Stay underneath him until the safety takes it, then drift back into space.',
+             'If the back is already taken by the apex and <b>somebody else comes into that flat late</b>, the Mike picks him up.',
+             'Otherwise he sits in the middle, <b>reads the quarterback</b> and looks for crossers and digs.'] },
+        { id:'pAPs', k:'d', x:64.5, y:58.9, n:'QF', t:'Solo Apex', s:'Quarter flat &middot; man on the back', reads:[],
+          r:['He has the <b>running back</b>. Swing, angle or wheel, it is man everywhere he goes.',
+             '<b>If the back stays in to block</b> he sits in the flat, watches for late releases and drives on checkdowns.'] },
+        { id:'pSAs', k:'d', x:53.4, y:50.6, n:'SS', t:'Solo Safety', s:'The robber &middot; free player', reads:['pr1S'],
+          r:['This is the <b>free player</b>. He is your robber and he can help anywhere.',
+             '<b>#1 on his side goes vertical</b> and he brackets him with the corner.',
+             '<b>#1 breaks inside or shallow</b> and he looks back across the field to help on crossers from the trips side.',
+             'That back side help on crossers and deep digs is what makes Palms elite.'] },
+        { id:'pCBs', k:'d', x:71.5, y:61, n:'CB', t:'Solo Corner', s:'MEG &middot; man everywhere he goes', reads:['pr1S'],
+          r:['<b>MEG on #1.</b> Man everywhere he goes.',
+             'If the solo side is an <b>inline tight end</b> instead of a receiver: vertical or a corner route and he takes him man.',
+             'If that tight end <b>breaks inside</b>, the safety takes him across and this corner looks for work from the trips side.'] },
+        { id:'pr1T', k:'r', x:12.6,  y:66.7, n:'1', t:'#1 Receiver', s:'Trips side, outside', reads:[],
+          r:['The <b>outside</b> man in the trips. Everything counts from him inward.','The corner is on him in <b>MEG</b>, all day.'] },
+        { id:'pr2T', k:'r', x:28, y:69.6, n:'2', t:'#2 Receiver', s:'Trips side, middle', reads:[],
+          r:['The <b>middle</b> man of the trips.','He is who the apex and the safety fall to once #3 declares.'] },
+        { id:'pr3T', k:'r', x:41.1, y:71.4, n:'3', t:'#3 Receiver', s:'Trips side, inside most', reads:[],
+          r:['The <b>inside most</b> man in the trips. He is the trigger.','The apex, the safety and the Mike are all reading him first.'] },
+        { id:'pr1S', k:'r', x:70, y:68.5, n:'1', t:'#1 Receiver', s:'Solo side', reads:[],
+          r:['The <b>single</b> receiver away from the trips.','Corner is MEG on him with the robber safety over the top.'] }
+      ]
+    },
+    /* MATCH VS EMPTY (3x2). Palms rules on the trips side, and the two
+       receiver side plays the Palms vs 2x2 change up: the corner counts 2 to 1
+       and traps the flat. No back means nobody is holding a man for him. */
+    empty: {
+      title: 'Match vs Empty',
+      title2: 'Palms rules on the trips side, 2x2 Palms rules on the other',
+      shot: 'Bama Assets/Palms Vs Empty Screen Shot.jpg',
+      art:  'Bama Assets/4-2-5 Over G Cover 4 Palms Play.jpg',
+      video: 'https://youtu.be/luqVoV1ohqI',
+      notes: [
+        { t:'How empty splits', b:[
+          'Empty is just <b>3x2</b>. Two sets of rules, one call.',
+          '<b>Trips side</b> plays straight Palms, counting 3 to 2.',
+          '<b>Two receiver side</b> plays Palms vs 2x2 and traps the flat.',
+          'Nobody is holding a back, so everybody is on a receiver.'
+        ] },
+        { t:'Trapping the flat', b:[
+          'The corner sits on <b>#2 to the flat</b> instead of bailing.',
+          'That is the trap: quick outs and flat routes get jumped.',
+          'The safety takes <b>#1 over the top</b> the second the corner drives.',
+          'It is the answer to everything quick that empty wants to throw.'
+        ] }
+      ],
+      legend2: '<b>Inline TE side</b>If one side of the empty set has an inline tight end instead of a true slot, that side just plays standard Quarters: corner in MOD on #1, safety reading #2 to #1, apex jamming #2 and taking the first man to the flat.',
+      spots: [
+        { id:'eCBt', k:'d', x:79, y:62, n:'CB', t:'Trips Corner', s:'MEG &middot; man everywhere he goes', reads:['er1T'],
+          r:['<b>MEG on #1.</b> He travels with him everywhere, no switching.'] },
+        { id:'eNKt', k:'d', x:64.5, y:58, n:'QF', t:'Nickel / Apex', s:'Trips side, screen right &middot; reads 3 to 2', reads:['er3T','er2T'],
+          r:['<b>#3 fast to the flat</b> and he takes him right away.',
+             '<b>#3 vertical or inside</b> and he snaps to <b>#2</b> and mans him up anywhere on the field.'] },
+        { id:'eSAt', k:'d', x:67, y:48, n:'FS', t:'Trips Safety', s:'Reads 3 to 2', reads:['er3T','er2T'],
+          r:['<b>#3 vertical</b> and he takes him.',
+             '<b>#3 shallow, #2 vertical</b> and he takes #2 wherever he goes.',
+             '<b>Both shallow</b> and he is free over the top on #1.'] },
+        { id:'eMIK', k:'d', x:43.5, y:55, n:'3 REC', t:'Mike', s:'3 receiver hook', reads:['er3T'],
+          r:['<b>Wall off #3</b> vertical or crossing, stay underneath until the safety takes it.',
+             'With <b>no back to account for</b>, he is free to sit in the middle, read the quarterback and jump crossers and digs.',
+             'Anybody who shows up late in his area is his.'] },
+        { id:'eCB2', k:'d', x:17, y:62, n:'CB', t:'Two Receiver Side Corner', s:'Palms &middot; reads 2 to 1 &middot; traps the flat', reads:['er2S','er1S'],
+          r:['<b>#2 goes fast to the flat</b> and he jumps him immediately. That is the trap. The safety takes #1 over the top.',
+             '<b>#2 vertical and #1 vertical</b> and both defenders just lock on in man.',
+             '<b>#2 vertical, #1 shallow</b> and he helps bracket #2 with the safety.',
+             '<b>#2 runs a wheel</b> and he carries him upfield and converts to man.'] },
+        { id:'eSA2', k:'d', x:33, y:48, n:'SS', t:'Two Receiver Side Safety', s:'Over the top', reads:['er1S','er2S'],
+          r:['<b>If the corner jumps #2 out</b>, he automatically takes #1 deep.',
+             '<b>If both receivers stay shallow</b> he is free to poach any dig or post coming from the other side.'] },
+        { id:'eAP2', k:'d', x:22.7, y:58, n:'QF', t:'Two Receiver Side Apex', s:'Quarter flat', reads:['er2S'],
+          r:['<b>Caps #2</b> and gets his eyes to the flat.',
+             'With no back in the backfield he is <b>not holding anybody</b>, so he plays the first threat out there and buzzes under digs and curls behind him.'] },
+        { id:'er1T', k:'r', x:77.7,  y:68.2, n:'1', t:'#1 Receiver', s:'Trips side (right), outside', reads:[],
+          r:['The <b>outside</b> man in the trips.','Corner is MEG on him.'] },
+        { id:'er2T', k:'r', x:71.5, y:69.9, n:'2', t:'#2 Receiver', s:'Trips side, middle', reads:[],
+          r:['The <b>middle</b> man of the trips.','The apex and the safety fall to him once #3 declares.'] },
+        { id:'er3T', k:'r', x:63.4, y:69.1, n:'3', t:'#3 Receiver', s:'Trips side, inside most', reads:[],
+          r:['The <b>inside most</b> man in the trips, and the trigger for the whole side.'] },
+        { id:'er2S', k:'r', x:29.6, y:69.9, n:'2', t:'#2 Receiver', s:'Two receiver side, inside', reads:[],
+          r:['The <b>slot</b> on the two receiver side.','This is the man the corner is counting to. If he runs to the flat, he gets trapped.'] },
+        { id:'er1S', k:'r', x:15.8, y:67.5, n:'1', t:'#1 Receiver', s:'Two receiver side, outside', reads:[],
+          r:['The <b>outside</b> man on the two receiver side.','He goes to the safety over the top the moment the corner traps #2.'] }
+      ]
+    },
     /* ADVANCED TIPS: the custom adjustment macros, one at a time, with the
        two deep-dive breakdowns pinned down the left rail. Every setting in
        the screenshots is Reggie's own build, straight off his console. */
@@ -13415,7 +13582,7 @@ window.ORPB = { openSection, closeTakeover };
         { t:'Advanced Quarters Tips', img:'Bama Assets/Quarters Advanced tips Thumb.jpg',
           video:'https://youtu.be/aHW4ZY-nul0' },
         { t:'Advanced Palms Tips',    img:'Bama Assets/Advanced match.jpg',
-          video:null },
+          video:'https://youtu.be/uhHDYp5BAi4' },
       ],
       note: {
         hd:'HOW TO MAKE ONE',
@@ -13433,23 +13600,42 @@ window.ORPB = { openSection, closeTakeover };
     }
   };
   var KEY = 'mbdSpots2';
-  var cur = null, edit = false, drag = null, ebar = null, sel = null;
+  /* BAKED DOT POSITIONS. Drag the dots with the editor, hit COPY POSITIONS,
+     and the JSON it copies goes in here. Shape is
+       { screen: { spotId:{x,y}, ... }, ... }
+     Anything in here beats the coords written on the spot itself, and a drag
+     in this browser beats both until CLEAR MINE throws it away. */
+  var MBD_SAVED = {
+    quarters: { hook:{x:49.02,y:56.71}, saL:{x:39.4,y:48.66}, qfL:{x:37.67,y:59.68}, cbL:{x:21.69,y:57.82}, qfR:{x:59.84,y:58.38}, cbR:{x:75.03,y:58.84}, saR:{x:66.51,y:50.6}, r2R:{x:62.47,y:71.25}, r1R:{x:73.45,y:72.08}, r2L:{x:32.46,y:72.08}, r1L:{x:14.54,y:69.95} },
+    bunch: { bRH:{x:57.48,y:57.82}, bBC:{x:30.05,y:55.23}, bCB:{x:74.55,y:56.9}, bBQ:{x:41.13,y:55.97}, bQF:{x:65.83,y:58.29}, bSA:{x:65.15,y:45.97}, bFS:{x:48.86,y:48.47} },
+    palms: { pAPs:{x:55.95,y:58.37}, pSAs:{x:51.48,y:52.9}, pMIK:{x:46.91,y:52.44}, pSAt:{x:41.24,y:51.7}, pNKt:{x:35.72,y:57.63}, pCBt:{x:24.16,y:53.55}, pCBs:{x:67.56,y:56.61} },
+    empty: { eSA2:{x:38.77,y:50.96}, eAP2:{x:32.04,y:58.65}, eCB2:{x:20.64,y:56.33}, eSAt:{x:58.84,y:51.7}, eNKt:{x:63.47,y:58.55}, eCBt:{x:73.55,y:51.79}, eMIK:{x:55.32,y:57.44} },
+  };
+  /* The Palms breakdown and Match vs Empty come out of the same video, so the
+     link drops in here once and both film bars pick it up. A screen can still
+     name its own video and that one wins. */
+  var MATCH_FILM = '';
+  var cur = null, edit = false, drag = null, sel = null;
   var advIdx = 0, advBusy = false;
 
   function saved(){ try{ return JSON.parse(localStorage.getItem(KEY) || '{}'); }catch(e){ return {}; } }
   function el(){ return document.getElementById('mbd'); }
   function wrap(){ return el().querySelector('.mbd-shotwrap'); }
+  /* a screen can name a shotFallback: used until the real screenshot lands, so
+     a not-yet-dropped-in image degrades to a sensible look instead of an X */
+  function shotFallbackFor(k){ return (MBD[k] && MBD[k].shotFallback) || ''; }
 
   function build(k){
     var C = MBD[k]; if(!C) return;
     cur = k;
     var host = el();
     if(!host){ host = document.createElement('div'); host.id = 'mbd'; document.body.appendChild(host); }
-    var S = saved()[k] || {};
+    var S = Object.assign({}, MBD_SAVED[k] || {}, saved()[k] || {});
     host.innerHTML =
       '<div class="mbd-room"></div><div class="mbd-vig"></div>' +
       '<div class="mbd-top"><span class="mbd-ttl">' + C.title + '</span></div>' +
-      '<div class="mbd-shotwrap"><img class="mbd-shot" src="' + encodeURI(C.shot) + '" alt="" draggable="false">' +
+      '<div class="mbd-shotwrap"><img class="mbd-shot" src="' + encodeURI(C.shot) + '" alt="" draggable="false"' +
+        (C.shotFallback ? ' onerror="this.onerror=null;this.src=\'' + encodeURI(C.shotFallback) + '\'"' : '') + '>' +
       C.spots.map(function(p, i){
         var v = S[p.id] || p;
         return '<button class="mbd-dot ' + (p.k === 'r' ? 'rec' : '') + '" data-sp="' + p.id + '"' +
@@ -13460,17 +13646,66 @@ window.ORPB = { openSection, closeTakeover };
       (C.art ? '<img class="mbd-art" src="' + encodeURI(C.art) + '" alt="the play">' : '') +
       (C.notes || []).map(function(n){ return '<div class="mbd-legend"><b>' + n.t + '</b><ul>' +
         n.b.map(function(x){ return '<li>' + x + '</li>'; }).join('') + '</ul></div>'; }).join('') +
-      '<button class="mbd-film"' + (C.video ? '' : ' disabled') + '>' +
-        (C.video ? '<span class="mbd-ribbon">Watch the full breakdown</span>' : '') +
-        '&#9654;&nbsp;' + (C.video ? 'Roll the film' : 'Breakdown coming soon') +
-        (C.video ? '<em>King Reggie breaks it down</em>' : '') + '</button>' +
+      '<button class="mbd-film">' +
+        '<span class="mbd-ribbon">Watch the full breakdown</span>' +
+        '&#9654;&nbsp;Roll the film<em>King Reggie breaks it down</em></button>' +
       '</div>' +
       '<button class="mbd-back">&#8249;&nbsp;Back</button>' +
+      '<button class="mbd-edit" type="button">Edit dots</button>' +
+      '<div class="mbd-edbar">' +
+        '<b>Dot editor</b>' +
+        '<p>Drag any dot onto its player. Every move saves in this browser on its own.</p>' +
+        '<div class="mbd-now">nothing moved yet</div>' +
+        '<div class="mbd-edrow">' +
+          '<button class="mbd-x" type="button">Copy positions</button>' +
+          '<button class="mbd-r" type="button">Clear mine</button>' +
+        '</div>' +
+        '<p>Paste what it copies into the chat and it gets baked into the file for everybody.</p>' +
+        '<textarea class="mbd-out" readonly></textarea>' +
+      '</div>' +
       '<div class="mbd-note">Tap a red dot for that defender\'s rules. Tap a blue number to see who is reading him.</div>';
     host.classList.add('on');
     host.querySelector('.mbd-back').onclick = close;
     var f = host.querySelector('.mbd-film');
-    if(C.video) f.onclick = function(){ window.open(C.video, '_blank', 'noopener'); };
+    f.onclick = function(){
+      var link = C.video || MATCH_FILM ||
+        (typeof SCHEME_CONFIG !== 'undefined' && SCHEME_CONFIG.youtubeUrl) || '';
+      if(link){ window.open(link, '_blank', 'noopener'); return; }
+      /* no link yet: say it on the bar itself rather than click into nothing */
+      var em = f.querySelector('em');
+      if(!em || f.getAttribute('data-soon')) return;
+      f.setAttribute('data-soon', '1');
+      var was = em.innerHTML;
+      em.innerHTML = 'Dropping on the channel shortly';
+      setTimeout(function(){ em.innerHTML = was; f.removeAttribute('data-soon'); }, 1900);
+    };
+    var eb = host.querySelector('.mbd-edit');
+    if(eb) eb.onclick = function(e){ e.stopPropagation(); toggleEdit(); };
+    var bar = host.querySelector('.mbd-edbar');
+    if(bar){
+      bar.addEventListener('click', function(e){ e.stopPropagation(); });
+      bar.querySelector('.mbd-x').onclick = function(){
+        var j = JSON.stringify(saved());
+        var o = bar.querySelector('.mbd-out');
+        o.style.display = 'block'; o.value = j; o.focus(); o.select();
+        try{ navigator.clipboard.writeText(j); }catch(err){}
+        bar.querySelector('.mbd-now').textContent = 'copied. paste it in the chat.';
+        console.log('MBD SPOTS', j);
+      };
+      /* throws away this browser's drags for the screen you are on, so the
+         baked positions show again without a rebuild */
+      bar.querySelector('.mbd-r').onclick = function(){
+        var all = saved(); delete all[cur];
+        try{ localStorage.setItem(KEY, JSON.stringify(all)); }catch(err){}
+        var B = MBD_SAVED[cur] || {};
+        (C.spots || []).forEach(function(p){
+          var v = B[p.id] || p;
+          var d = host.querySelector('[data-sp="' + p.id + '"]');
+          if(d){ d.style.left = v.x + '%'; d.style.top = v.y + '%'; }
+        });
+        bar.querySelector('.mbd-now').textContent = 'back to the baked positions on this screen';
+      };
+    }
     host.querySelectorAll('.mbd-dot').forEach(function(d){
       d.addEventListener('click', function(e){ if(edit) return; e.stopPropagation(); pick(d.dataset.sp); });
     });
@@ -13512,7 +13747,7 @@ window.ORPB = { openSection, closeTakeover };
   }
   function close(){
     var host = el(); if(!host) return;
-    host.classList.remove('on'); host.innerHTML = ''; cur = null; sel = null;
+    host.classList.remove('on','mbdEditing'); host.innerHTML = ''; cur = null; sel = null;
     if(edit) toggleEdit();
   }
   /* ---- ADVANCED TIPS ---- */
@@ -13600,29 +13835,11 @@ window.ORPB = { openSection, closeTakeover };
   function toggleEdit(){
     edit = !edit;
     var host = el(); if(!host) return;
+    host.classList.toggle('mbdEditing', edit);
     host.querySelectorAll('.mbd-dot').forEach(function(d){ d.style.cursor = edit ? 'move' : 'pointer'; });
+    var pill = host.querySelector('.mbd-edit');
+    if(pill){ pill.classList.toggle('on', edit); pill.textContent = edit ? 'Done editing' : 'Edit dots'; }
     if(edit) clearPick();                       /* the card would be in the way */
-    if(edit){
-      if(!ebar){
-        ebar = document.createElement('div');
-        ebar.style.cssText = 'position:fixed;left:12px;top:12px;z-index:99999;background:#12060a;' +
-          'border:1px solid #b41f35;border-radius:8px;padding:9px 11px;color:#ffd9dd;' +
-          'font:600 12px/1.45 Barlow,system-ui,sans-serif;max-width:330px';
-        ebar.innerHTML = '<b style="color:#ff8fa0">DOT EDITOR</b><br>drag a dot onto its defender &middot; <b>E</b> to exit' +
-          '<div class="mbd-now" style="margin-top:5px;color:#9ad7ff;font:600 11px ui-monospace,monospace">nothing moved yet</div>' +
-          '<button class="mbd-x" style="margin-top:7px;padding:6px 10px;border:0;border-radius:6px;background:#b41f35;color:#fff;font:800 11px Barlow;cursor:pointer">EXPORT</button>' +
-          '<textarea class="mbd-out" readonly style="display:none;width:100%;height:74px;margin-top:7px;background:#12060a;color:#ffd9dd;border:1px solid #b41f35;border-radius:6px;font:11px ui-monospace,monospace;padding:6px"></textarea>';
-        ebar.querySelector('.mbd-x').onclick = function(){
-          var j = JSON.stringify(saved());
-          var o = ebar.querySelector('.mbd-out');
-          o.style.display = 'block'; o.value = j; o.focus(); o.select();
-          try{ navigator.clipboard.writeText(j); }catch(e){}
-          console.log('MBD SPOTS', j);
-        };
-        document.body.appendChild(ebar);
-      }
-      ebar.style.display = 'block';
-    } else if(ebar) ebar.style.display = 'none';
   }
   addEventListener('keydown', function(e){
     if(e.key !== 'e' && e.key !== 'E') return;
@@ -13646,11 +13863,12 @@ window.ORPB = { openSection, closeTakeover };
     var all = saved(); all[cur] = all[cur] || {};
     all[cur][drag.dataset.sp] = { x:+x.toFixed(2), y:+y.toFixed(2) };
     try{ localStorage.setItem(KEY, JSON.stringify(all)); }catch(err){}
-    if(ebar){ var n = ebar.querySelector('.mbd-now');
-      if(n) n.textContent = drag.dataset.sp + '  x ' + x.toFixed(1) + '%  y ' + y.toFixed(1) + '%'; }
+    var n = el() && el().querySelector('.mbd-now');
+    if(n) n.textContent = drag.dataset.sp + '  x ' + x.toFixed(1) + '%  y ' + y.toFixed(1) + '%';
   }, true);
   addEventListener('pointerup', function(){ drag = null; }, true);
 })();
 </script>
+<script src="sk-film.js"></script>
 </body>
 </html>
