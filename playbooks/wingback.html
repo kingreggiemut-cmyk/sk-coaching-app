@@ -8902,6 +8902,12 @@ init();
        be refused outright. When the real thing is not available we fall back
        to "faux" fullscreen: a class on <html> plus a message asking the page
        we are embedded in to expand the frame over everything. */
+    /* ask the page we are embedded in whether it can expand this frame */
+    if(window.parent !== window){
+      addEventListener('message', function(e){ if(e && e.data && e.data.skHostReady) window.__skHostReady = true; });
+      const hello = () => { try{ window.parent.postMessage({ skHello: 1 }, '*'); }catch(e){} };
+      hello(); addEventListener('load', hello); setTimeout(hello, 900);
+    }
     btn.addEventListener('click', () => {
       const root = document.documentElement;
       const native = () => document.fullscreenElement || document.webkitFullscreenElement || null;
@@ -8918,6 +8924,11 @@ init();
         return;
       }
       const req = root.requestFullscreen || root.webkitRequestFullscreen;
+      if (!req && window.parent !== window && !window.__skHostReady){
+        /* no page fullscreen and no host that can expand us: our own tab is
+           the only real full screen, and we are still inside the tap */
+        try{ window.open(location.href, '_blank', 'noopener'); return; }catch(e){}
+      }
       if (req) {
         try{
           const p = req.call(root);

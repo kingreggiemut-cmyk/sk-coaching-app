@@ -12701,6 +12701,17 @@ window.ORPB = { openSection, closeTakeover };
 (function(){
   const doc = document, root = doc.documentElement;
   let fauxFS = false;
+  /* Can the page we are embedded in expand this frame? It answers on load.
+     The answer comes back through event.source, so it never depends on the
+     host working out which iframe we are. Until it answers, assume it cannot. */
+  let hostReady = false;
+  if(window.parent !== window){
+    addEventListener('message', function(e){ if(e && e.data && e.data.skHostReady) hostReady = true; });
+    const hello = () => { try{ window.parent.postMessage({ skHello: 1 }, '*'); }catch(e){} };
+    hello();
+    addEventListener('load', hello);
+    setTimeout(hello, 900);
+  }
   const nativeEl = () => doc.fullscreenElement || doc.webkitFullscreenElement || null;
   const fsActive = () => !!nativeEl() || fauxFS;
   function fsSync(){ doc.dispatchEvent(new CustomEvent('wr-fs-change')); }
@@ -12734,6 +12745,12 @@ window.ORPB = { openSection, closeTakeover };
          tells us it failed and the page we sit in never hears that it should
          expand the frame. Check the result rather than trust the call. */
       setTimeout(function(){ if(!nativeEl() && !fauxFS) setFaux(true); }, 260);
+    } else if(window.parent !== window && !hostReady){
+      /* iPhone Safari inside an embed the host cannot expand. Asking it would
+         go nowhere, so open the playbook in its own tab, where full screen is
+         real. This runs inside the tap, so the browser allows it. */
+      try{ window.open(location.href, '_blank', 'noopener'); }
+      catch(e){ setFaux(true); }
     } else {
       setFaux(true);                                    // iPhone Safari path
     }
