@@ -12833,6 +12833,7 @@ const SK_PLAYBOOK_LOCAL = {
   ohiostate:'Ohio ST Playbook.html',
   bamadefense:'Alabama Playbook.html',
   bears:    'Bears Playbook Madden 27.html',
+  commanders:'Commanders Playbook Madden 27.html',
 };
 function skIsLocalDev(){
   return /^(localhost|127\.|0\.0\.0\.0|192\.168\.)/.test(location.hostname) || location.protocol === 'file:';
@@ -12869,6 +12870,7 @@ const SK_SCHEME_LOGO = {
   // never matches the "bama" offence, so it fell through to the SK placeholder
   bamadefense:'Bama Assets/Bama Logo 1.webp',
   bears:    'Bears Assets/Bears Logo 1.webp',
+  commanders:'Commanders References/Cammanders Logo.webp',
 };
 function skLogoFor(schemeKey){
   const first = String(schemeKey || '').split('-')[0].toLowerCase();
@@ -13764,6 +13766,11 @@ const GP_CREED_SEED = {
     { t:'Motion and Creativity',              s:'They never line up against the same picture twice, and every look hides three different plays.' },
     { t:'Built for Explosives',               s:'Second in the NFL in explosive plays. Every call carries a way to break big.' },
   ]},
+  commanders: { keys: [
+    { t:'Defend Him on Every Single Snap', s:'The most dangerous running quarterback in football. They have to assign somebody to him before the ball is even snapped.' },
+    { t:'The Run Threat Opens the Deep Ball', s:'Once they honor his legs, the play action goes right over the top into the space they gave up.' },
+    { t:'Spread Them Out, Keep It Simple', s:'Clean fast reads for the quarterback, and nothing but green grass when he takes off.' },
+  ]},
   defense: { keys: [
     { t:'Make Them Earn It',    s:'No free yards, no easy answers. Every snap costs them something.' },
     { t:'Never the Same Look',  s:'Show one picture, play another. They never get a clean read.' },
@@ -13829,7 +13836,7 @@ const DRIVE_SLOTS = [
    an allow list: a brand new playbook has to show up the moment it syncs,
    without anyone remembering to add its name here. GP_ORDER only decides where
    a scheme sorts in the rail - anything unlisted falls to the end. */
-const GP_ORDER = ['oregon', 'gogo', 'wingback', 'wvu', 'ohiostate', 'bamadefense', 'bears'];
+const GP_ORDER = ['oregon', 'gogo', 'wingback', 'wvu', 'ohiostate', 'bamadefense', 'bears', 'commanders'];
 const gpLive = sk => !/cfb26/i.test(String(sk || ''));
 /* A defence that SHARES its team's first word ("wvu-34defense") would link
    straight into that team's OFFENSIVE playbook, so it stays closed until an
@@ -14763,6 +14770,23 @@ const GP_RECOMMENDED = {
     constraints: [
       { base:'return-rpo-zone-alert', off:'return-paz-over-out-double-gun-double-clamp-stack', note:'They fly out to stop the bubble, the PA Z crosser hits the middle they just emptied.' },
       { base:'motion-orbit-swing-screen-empty-bunch-wide', off:'motion-orbit-fake-swing-wheel-empty-bunch-wide', note:'They jump the swing, the fake swing wheels the tight end up behind them.' },
+    ],
+  },
+  // Commanders Offense (scheme_key commanders-madden27). Verbatim from the
+  // playbook's own GP.recommended, constraint indexes resolved out.
+  commanders: {
+    formations: ['Empty Base Flex','Bunch Str Offset','Pistol Doubles Y Off'],
+    xFactor: { player:'JAYDEN DANIELS', play:'rpo-read-flat-wheel' },
+    run:      ['rpo-alert-draw-stick','orbit-rpo-peek-y-pop','mtn-hb-wide-zone-wk','hb-mtn-qb-sweep','pin-pull-sweep'],
+    pass:     ['hoss-y-juke','verts-dig','y-trail','fade-smash','orbit-pa-y-corner'],
+    beatMan:  ['mtn-switch-comeback','y-trail','hoss-y-juke'],
+    beatZone: ['verts-dig','orbit-pa-y-corner','hoss-y-juke'],
+    bombs:    ['middle-hi-lo','mtn-switch-verts','hoss-y-juke'],
+    thirdLong:['y-trail','mtn-fk-toss-verticals','mtn-switch-comeback'],
+    redZone:  ['fade-smash','mtn-rpo-alert-swing','hb-mtn-qb-sweep'],
+    constraints: [
+      { base:'mtn-rpo-alert-swing', off:'mtn-fk-toss-verticals', note:'They crash the orbit swing, the fake toss wheels the tight end up behind them.' },
+      { base:'orbit-rpo-peek-y-pop', off:'orbit-pa-y-corner', note:'Identical orbit motion. They sit on the pop pass, the corner route goes over the top.' },
     ],
   },
   /* DEFENSE. Ported verbatim from the Alabama Defense playbook's own
