@@ -380,7 +380,7 @@ const SB_URL = 'https://ksgxrxqvnfpfhidxsxcs.supabase.co';
 const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzZ3hyeHF2bmZwZmhpZHhzeGNzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE0MzkxMTgsImV4cCI6MjA5NzAxNTExOH0.pUD6sbkjhhTlgl5x4KHFJsThoHVlNkNBlSFES_8HHvM';
 const BRAIN = '/.netlify/functions/day-brain';
 const STORE_KEY = 'daily-board';
-const APP_VERSION = '0.7';
+const APP_VERSION = '0.8';
 const ROW_ID = 'reggie';
 
 const $ = (s, r = document) => r.querySelector(s);
@@ -408,27 +408,56 @@ function uid(p) { return `${p}${Date.now().toString(36)}${Math.floor(Math.random
  * corrected once he sends the labels. Bump PLAN_VERSION whenever these
  * defaults change so a phone that already has the app picks the new ones up.
  */
-const PLAN_VERSION = 6;
-const COFFEE_PARTS = '350 ml Stok cold brew, 15 g Revolution protein powder, 450 ml water';
-const COFFEE = { slot: 'Coffee', name: 'Stok cold brew + protein', cal: 60, protein: 12, carbs: 1, fat: 1, parts: COFFEE_PARTS, micros: { sodium_mg: 60, potassium_mg: 150, calcium_mg: 100, iron_mg: 0.5 } };
+const PLAN_VERSION = 7;
 const PROFILE = { heightIn: 73, age: 34, sex: 'male', ethnicity: 'Caucasian' };
 const GOAL_TEXT = 'Get below 180 lb, then a very slight lean bulk for the winter.';
-const HYDRATION = { slot: 'Hydration', name: 'MiO hydration pack + 1 L water', cal: 10, protein: 0, carbs: 2, fat: 0, parts: 'MiO hydration (not the energy one), about a litre of water', micros: { potassium_mg: 400, sodium_mg: 100 } };
-const BERRY = { slot: 'Creami', name: 'Berry creami', cal: 90, protein: 2, carbs: 21, fat: 1, parts: '200 g frozen berries, zero sugar juice (5 cal)', micros: { fiber_g: 5, potassium_mg: 200, vitamin_c_mg: 40, iron_mg: 1, calcium_mg: 30, magnesium_mg: 20 } };
-const BAR = { slot: 'Snack', name: 'Nature Valley protein bar', cal: 150, protein: 10, carbs: 14, fat: 6, parts: '1 bar, about 150 cal', micros: { fiber_g: 5, sodium_mg: 175, potassium_mg: 100, iron_mg: 1, calcium_mg: 50, magnesium_mg: 30 } };
-const PLAN_V3 = () => [
+/*
+ * Every number below is read off the packages he photographed on 2026-09-03,
+ * scaled to the portions he actually uses. Where a whole food has no label
+ * (the egg, the onion, the pepper, the chicken) the values are standard
+ * reference numbers for that weight.
+ */
+const COFFEE = {
+  slot: 'Coffee', name: 'Stok cold brew + protein', cal: 74, protein: 10, carbs: 5, fat: 1,
+  parts: '350 ml Stok cold brew, 15 g Revolution High Whey, 450 ml water',
+  micros: { sodium_mg: 64, potassium_mg: 380, calcium_mg: 99, iron_mg: 0.1, magnesium_mg: 25 }
+};
+const HYDRATION = {
+  slot: 'Hydration', name: 'MiO Hydrate + 1 L water', cal: 10, protein: 1, carbs: 1, fat: 0,
+  parts: 'One MiO Hydrate Berry Burst sachet (3.8 g), about a litre of water',
+  micros: { sodium_mg: 30, potassium_mg: 400, magnesium_mg: 10 }
+};
+const BERRY = {
+  slot: 'Creami', name: 'Berry creami', cal: 105, protein: 2, carbs: 27, fat: 0,
+  parts: '200 g Great Value 4 Berry Blend, Minute Maid Zero Sugar Mango Passion',
+  micros: { fiber_g: 6, sodium_mg: 20, potassium_mg: 336, calcium_mg: 29, iron_mg: 0.7, vitamin_c_mg: 90, magnesium_mg: 30 }
+};
+const BAR = {
+  slot: 'Snack', name: 'Nature Valley protein bar', cal: 180, protein: 9, carbs: 14, fat: 11,
+  parts: 'One bar (37 g), peanut butter dark chocolate',
+  micros: { fiber_g: 5, sodium_mg: 160, potassium_mg: 100, calcium_mg: 20, iron_mg: 1.25, magnesium_mg: 45 }
+};
+const PLAN_V7 = () => [
   { ...COFFEE, time: '08:30' },
   { ...COFFEE, time: '11:30' },
   { ...HYDRATION, time: '12:30' },
-  { slot: 'Meal 1', name: 'Savory crepe + ground beef', time: '15:00', cal: 490, protein: 76, carbs: 2, fat: 17, parts: 'Crepe: 1 large egg (55 g), 1 tsp cottage cheese, 200 g egg whites, blended and cooked. 225 g extra lean ground beef', micros: { sodium_mg: 500, potassium_mg: 900, iron_mg: 6, calcium_mg: 80, vitamin_d_mcg: 2, magnesium_mg: 60 } },
+  { slot: 'Meal 1', name: 'Savory crepe + ground beef', time: '15:00', cal: 565, protein: 72, carbs: 5, fat: 29,
+    parts: 'Crepe: 1 large egg (55 g), 1 tsp cottage cheese, 200 g egg whites, blended and cooked. 225 g extra lean ground beef. 1 tsp Inglehoffer creamy dill mustard. 14 Bicks hot and spicy banana pepper rings',
+    micros: { fiber_g: 0, sodium_mg: 1060, potassium_mg: 1045, calcium_mg: 100, iron_mg: 6.3, vitamin_d_mcg: 1, magnesium_mg: 80 } },
   { ...BERRY, time: '15:15' },
   { ...HYDRATION, time: '17:00' },
-  { slot: 'Drink', name: 'Diet soda', time: '18:00', cal: 0, protein: 0, carbs: 0, fat: 0, parts: 'One can, between the two meals', micros: { sodium_mg: 40 } },
-  { slot: 'Meal 2', name: 'Chicken bowl + tomato soup', time: '21:00', cal: 615, protein: 50, carbs: 84, fat: 8, parts: 'Pan: 100 g cooked chicken, 1 small yellow onion, about 3/4 sweet pepper, 145 g diced cauliflower/peas/corn mix, 170 g frozen diced potatoes, 10 g pickled jalapenos, 10 g pickled red onion, 5 g honey, 10 g sriracha. Soup: 350 g low-cal tomato soup blended with 70 g cottage cheese, cooked', micros: { fiber_g: 12, sodium_mg: 1500, potassium_mg: 1600, iron_mg: 4, vitamin_c_mg: 120, calcium_mg: 120, magnesium_mg: 90 } },
+  { slot: 'Drink', name: 'Crush Zero Sugar', time: '18:00', cal: 0, protein: 0, carbs: 0, fat: 0,
+    parts: 'One can (355 ml), between the two meals',
+    micros: { sodium_mg: 75, potassium_mg: 50 } },
+  { slot: 'Meal 2', name: 'Chicken bowl + tomato soup', time: '21:00', cal: 625, protein: 51, carbs: 87, fat: 10,
+    parts: 'Pan: 100 g cooked chicken, 1 small yellow onion, 3/4 sweet pepper, 145 g Green Giant riced veggies, 170 g diced hashbrown potatoes, 10 g hot and spicy pepper rings, 10 g Mezzetta pickled red onion, 5 g Manuka honey, 10 g sriracha. Soup: 350 g Pacific tomato basil blended with 70 g cottage cheese, cooked',
+    micros: { fiber_g: 11, sodium_mg: 2235, potassium_mg: 2180, calcium_mg: 224, iron_mg: 4, vitamin_c_mg: 160, magnesium_mg: 155 } },
   { ...BERRY, time: '21:15' },
   { ...BAR, time: '23:00' },
   { ...BAR, time: '23:00' },
-  { slot: 'Creami', name: 'Protein creami', time: '23:00', cal: 115, protein: 17, carbs: 3, fat: 4, parts: '200 ml almond milk, 20 g Revolution protein powder, 5 g Jell-O mix, topped up with water', micros: { sodium_mg: 250, potassium_mg: 250, calcium_mg: 400, vitamin_d_mcg: 2.5, iron_mg: 0.5 } }
+  { slot: 'Creami', name: 'Protein creami', time: '23:00', cal: 113, protein: 15, carbs: 5, fat: 4,
+    parts: '200 ml Silk unsweetened almond, 20 g Revolution High Whey, 5 g Jell-O mix, topped up with water',
+    micros: { sodium_mg: 265, potassium_mg: 157, calcium_mg: 372, iron_mg: 0.3, vitamin_d_mcg: 4, magnesium_mg: 45 } }
 ];
 const WALKS_LONG = [{ name: 'Walk', time: '14:00', end: '15:00' }, { name: 'Walk', time: '20:00', end: '21:00' }, { name: 'Walk', time: '22:00', end: '23:00' }];
 const WALKS_GYM = [{ name: 'Walk', time: '14:30', end: '15:00' }, { name: 'Walk', time: '20:00', end: '21:00' }, { name: 'Walk', time: '22:00', end: '23:00' }];
@@ -441,8 +470,9 @@ const ROUTINE_V3 = () => ({
   Sat: [{ name: 'At-home workout', time: '10:00' }, ...WALKS_LONG],
   Sun: [{ name: 'Weigh-in + physique photos', time: '09:00' }, ...WALKS_LONG]
 });
-const GOALS_V3 = { calGoal: 1850, proteinGoal: 190, carbGoal: 170, fatGoal: 45, stepGoal: 20000 };
-const PLAN_CURRENT = PLAN_V3;
+/* The goals ARE the plan: hit every item and you land here. */
+const GOALS_V3 = { calGoal: 2040, proteinGoal: 180, carbGoal: 190, fatGoal: 67, stepGoal: 20000 };
+const PLAN_CURRENT = PLAN_V7;
 const ROUTINE_CURRENT = ROUTINE_V3;
 /*
  * History read off his Fitbit screenshots on 2026-09-03, so the trend charts
@@ -469,7 +499,7 @@ const DEFAULT = () => ({
   planVersion: PLAN_VERSION,
   plan: PLAN_CURRENT(),
   routine: ROUTINE_CURRENT(),
-  library: PLAN_V3().filter((m, i, a) => a.findIndex((x) => x.name === m.name) === i).map((m) => ({ id: uid('f'), name: m.name, cal: m.cal, protein: m.protein, carbs: m.carbs, fat: m.fat, parts: m.parts || '', micros: m.micros || null })),
+  library: [],
   days: {},
   weights: SEED_WEIGHTS.map(([date, lb]) => ({ date, lb })),
   photos: [],
@@ -488,20 +518,34 @@ function load() {
     if (raw) {
       const saved = JSON.parse(raw);
       const base = DEFAULT();
+      /*
+       * Hold on to the default sub-objects BEFORE the merge. Object.assign
+       * replaces base.settings with the saved one, so reading base.settings
+       * afterwards gives the saved object, not the defaults: a save missing
+       * any of these keys then threw and quietly reset everything.
+       */
+      const dset = base.settings, dtape = base.tape, dsteps = base.steps, dfit = base.fit;
+      const sset = saved.settings || {};
       S = Object.assign(base, saved);
-      S.settings = Object.assign(base.settings, saved.settings || {});
-      S.settings.place = Object.assign(base.settings.place, (saved.settings || {}).place || {});
-      S.tape = Object.assign(base.tape, saved.tape || {});
-      S.steps = Object.assign(base.steps, saved.steps || {});
-      S.fit = Object.assign(base.fit, saved.fit || {});
-      S.settings.profile = Object.assign(base.settings.profile, (saved.settings || {}).profile || {});
+      S.settings = Object.assign({}, dset, sset);
+      S.settings.place = Object.assign({}, dset.place, sset.place || {});
+      S.settings.profile = Object.assign({}, dset.profile, sset.profile || {});
+      S.tape = Object.assign({}, dtape, saved.tape || {});
+      S.steps = Object.assign({}, dsteps, saved.steps || {});
+      S.fit = Object.assign({}, dfit, saved.fit || {});
       if (!Array.isArray(S.chat)) S.chat = [];
+      if (!Array.isArray(S.library)) S.library = [];
+      if (!S.days || typeof S.days !== 'object') S.days = {};
       // The saved copy decides its own plan version. Without this line the
       // fresh default (already current) masked an old saved plan and the
       // migration never ran.
       S.planVersion = saved.planVersion || 1;
     }
-  } catch { S = DEFAULT(); }
+  } catch (err) {
+    // Losing his day to a bad read is worse than anything below, so say so.
+    S = DEFAULT();
+    setTimeout(() => toast({ t: 'Could not read the saved day', s: err.message, cls: 'red', ms: 9000 }), 800);
+  }
   migratePlan();
 }
 /*
@@ -524,20 +568,42 @@ function migratePlan() {
   }
   if (from < 5) {
     // version 5: the coffees carry their water, his profile and the real goal
-    const fixCoffee = (m) => { if (m.slot === 'Coffee' && /^300 ml/.test(m.parts || '')) m.parts = COFFEE_PARTS; };
-    S.plan.forEach(fixCoffee);
-    Object.values(S.days).forEach((d) => d.meals.forEach(fixCoffee));
     S.settings.profile = { ...PROFILE, ...(S.settings.profile || {}) };
     S.settings.heightIn = 73;
     if (!S.settings.goalText) S.settings.goalText = GOAL_TEXT;
     if (S.settings.weightGoal === 185) S.settings.weightGoal = 180;
     if (!Array.isArray(S.chat)) S.chat = [];
   }
-  if (from < 6) {
-    // version 6: the bars become two single bars, every plan item is a saved meal
-    const splitBars = (list, mk) => { const i = list.findIndex((m) => /^Two Nature Valley/.test(m.name)); if (i < 0) return; const was = list[i]; list.splice(i, 1, mk(was), mk(was)); };
-    splitBars(S.plan, (was) => ({ ...BAR, time: was.time }));
-    Object.values(S.days).forEach((d) => splitBars(d.meals, (was) => ({ ...BAR, id: uid(`${d.meals[0]?.id?.slice(0, 10) || 'x'}-m`), time: was.time, done: was.done, doneAt: was.doneAt, swapped: false, planned: BAR.name })));
+  if (from < 7) {
+    /*
+     * Version 7: the plan rebuilt from the package labels he photographed.
+     * The plan itself is replaced outright, because every number in it moved.
+     * Today's board is rebuilt too, but anything already ticked stays ticked
+     * when the same slot survives, so a rebuild mid-day costs him nothing.
+     */
+    const t = ymd();
+    const old = S.days[t];
+    S.plan = PLAN_CURRENT();
+    Object.assign(S.settings, GOALS_V3);
+    delete S.days[t];
+    const fresh = ensureDay(t);
+    if (old) {
+      fresh.water = old.water; fresh.extras = old.extras; fresh.notes = old.notes; fresh.wrap = old.wrap; fresh.weight = old.weight; fresh.review = old.review;
+      fresh.tasks = old.tasks;
+      /*
+       * Two coffees and two bars share a slot, so a finished one must not
+       * tick its twin: count how many of that slot were actually done and
+       * hand them out one at a time, earliest first.
+       */
+      const spent = {};
+      for (const m of fresh.meals) {
+        const hits = old.meals.filter((x) => x.done && (x.slot === m.slot || x.name === m.name));
+        const n = (spent[m.slot] = (spent[m.slot] || 0) + 1);
+        if (hits.length >= n) { m.done = true; m.doneAt = hits[n - 1].doneAt; }
+      }
+    }
+    // Saved meals get the label numbers too, matched by name.
+    S.library = (S.library || []).map((f) => { const p = S.plan.find((m) => m.name === f.name); return p ? { ...f, cal: p.cal, protein: p.protein, carbs: p.carbs, fat: p.fat, parts: p.parts, micros: p.micros } : f; });
     seedLibrary();
   }
   if (from >= 3) {

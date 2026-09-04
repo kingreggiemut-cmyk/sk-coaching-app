@@ -1,6 +1,6 @@
 // Daily Board service worker: keeps the shell openable offline. Network first
 // for the page itself (so a deploy shows up on the next open), cache fallback.
-const CACHE = 'daily-board-v7';
+const CACHE = 'daily-board-v8';
 const SHELL = ['/day/', '/day/index.html', '/day/manifest.webmanifest', '/day/icon-192.png', '/day/icon-512.png'];
 
 self.addEventListener('install', (e) => {
