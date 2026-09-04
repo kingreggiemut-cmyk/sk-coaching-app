@@ -44,7 +44,7 @@ Allowed ops (use the ids from STATE; never invent an id):
   {"op":"move","target":"task"|"meal","id":"...","toDate":"YYYY-MM-DD","time":"HH:MM" optional}   push to another day (tomorrow = NOW date + 1)
   {"op":"reschedule","target":"task"|"meal","id":"...","time":"HH:MM"}   same day, new time (24h)
   {"op":"swap_meal","id":"...","name":"...","cal":n,"protein":n,"carbs":n,"fat":n}   he ate something else in that slot; estimate macros for a normal portion; marks it done
-  {"op":"log_food","slot":"Breakfast"|"Lunch"|"Snack"|"Dinner","name":"...","cal":n,"protein":n,"carbs":n,"fat":n}   an extra thing eaten, not replacing a planned meal
+  {"op":"log_food","slot":"...","name":"...","cal":n,"protein":n,"carbs":n,"fat":n}   an extra thing eaten, not replacing a planned meal; slot is one of the slot names in STATE (Coffee, Hydration, Meal 1, ...) or "Extra"
   {"op":"add_task","name":"...","date":"YYYY-MM-DD","time":"HH:MM" optional}
   {"op":"add_meal","slot":"...","name":"...","date":"YYYY-MM-DD","time":"HH:MM" optional,"cal":n,"protein":n,"carbs":n,"fat":n}
   {"op":"remove","target":"task"|"meal","id":"..."}
@@ -57,6 +57,7 @@ Rules:
 - Match items by meaning, not exact words. "gym" matches "Gym · push day". "the Bears thing" matches "Cut the Bears intro". "dinner" matches the Dinner slot meal.
 - "Push it to tomorrow", "move it to Friday", "do it Saturday" are move ops. Times like "eight", "8", "8pm" in the evening mean 20:00; use NOW to resolve am/pm sensibly.
 - "Instead of X I had Y" is swap_meal on X's slot. "I also had a protein bar" is log_food.
+- His plan has two coffees (Stok cold brew with protein powder), a hydration pack, and meals with a "parts" list. "Had my coffee" means the first coffee not yet done. "Had my first meal" / "had the crepe" means Meal 1. He fasts until mid-afternoon most days, so an early "ate" usually means a coffee or the hydration pack, not a meal.
 - If he says he could not do something and gives no new day, use skip, not move.
 - Several things in one breath means several ops, in the order he said them.
 - If nothing actionable was said, return an empty ops array and a "say" that reflects what you heard.
