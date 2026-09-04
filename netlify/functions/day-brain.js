@@ -232,16 +232,20 @@ function parseJson(text) {
   return JSON.parse(t.slice(a, b + 1));
 }
 
-async function ask(system, content, maxTokens) {
+async function ask(system, content, maxTokens, opts = {}) {
+  const req = {
+    model: MODEL,
+    max_tokens: maxTokens,
+    system: [{ type: 'text', text: system, cache_control: { type: 'ephemeral' } }],
+    messages: [{ role: 'user', content }]
+  };
+  // Reading a label is not a reasoning problem, and the thinking was eating the
+  // whole token budget before the answer got written. He is waiting on a phone.
+  if (opts.think === false) req.thinking = { type: 'disabled' };
   const res = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'x-api-key': ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01' },
-    body: JSON.stringify({
-      model: MODEL,
-      max_tokens: maxTokens,
-      system: [{ type: 'text', text: system, cache_control: { type: 'ephemeral' } }],
-      messages: [{ role: 'user', content }]
-    })
+    body: JSON.stringify(req)
   });
   const data = await res.json();
   if (!res.ok) throw new Error(`model ${res.status}: ${data?.error?.message || 'unknown'}`);
@@ -293,7 +297,7 @@ exports.handler = async (event) => {
         `PLAN:\n${JSON.stringify(st.plan || [])}\n\n` +
         `TODAY: ${JSON.stringify(day.meals || [])}\n\n` +
         `SAID: ${String(body.transcript || '').trim() || '(nothing said, just the photo)'}`;
-      const { parsed, usage } = await ask(PHOTO_SYSTEM, [...shots, { type: 'text', text }], 2000);
+      const { parsed, usage } = await ask(PHOTO_SYSTEM, [...shots, { type: 'text', text }], 2000, { think: false });
       const ops = Array.isArray(parsed.ops) ? parsed.ops : [];
       return json(200, { say: String(parsed.say || ''), ops, usage });
     }
