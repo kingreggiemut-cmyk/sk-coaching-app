@@ -44,6 +44,13 @@
   .pill { height: 36px; padding: 0 14px; border-radius: 999px; background: var(--card); color: var(--ink); box-shadow: 0 1px 0 #fff inset, 0 4px 0 var(--edge); display: inline-flex; align-items: center; font-weight: 700; font-size: 13px; white-space: nowrap; }
   .pill:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--edge); }
   .stamp { font-weight: 800; font-size: 11px; letter-spacing: 0.14em; padding: 4px 8px; border: 2px solid var(--blue); color: var(--blue); background: var(--card); border-radius: 6px; transform: rotate(-6deg); text-shadow: 0 1px 0 #fff; box-shadow: 0 2px 0 #b8c6ff; flex-shrink: 0; }
+  /* Went by without an answer. Red, and it asks rather than tells. */
+  .row.miss { background: #fdf0ed; }
+  .row.miss .t { color: #8f2718; }
+  .row.miss .chk { border-color: #e6b3a8; box-shadow: 0 1px 0 #fff inset, 0 4px 0 #e6b3a8, 0 6px 8px rgba(0,0,0,0.10); }
+  .card.tapme { cursor: pointer; }
+  .card.tapme:active { transform: translateY(2px); }
+  .stamp.q { font-size: 15px; letter-spacing: 0; padding: 2px 10px; border-color: #b8321f; color: #b8321f; box-shadow: 0 2px 0 #e6b3a8; }
   .row.done .stamp { animation: stampIn .35s cubic-bezier(.2,1.4,.4,1) both; }
   @keyframes stampIn { 0% { transform: rotate(-20deg) scale(2.2); opacity: 0; } 60% { transform: rotate(-4deg) scale(.92); opacity: 1; } 100% { transform: rotate(-6deg) scale(1); } }
 
@@ -189,6 +196,23 @@
   .hero { position: relative; margin: calc(-1 * (var(--sat) + 14px)) -14px 12px; padding: calc(var(--sat) + 26px) 18px 18px; border-radius: 0 0 30px 30px; overflow: hidden; min-height: 164px; display: flex; align-items: flex-end; }
   .hero-art { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
   .hero-row { position: relative; display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; width: 100%; }
+  /* Fuel fills the whole band instead of sitting in a line at the bottom: the
+     day's number in the middle, the three macros along the foot. */
+  .hero.fuel { align-items: stretch; }
+  .hero-col { position: relative; display: flex; flex-direction: column; justify-content: space-between; width: 100%; gap: 12px; }
+  .hero-top { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+  .hero-top > .lbl:first-child { flex-shrink: 0; white-space: nowrap; }
+  #fuel-right { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: right; }
+  .hero-mid { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+  .hero-mid .big { line-height: 1; }
+  .hero-bars { display: flex; gap: 10px; }
+  .hb { flex: 1; min-width: 0; }
+  .hb .k { display: flex; justify-content: space-between; gap: 6px; font-weight: 800; font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: rgba(29,29,31,0.75); }
+  .hb .k b { font-weight: 800; color: var(--ink); }
+  .hb .t { height: 7px; margin-top: 5px; border-radius: 99px; background: rgba(29,29,31,0.17); overflow: hidden; }
+  .hb .t i { display: block; height: 100%; border-radius: 99px; background: #1d1d1f; transform-origin: left; transform: scaleX(0); transition: transform .6s cubic-bezier(.2,.9,.3,1); }
+  .hb.p .t i { background: var(--blue); }
+  .hb.over .t i { background: #b8321f; }
   .hero .big { font-size: 34px; }
   .hero .lbl { color: rgba(29,29,31,0.75); }
   .hero-stat { text-align: right; flex-shrink: 0; }
@@ -408,6 +432,7 @@
     <div class="stack" style="margin-top: 12px;">
       <div class="tiles" id="tiles"></div>
       <div id="upcoming"></div>
+      <div id="missed"></div>
       <div id="review-card"></div>
       <div>
         <button class="fold" id="fold-board"><span class="lbl">Still on the board <span id="left-count"></span></span><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6d6a63" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"></path></svg></button>
@@ -419,9 +444,10 @@
   <section class="page fuel" data-page="fuel">
     <header class="hero fuel">
       <div class="hero-art"><div class="fill" id="fuel-fill"><svg class="wave" viewBox="0 0 800 24" preserveAspectRatio="none"><path d="M0 12 C50 0 150 24 200 12 S350 0 400 12 S550 24 600 12 S750 0 800 12 V24 H0 Z"></path></svg></div></div>
-      <div class="hero-row">
-        <div><div class="lbl">Fuel · <span class="today-lbl"></span></div><div class="big">The plan</div></div>
-        <div class="hero-stat"><div class="big" id="cal-so-far"></div><div class="lbl">cal so far</div></div>
+      <div class="hero-col">
+        <div class="hero-top"><div class="lbl">Fuel · <span class="today-lbl"></span></div><div class="lbl" id="fuel-right"></div></div>
+        <div class="hero-mid"><div class="big" id="cal-so-far"></div><div class="lbl" id="cal-note">cal so far</div></div>
+        <div class="hero-bars" id="fuel-bars"></div>
       </div>
     </header>
     <div class="in-tabs" data-for="fuel"></div>
@@ -501,7 +527,7 @@ const SB_URL = 'https://ksgxrxqvnfpfhidxsxcs.supabase.co';
 const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzZ3hyeHF2bmZwZmhpZHhzeGNzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE0MzkxMTgsImV4cCI6MjA5NzAxNTExOH0.pUD6sbkjhhTlgl5x4KHFJsThoHVlNkNBlSFES_8HHvM';
 const BRAIN = '/.netlify/functions/day-brain';
 const STORE_KEY = 'daily-board';
-const APP_VERSION = '1.6';
+const APP_VERSION = '1.7';
 const ROW_ID = 'reggie';
 /*
  * A copy served from localhost or opened off the disk is a test copy, and a test
@@ -1067,6 +1093,7 @@ function renderNow() {
     : `<button class="card review" data-act="review" style="width:100%;text-align:left"><div style="display:flex;align-items:center;gap:12px"><div class="grade" style="background:#1d1d1f;box-shadow:0 4px 0 #000"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fbfaf7" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V5M4 15l4-4 4 3 5-6 3 2"></path></svg></div><div><div class="t">Review my day</div><div class="s">Meals, steps, walks, sodium and water, and where the scale should land tomorrow.</div></div></div></button>`;
 
   $('#upcoming').innerHTML = renderFlow(day, nm);
+  renderMissed(day, nm);
 
   const left = [...day.tasks.filter((t) => !t.done && !t.moved && !t.skipped), ...day.meals.filter((m) => !m.done)];
   $('#left-count').textContent = left.length ? `· ${left.length}` : '· clear';
@@ -1129,6 +1156,56 @@ function renderFlow(day, nm) {
 }
 
 /*
+ * Missed. Anything whose time went by without an answer used to just fall off
+ * the front page, so a day quietly ended incomplete with no idea why. Now it
+ * sits here in red with a question mark until he says what happened. An hour
+ * of grace first, because he runs late and that is not a miss.
+ */
+const MISS_GRACE = 60;
+function missedItems(day, nm) {
+  const late = (x) => {
+    if (x.done || x.moved || x.skipped || !x.time) return false;
+    const due = minutes(x.end || x.time);
+    return nm - due >= MISS_GRACE;
+  };
+  return [
+    ...day.tasks.filter(late).map((x) => ({ ...x, kind: 'task' })),
+    ...day.meals.filter(late).map((x) => ({ ...x, kind: 'meal' }))
+  ].sort((a, b) => minutes(a.time) - minutes(b.time));
+}
+function renderMissed(day, nm) {
+  const miss = missedItems(day, nm);
+  const el = $('#missed');
+  if (!miss.length) { el.innerHTML = ''; return; }
+  el.innerHTML =
+    `<div class="lbl grp-lbl" style="margin-bottom:8px;color:#b8321f">${miss.length === 1 ? 'One thing went by' : `${miss.length} things went by`}</div>` +
+    `<div class="card list">${miss.map((x) => `<div class="row miss" data-id="${x.id}">
+      <button class="chk" data-act="toggle" data-kind="${x.kind}" data-id="${x.id}">${ICON_CHECK}</button>
+      <div class="txt" data-act="missed" data-kind="${x.kind}" data-id="${x.id}" style="cursor:pointer">
+        <div class="t">${esc(x.name)}</div>
+        <div class="s">${x.kind === 'meal' ? esc(x.slot) : 'Was'} ${t12s(x.time)}${x.end ? ` to ${t12(x.end)}` : ''}</div>
+      </div>
+      <button class="stamp q" data-act="missed" data-kind="${x.kind}" data-id="${x.id}">?</button>
+    </div>`).join('')}</div>`;
+}
+/* Tap the question mark: three answers, and one of them is "it is fine". */
+function openMissed(kind, id) {
+  const f = findItem(kind, id);
+  if (!f) return;
+  const x = f.it;
+  // Pushing a planned meal is meaningless: tomorrow already has it from the
+  // plan, so moving it there just makes two. Tasks and one-offs can move.
+  const canMove = kind === 'task' || !x.planned;
+  openSheet('Went by', x.name, `
+    <div class="card" style="padding:16px"><div class="s" style="line-height:1.45">It was ${t12s(x.time)}${x.end ? ` to ${t12(x.end)}` : ''} and it never got checked off. What happened?</div></div>
+    <button class="btn blue wide" data-act="miss-did" data-kind="${kind}" data-id="${id}">I did it</button>
+    ${canMove ? `<button class="btn wide" data-act="miss-move" data-kind="${kind}" data-id="${id}">Push it to tomorrow</button>` : ''}
+    <div class="field"><label for="miss-why">Skipping it? Why (optional)</label><input id="miss-why" placeholder="Ran out of time"></div>
+    <button class="btn ghost wide" data-act="miss-skip" data-kind="${kind}" data-id="${id}">Skip it today</button>
+  `);
+}
+
+/*
  * The strip: errands and one-off reminders, parked above the nav so they are
  * in front of him wherever he is. Tap one to knock it off.
  */
@@ -1157,6 +1234,28 @@ function renderFuel() {
   // The hero fills like a glass as the day's calories go in.
   $('#fuel-fill').style.transform = `scaleY(${Math.min(1, m.cal / Math.max(1, S.settings.calGoal)).toFixed(3)})`;
   const sec = ui.section.fuel;
+  /*
+   * The band used to hold two words pinned to its bottom edge, so most of the
+   * day it was a blank orange slab: the liquid only rises with calories, and he
+   * fasts until mid afternoon. It now carries the numbers it was named after.
+   */
+  const left = S.settings.calGoal - m.cal;
+  $('#cal-note').textContent = left > 0 ? `cal so far · ${left.toLocaleString()} left` : left === 0 ? 'cal so far · right on it' : `cal so far · ${Math.abs(left).toLocaleString()} over`;
+  const eaten = day.meals.filter((x) => x.done && !x.skipped).length;
+  const total = day.meals.filter((x) => !x.skipped).length;
+  const next = day.meals.find((x) => !x.done && !x.skipped);
+  $('#fuel-right').textContent =
+    sec === 'meals' ? `${S.library.length} saved`
+    : sec === 'macros' ? `from ${m.counted} eaten`
+    : next ? `next ${t12(next.time)} · ${next.name.length > 20 ? next.name.slice(0, 19).trim() + '…' : next.name}` : `${eaten} of ${total} in`;
+  const hb = (n, v, g, cls) => {
+    const pct = g > 0 ? v / g : 0;
+    return `<div class="hb ${cls}${pct > 1.08 ? ' over' : ''}"><div class="k"><span>${n}</span><b>${Math.round(v)}<span style="font-weight:700;opacity:.7">/${g}</span></b></div><div class="t"><i style="transform:scaleX(${Math.min(1, pct).toFixed(3)})"></i></div></div>`;
+  };
+  $('#fuel-bars').innerHTML =
+    hb('Protein', m.protein, S.settings.proteinGoal, 'p') +
+    hb('Carbs', m.carbs, S.settings.carbGoal, '') +
+    hb('Fat', m.fat, S.settings.fatGoal, '');
   let html = '';
   if (sec === 'plan') {
     html += `<div class="card list">${day.meals.map((x) => rowHTML(x, 'meal', { parts: true })).join('')}</div>`;
@@ -1202,7 +1301,7 @@ function renderBody() {
       const xs = pts.map((p, i) => [(330 * i) / (pts.length - 1), 8 + (54 * (max - p.lb)) / span]);
       spark = `<svg class="spark" viewBox="0 0 330 70" preserveAspectRatio="none"><line x1="0" y1="60" x2="330" y2="60" stroke="#e6e3dc" stroke-width="1.5"></line><line x1="0" y1="35" x2="330" y2="35" stroke="#e6e3dc" stroke-width="1.5"></line><line x1="0" y1="10" x2="330" y2="10" stroke="#e6e3dc" stroke-width="1.5"></line><polyline points="${xs.map((p) => p.join(',')).join(' ')}" fill="none" stroke="#1d1d1f" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"></polyline><circle cx="${xs[xs.length - 1][0]}" cy="${xs[xs.length - 1][1]}" r="5" fill="#2b5cff"></circle></svg><div style="display:flex;justify-content:space-between"><div class="s">${niceDate(pts[0].date)} · ${pts[0].lb}</div><div class="s">${niceDate(last.date)} · ${last.lb}</div></div>`;
     } else spark = `<div class="s">Log a couple of weigh-ins and the trend line shows up here.</div>`;
-    html += `<div class="card" style="padding:14px 16px 12px;display:flex;flex-direction:column;gap:8px"><div class="weight-hero"><div><div class="lbl">Weight${last ? ' · ' + niceDate(last.date) : ''}</div><div style="display:flex;align-items:baseline;gap:6px"><div class="big">${last ? last.lb : '--'}</div><div class="s">lb</div></div></div><div style="text-align:right"><div class="t" style="color:#2b5cff">${wkTxt}</div><div class="s">Goal ${S.settings.weightGoal} by ${niceDate(S.settings.weightGoalDate)}</div></div></div>${spark}</div>`;
+    html += `<div class="card tapme" data-act="trend" data-kind="weight" style="padding:14px 16px 12px;display:flex;flex-direction:column;gap:8px"><div class="weight-hero"><div><div class="lbl">Weight${last ? ' · ' + niceDate(last.date) : ''}</div><div style="display:flex;align-items:baseline;gap:6px"><div class="big">${last ? last.lb : '--'}</div><div class="s">lb</div></div></div><div style="text-align:right"><div class="t" style="color:#2b5cff">${wkTxt}</div><div class="s">Goal ${S.settings.weightGoal} by ${niceDate(S.settings.weightGoalDate)}</div></div></div>${spark}</div>`;
     html += `<div class="card" style="padding:14px 16px;display:flex;align-items:flex-start;gap:12px"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#2b5cff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:1px"><path d="M4 19V5"></path><path d="M4 15l5-5 4 3 6-7"></path><path d="M15 6h4v4"></path></svg><div><div class="lbl">On this trend</div><div class="t" style="margin-top:4px;line-height:1.4;font-size:14.5px">${esc(projectionLine())}</div></div></div>`;
     html += `<button class="btn wide" data-act="weigh">Log weigh-in</button>`;
     if (ws.length) html += `<div class="lbl grp-lbl">Recent</div><div class="card list">${ws.slice(-7).reverse().map((w) => `<div class="row"><div class="txt"><div class="t">${w.lb} lb</div><div class="s">${niceDate(w.date)}</div></div><button class="pill" data-act="drop-weight" data-date="${w.date}">x</button></div>`).join('')}</div>`;
@@ -1251,12 +1350,85 @@ function renderTrends() {
   const rhrLast = fit.rhr.length ? [...fit.rhr].sort((a, b) => a.date.localeCompare(b.date)).pop().value : null;
   const enLast = fit.energy.length ? [...fit.energy].sort((a, b) => a.date.localeCompare(b.date)).pop().value : null;
   let html = '';
-  html += `<div class="card" style="padding:14px 16px 12px;display:flex;flex-direction:column;gap:8px"><div style="display:flex;justify-content:space-between;align-items:flex-end"><div><div class="lbl">Steps · weekly</div><div style="display:flex;align-items:baseline;gap:6px"><div class="big" style="font-size:32px">${stepsAvg != null ? k(stepsAvg) : '--'}</div><div class="s">a day, last 4 weeks</div></div></div><div class="s" style="text-align:right">${esc(fit.notes?.steps || '')}</div></div>${chart(fit.steps, { type: 'bar', zero: true, max: 13, goal: S.settings.stepGoal, fmt: k })}</div>`;
-  html += `<div class="card" style="padding:14px 16px 12px;display:flex;flex-direction:column;gap:8px"><div style="display:flex;justify-content:space-between;align-items:flex-end"><div><div class="lbl">Resting heart rate</div><div style="display:flex;align-items:baseline;gap:6px"><div class="big" style="font-size:32px">${rhrLast ?? '--'}</div><div class="s">bpm this month</div></div></div><div class="s" style="text-align:right">${esc(fit.notes?.rhr || '')}</div></div>${chart(fit.rhr, { type: 'line', max: 12 })}</div>`;
-  html += `<div class="card" style="padding:14px 16px 12px;display:flex;flex-direction:column;gap:8px"><div style="display:flex;justify-content:space-between;align-items:flex-end"><div><div class="lbl">Energy burned · weekly</div><div style="display:flex;align-items:baseline;gap:6px"><div class="big" style="font-size:32px">${enLast != null ? k(enLast) : '--'}</div><div class="s">cal a day</div></div></div><div class="s" style="text-align:right">${esc(fit.notes?.energy || '')}</div></div>${chart(fit.energy, { type: 'bar', zero: true, max: 12, fmt: k })}</div>`;
+  html += `<div class="card tapme" data-act="trend" data-kind="steps" style="padding:14px 16px 12px;display:flex;flex-direction:column;gap:8px"><div style="display:flex;justify-content:space-between;align-items:flex-end"><div><div class="lbl">Steps · weekly</div><div style="display:flex;align-items:baseline;gap:6px"><div class="big" style="font-size:32px">${stepsAvg != null ? k(stepsAvg) : '--'}</div><div class="s">a day, last 4 weeks</div></div></div><div class="s" style="text-align:right">${esc(fit.notes?.steps || '')}</div></div>${chart(fit.steps, { type: 'bar', zero: true, max: 13, goal: S.settings.stepGoal, fmt: k })}</div>`;
+  html += `<div class="card tapme" data-act="trend" data-kind="rhr" style="padding:14px 16px 12px;display:flex;flex-direction:column;gap:8px"><div style="display:flex;justify-content:space-between;align-items:flex-end"><div><div class="lbl">Resting heart rate</div><div style="display:flex;align-items:baseline;gap:6px"><div class="big" style="font-size:32px">${rhrLast ?? '--'}</div><div class="s">bpm this month</div></div></div><div class="s" style="text-align:right">${esc(fit.notes?.rhr || '')}</div></div>${chart(fit.rhr, { type: 'line', max: 12 })}</div>`;
+  html += `<div class="card tapme" data-act="trend" data-kind="energy" style="padding:14px 16px 12px;display:flex;flex-direction:column;gap:8px"><div style="display:flex;justify-content:space-between;align-items:flex-end"><div><div class="lbl">Energy burned · weekly</div><div style="display:flex;align-items:baseline;gap:6px"><div class="big" style="font-size:32px">${enLast != null ? k(enLast) : '--'}</div><div class="s">cal a day</div></div></div><div class="s" style="text-align:right">${esc(fit.notes?.energy || '')}</div></div>${chart(fit.energy, { type: 'bar', zero: true, max: 12, fmt: k })}</div>`;
   html += `<button class="btn wide" data-act="fit-shot">${ICON_CAM} Read a Fitbit screenshot</button>`;
   html += `<div class="s" style="padding:0 6px">Screenshot any Fitbit page (steps, weight, resting heart rate, energy) and the numbers land here. The live Fitbit link comes next and replaces this.</div>`;
   return html;
+}
+
+/*
+ * Tapping a trend. The card gives one number and a sparkline; this is the
+ * rest of it: the spread, the direction, every reading, and a plain reading of
+ * what the movement actually means for him rather than a generic definition.
+ */
+function trendStats(pts) {
+  if (!pts.length) return null;
+  const v = pts.map((p) => p.value);
+  const first = v[0], last = v[v.length - 1];
+  return {
+    first, last, min: Math.min(...v), max: Math.max(...v),
+    mean: Math.round(v.reduce((a, b) => a + b, 0) / v.length),
+    delta: last - first, n: v.length,
+    from: pts[0].date, to: pts[pts.length - 1].date
+  };
+}
+const TREND_META = {
+  steps: {
+    title: 'Steps', lbl: 'Steps · weekly', unit: '', each: 'a week',
+    read: (s, goal) => {
+      const over = s.mean >= goal;
+      return `Your weekly average runs ${s.mean.toLocaleString()} a day against a ${goal.toLocaleString()} goal, so you are ${over ? 'clearing it on average' : `about ${(goal - s.mean).toLocaleString()} short on a typical week`}. The spread from ${s.min.toLocaleString()} to ${s.max.toLocaleString()} is the part worth watching: a quiet week is where a cut stalls, because steps are most of your daily burn outside the gym.`;
+    }
+  },
+  rhr: {
+    title: 'Resting heart rate', lbl: 'Resting heart rate', unit: ' bpm', each: 'a month',
+    read: (s) => {
+      const dir = s.delta > 1 ? 'up' : s.delta < -1 ? 'down' : 'flat';
+      const base = `Resting heart rate drifts down as conditioning improves and up with short sleep, alcohol, illness, or hard training you have not recovered from.`;
+      if (dir === 'flat') return `${base} Yours has held around ${s.mean} bpm, which is what you want while cutting.`;
+      return `${base} Yours has gone ${dir} ${Math.abs(s.delta)} bpm across these readings, from ${s.first} to ${s.last}. ${s.delta > 0 ? 'A rise while eating in a deficit usually means recovery, not fitness: check sleep and how hard the last few sessions were.' : 'That is the direction conditioning moves it.'}`;
+    }
+  },
+  energy: {
+    title: 'Energy burned', lbl: 'Energy burned · weekly', unit: ' cal', each: 'a week',
+    read: (s) => {
+      const gap = Math.max(0, s.mean - S.settings.calGoal);
+      const onPaper = (gap * 7) / 3500;
+      const p = projection();
+      const real = p && p.perWeek ? Math.abs(p.perWeek) : null;
+      return `You burn about ${s.mean.toLocaleString()} calories a day across these weeks, ranging ${s.min.toLocaleString()} to ${s.max.toLocaleString()}. Against a ${S.settings.calGoal.toLocaleString()} calorie day that is a ${gap.toLocaleString()} calorie gap, which on paper is ${onPaper.toFixed(1)} lb a week. ${real ? `The scale says ${real.toFixed(1)}. Trust the scale: the watch is overcounting, which is normal, and your real deficit is nearer ${Math.round((real * 3500) / 7).toLocaleString()} a day.` : 'Nothing loses that fast in practice. Wearables overcount burn, so treat it as a direction, not a number, and let the scale settle the argument.'}`;
+    }
+  },
+  weight: {
+    title: 'Weight', lbl: 'Weight', unit: ' lb', each: 'reading',
+    read: (s) => {
+      const p = projection();
+      return `${s.n} weigh-ins from ${niceDate(s.from)} to ${niceDate(s.to)}, ${s.first} down to ${s.last} lb, low of ${s.min}. ${p && p.perWeek ? projectionLine() : 'Log a few more and this will project a date for 180.'} Weigh at the same time each morning: day to day swings are water and sodium, not fat.`;
+    }
+  }
+};
+function trendPoints(kind) {
+  if (kind === 'weight') return [...S.weights].sort((a, b) => a.date.localeCompare(b.date)).map((w) => ({ date: w.date, value: w.lb }));
+  const fit = S.fit || FIT_SEED();
+  return [...(fit[kind] || [])].sort((a, b) => a.date.localeCompare(b.date));
+}
+function openTrend(kind) {
+  const meta = TREND_META[kind];
+  const pts = trendPoints(kind);
+  const s = trendStats(pts);
+  if (!meta || !s) { toast({ t: 'Nothing logged yet', ms: 3000 }); return; }
+  const goal = kind === 'steps' ? S.settings.stepGoal : null;
+  const n = (v) => `${Math.round(v).toLocaleString()}${meta.unit}`;
+  const cell = (k, v) => `<div><div class="n">${k}</div><div class="v">${v}</div></div>`;
+  const dirWord = s.delta === 0 ? 'no change' : `${s.delta > 0 ? '+' : ''}${(Math.round(s.delta * 10) / 10).toLocaleString()}${meta.unit}`;
+  openSheet(meta.lbl, n(s.last), `
+    <div class="card macs">${cell('Average', n(s.mean))}${cell('Lowest', n(s.min))}${cell('Highest', n(s.max))}${cell('Change', dirWord)}</div>
+    <div class="card" style="padding:14px 16px 12px">${chart(pts, kind === 'rhr' || kind === 'weight' ? { type: 'line', max: 24 } : { type: 'bar', zero: true, max: 24, goal, fmt: (v) => v.toLocaleString() })}</div>
+    <div class="card" style="padding:14px 16px"><div class="lbl">What it means</div><div class="s" style="margin-top:6px;line-height:1.45;color:#3a3a3a">${esc(meta.read(s, goal))}</div></div>
+    <div class="card"><div class="lbl" style="padding:14px 16px 4px">Every reading · ${s.n}</div><div class="list">${[...pts].reverse().slice(0, 24).map((p) => `<div class="row"><div class="txt"><div class="t">${n(p.value)}</div><div class="s">${niceDate(p.date)}${p.period ? ` · per ${p.period}` : ''}</div></div></div>`).join('')}</div></div>
+  `);
 }
 
 /* The weight line, drawn faintly across the Body hero. */
@@ -1543,6 +1715,20 @@ document.addEventListener('click', (e) => {
   else if (act === 'open-week') openWeek();
   else if (act === 'advise') openAdvise();
   else if (act === 'compare') openCompare();
+  else if (act === 'trend') openTrend(b.dataset.kind);
+  else if (act === 'missed') openMissed(b.dataset.kind, b.dataset.id);
+  else if (act === 'miss-did') { closeSheet(); toggleItem(b.dataset.kind, b.dataset.id); }
+  else if (act === 'miss-skip') {
+    const why = ($('#miss-why') || {}).value || '';
+    const f = findItem(b.dataset.kind, b.dataset.id);
+    closeSheet();
+    if (f) { snapshot(`Skipped ${f.it.name}`); f.it.skipped = { reason: why.trim() }; f.it.done = false; save(); toast({ t: `Skipped ${f.it.name}`, s: why.trim(), undo: true }); }
+  }
+  else if (act === 'miss-move') {
+    const f = findItem(b.dataset.kind, b.dataset.id);
+    closeSheet();
+    if (f) { snapshot(`Pushed ${f.it.name}`); applyOp({ op: 'move', target: b.dataset.kind, id: b.dataset.id, toDate: addDays(ymd(), 1) }); save(); toast({ t: `Pushed ${f.it.name} to tomorrow`, undo: true }); }
+  }
   else if (act === 'att-drop') { atts.splice(Number(b.dataset.i), 1); renderAtts(); }
   else if (act === 'push-on') pushOn();
   else if (act === 'push-off') pushOff();
