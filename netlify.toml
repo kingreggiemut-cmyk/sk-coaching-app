@@ -134,3 +134,11 @@
   for = "/playbooks/Wingback%20Offense/*"
   [headers.values]
     Cache-Control = "public, max-age=604800"
+
+# ---------------------------------------------------------------------------
+# Daily Board nudges. Runs every hour; the function itself works out the local
+# Edmonton time and stays quiet on every hour that has no rule, so DST needs no
+# change here. Without VAPID_PRIVATE_KEY in the environment it is a no-op.
+# ---------------------------------------------------------------------------
+[functions."day-nudge"]
+  schedule = "0 * * * *"
