@@ -52,7 +52,7 @@ Allowed ops (use the ids from STATE; never invent an id):
   {"op":"remove","target":"task"|"meal","id":"..."}
   {"op":"water","count":n}            total bottles so far today (if he says "one more", add 1 to STATE water.count)
   {"op":"log_weight","lb":n,"date":"YYYY-MM-DD"}
-  {"op":"note","text":"...","bucket":"..."}   a thought worth keeping that is not an errand and not an item
+  {"op":"note","title":"...","text":"...","bucket":"..."}   a thought worth keeping that is not an errand and not an item. "text" is everything he said about it, tidied but not shortened. "title" is a short label for the list, under about eight words, specific enough to recognise later ("Bears run game out of heavy" beats "Video idea").
   {"op":"add_reminder","text":"..."}  an errand or one-off he needs to do soon ("grab eggs on my walk", "book the dentist")
   {"op":"done_reminder","id":"..."}   he did one of the open reminders in STATE (use its id)
   {"op":"log_steps","steps":n}        his step count so far today ("I'm at 14k steps" = 14000)
@@ -90,7 +90,7 @@ Reply with ONE JSON object and nothing else:
 }
 Whole numbers everywhere. If the words and the photo disagree, the words win (he is describing what he actually ate). ${NO_DASHES}`;
 
-const PHYSIQUE_SYSTEM = `You estimate body-fat percentage from physique photos for one person's own private tracker. He knows this is an estimate and reads it as a trend, week over week, alongside a tape measurement. Give a range, not false precision. Front and side views in similar light and pose each week are what he aims for.
+const PHYSIQUE_SYSTEM = `You estimate body-fat percentage from physique photos for one person's own private tracker. He knows this is an estimate and reads it as a trend, week over week. Give a range, not false precision. Front and side views in similar light and pose each week are what he aims for.
 
 Reply with ONE JSON object and nothing else:
 {

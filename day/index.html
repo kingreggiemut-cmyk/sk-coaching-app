@@ -185,6 +185,50 @@
   .nb.on { background: var(--ink); color: var(--card); box-shadow: 0 4px 0 #000; }
   .nb:last-child { margin-right: 60px; }
 
+  /*
+   * Section heroes. Same flat toy panel as the Now sky: one colour, a hard
+   * bottom edge, one thing moving slowly behind the words. Each page gets its
+   * own hue and its own motion so you know where you are at a glance.
+   */
+  .hero { position: relative; margin: calc(-1 * (var(--sat) + 14px)) -14px 12px; padding: calc(var(--sat) + 26px) 18px 18px; border-radius: 0 0 30px 30px; overflow: hidden; min-height: 164px; display: flex; align-items: flex-end; }
+  .hero-art { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
+  .hero-row { position: relative; display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; width: 100%; }
+  .hero .big { font-size: 34px; }
+  .hero .lbl { color: rgba(29,29,31,0.6); }
+  .hero-stat { text-align: right; flex-shrink: 0; }
+  .hero-stat .big { font-size: 24px; }
+  .hero-stat .big span { opacity: 0.55; }
+
+  .hero.fuel { background: #ffcf85; color: var(--ink); box-shadow: 0 6px 0 #d9922f, 0 14px 24px rgba(0,0,0,0.10); }
+  .hero.fuel .fill { position: absolute; left: 0; right: 0; bottom: 0; height: 0; background: #ff9d3d; transition: height .9s cubic-bezier(.2,.9,.3,1); }
+  .hero.fuel .wave { position: absolute; top: -11px; left: -50%; width: 200%; height: 24px; fill: #ff9d3d; animation: drift 11s linear infinite; }
+  @keyframes drift { to { transform: translateX(25%); } }
+
+  .hero.body { background: #8fdcc0; color: var(--ink); box-shadow: 0 6px 0 #3f9c7a, 0 14px 24px rgba(0,0,0,0.10); }
+  .hero.body .trend { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .hero.body .trend polyline { fill: none; stroke: #1d6b52; stroke-width: 3.5; stroke-linejoin: round; stroke-linecap: round; opacity: .55; animation: draw 2.2s ease-out both; }
+  .hero.body .trend line { stroke: #6ec6a6; stroke-width: 1.5; }
+  .hero.body .trend circle { fill: #1d6b52; animation: pop .5s 1.6s cubic-bezier(.2,1.6,.4,1) both; }
+  @keyframes draw { from { stroke-dashoffset: var(--len); } to { stroke-dashoffset: 0; } }
+  @keyframes pop { from { transform: scale(0); } to { transform: scale(1); } }
+
+  .hero.board { background: #a3b9ff; color: var(--ink); box-shadow: 0 6px 0 #4f6fd4, 0 14px 24px rgba(0,0,0,0.10); }
+  .hero.board .blocks { position: absolute; left: 18px; right: 18px; top: calc(var(--sat) + 22px); display: flex; gap: 4px; height: 30px; }
+  .hero.board .blocks i { flex: 1 1 0; border-radius: 4px; background: rgba(29,29,31,0.14); transition: background .4s; }
+  .hero.board .blocks i.on { background: var(--blue); }
+  .hero.board .sheen { position: absolute; top: 0; bottom: 0; width: 70%; left: -70%; background: linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.45) 50%, rgba(255,255,255,0) 100%); animation: sweep 7s ease-in-out infinite; }
+  @keyframes sweep { 0%, 55% { left: -70%; } 100% { left: 110%; } }
+
+  .hero.talk { background: #1b2350; color: #f4f1ea; box-shadow: 0 6px 0 #0c1130, 0 14px 24px rgba(0,0,0,0.14); }
+  .hero.talk .lbl { color: #93a0d8; }
+  .hero.talk .orb { position: absolute; border-radius: 50%; display: block; }
+  .hero.talk .o1 { width: 130px; height: 130px; right: -20px; top: -30px; background: #2b3a86; animation: float1 16s ease-in-out infinite; }
+  .hero.talk .o2 { width: 76px; height: 76px; right: 96px; top: 62px; background: #26306b; animation: float2 13s ease-in-out infinite; }
+  .hero.talk .o3 { width: 40px; height: 40px; right: 176px; top: 26px; background: var(--blue); opacity: .5; animation: float1 19s ease-in-out infinite reverse; }
+  @keyframes float1 { 0%, 100% { transform: translate(0, 0); } 50% { transform: translate(-14px, 12px); } }
+  @keyframes float2 { 0%, 100% { transform: translate(0, 0); } 50% { transform: translate(10px, -14px); } }
+  @media (prefers-reduced-motion: reduce) { .hero * { animation: none !important; } }
+
   /* the now divider inside the flow list */
   .nowline { display: flex; align-items: center; gap: 10px; padding: 6px 16px; border-top: 1.5px solid var(--line); }
   .nowline span { flex: 1 1 0; height: 2px; border-radius: 1px; background: var(--line); }
@@ -193,11 +237,13 @@
   #strip { position: fixed; left: 0; right: 0; bottom: calc(var(--barh) + var(--sab)); z-index: 21; display: none; gap: 8px; padding: 22px 12px 10px; overflow-x: auto; scrollbar-width: none; background: linear-gradient(180deg, rgba(233,231,226,0) 0%, var(--ground) 42%); }
   #strip::-webkit-scrollbar { display: none; }
   #strip.show { display: flex; }
-  .rem { flex: 0 0 auto; display: inline-flex; align-items: center; gap: 8px; height: 42px; padding: 0 14px 0 10px; border-radius: 999px; background: var(--card); box-shadow: 0 1px 0 #fff inset, 0 4px 0 var(--edge); max-width: 74vw; transition: transform .08s, box-shadow .08s, opacity .2s; }
-  .rem:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--edge); }
-  .rem .tick { width: 22px; height: 22px; border-radius: 50%; flex-shrink: 0; background: var(--ground); box-shadow: 0 2px 0 var(--edge) inset; display: flex; align-items: center; justify-content: center; }
-  .rem .tick svg { width: 13px; height: 13px; opacity: 0; }
-  .rem .rt { font-weight: 700; font-size: 14px; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .rem { flex: 0 0 auto; display: inline-flex; align-items: center; gap: 8px; height: 44px; padding: 0 14px 0 8px; border-radius: 999px; background: var(--card); box-shadow: 0 1px 0 #fff inset, 0 4px 0 var(--edge); max-width: 74vw; transition: transform .08s, box-shadow .08s, opacity .2s; }
+  .rem.add:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--edge); }
+  .rem .tick { width: 28px; height: 28px; border-radius: 50%; flex-shrink: 0; background: var(--ground); box-shadow: 0 2px 0 var(--edge) inset; display: flex; align-items: center; justify-content: center; }
+  .rem .tick:active { background: var(--blue); box-shadow: 0 3px 0 var(--blue-deep) inset; }
+  .rem .tick svg { width: 14px; height: 14px; stroke: var(--card); opacity: 0; }
+  .rem .tick:active svg { opacity: 1; }
+  .rem .rt { font-weight: 700; font-size: 14px; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; padding: 8px 0; }
   .rem .rd { font-weight: 700; font-size: 11px; color: var(--blue); flex-shrink: 0; }
   .rem.add { background: transparent; box-shadow: 0 0 0 2px var(--edge) inset; }
   .rem.add .rt { color: var(--mute); }
@@ -344,25 +390,49 @@
   </section>
 
   <section class="page fuel" data-page="fuel">
-    <div class="hdr"><div><div class="lbl">Fuel · <span class="today-lbl"></span></div><div class="big">The plan</div></div><div class="right"><div class="big" id="cal-so-far"></div><div class="lbl">cal so far</div></div></div>
+    <header class="hero fuel">
+      <div class="hero-art"><div class="fill" id="fuel-fill"><svg class="wave" viewBox="0 0 800 24" preserveAspectRatio="none"><path d="M0 12 C50 0 150 24 200 12 S350 0 400 12 S550 24 600 12 S750 0 800 12 V24 H0 Z"></path></svg></div></div>
+      <div class="hero-row">
+        <div><div class="lbl">Fuel · <span class="today-lbl"></span></div><div class="big">The plan</div></div>
+        <div class="hero-stat"><div class="big" id="cal-so-far"></div><div class="lbl">cal so far</div></div>
+      </div>
+    </header>
     <div class="in-tabs" data-for="fuel"></div>
     <div id="fuel-body" class="stack"></div>
   </section>
 
   <section class="page body" data-page="body">
-    <div class="hdr"><div><div class="lbl">Body · <span class="today-lbl"></span></div><div class="big">The trend</div></div><div class="right"><div class="big" id="w-delta"></div><div class="lbl">30 days</div></div></div>
+    <header class="hero body">
+      <div class="hero-art"><svg class="trend" id="body-trend" viewBox="0 0 390 180" preserveAspectRatio="none"></svg></div>
+      <div class="hero-row">
+        <div><div class="lbl">Body · <span class="today-lbl"></span></div><div class="big">The trend</div></div>
+        <div class="hero-stat"><div class="big" id="w-delta"></div><div class="lbl">30 days</div></div>
+      </div>
+    </header>
     <div class="in-tabs" data-for="body"></div>
     <div id="body-body" class="stack"></div>
   </section>
 
   <section class="page board" data-page="board">
-    <div class="hdr"><div><div class="lbl">Board · <span class="today-lbl"></span></div><div class="big">Today</div></div><div class="right"><div class="big" id="hit-count"></div><div class="lbl">hit</div></div></div>
+    <header class="hero board">
+      <div class="hero-art"><div class="sheen"></div><div class="blocks" id="board-blocks"></div></div>
+      <div class="hero-row">
+        <div><div class="lbl">Board · <span class="today-lbl"></span></div><div class="big">Today</div></div>
+        <div class="hero-stat"><div class="big" id="hit-count"></div><div class="lbl">hit</div></div>
+      </div>
+    </header>
     <div class="in-tabs" data-for="board"></div>
     <div id="board-body" class="stack"></div>
   </section>
 
   <section class="page talk" data-page="talk">
-    <div class="hdr"><div><div class="lbl" id="talk-lbl">Talk</div><div class="big" id="talk-title">Ask me anything</div></div><button class="pill hidden" id="talk-action"></button></div>
+    <header class="hero talk">
+      <div class="hero-art"><i class="orb o1"></i><i class="orb o2"></i><i class="orb o3"></i></div>
+      <div class="hero-row">
+        <div><div class="lbl" id="talk-lbl">Talk</div><div class="big" id="talk-title">Ask me anything</div></div>
+        <button class="pill hidden" id="talk-action"></button>
+      </div>
+    </header>
     <div class="in-tabs" data-for="talk"></div>
     <div id="talk-body" class="stack"></div>
     <div class="chat-in hidden" id="chat-in">
@@ -400,7 +470,7 @@ const SB_URL = 'https://ksgxrxqvnfpfhidxsxcs.supabase.co';
 const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzZ3hyeHF2bmZwZmhpZHhzeGNzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE0MzkxMTgsImV4cCI6MjA5NzAxNTExOH0.pUD6sbkjhhTlgl5x4KHFJsThoHVlNkNBlSFES_8HHvM';
 const BRAIN = '/.netlify/functions/day-brain';
 const STORE_KEY = 'daily-board';
-const APP_VERSION = '0.9';
+const APP_VERSION = '1.0';
 const ROW_ID = 'reggie';
 
 const $ = (s, r = document) => r.querySelector(s);
@@ -573,6 +643,9 @@ function load() {
     setTimeout(() => toast({ t: 'Could not read the saved day', s: err.message, cls: 'red', ms: 9000 }), 800);
   }
   migratePlan();
+  // A brand new install skips the migration entirely, so it would start with
+  // an empty Your meals list. Seed it once, and never resurrect a deletion.
+  if (!S.library.length) seedLibrary();
 }
 /*
  * A saved state that predates the current defaults gets the new plan and
@@ -615,10 +688,12 @@ function migratePlan() {
     for (const [date, d] of Object.entries(S.days)) {
       for (const n of d.notes || []) {
         if (!S.notes.some((x) => x.text === n.text && x.date === date)) {
-          S.notes.push({ id: uid('n'), text: n.text, bucket: 'Random', date, at: n.at || '12:00' });
+          S.notes.push({ id: uid('n'), title: autoTitle(n.text), text: n.text, bucket: 'Random', date, at: n.at || '12:00' });
         }
       }
     }
+    // Notes written before they had titles get one from their own first line.
+    for (const n of S.notes) if (!n.title) n.title = autoTitle(n.text);
     const t = ymd();
     const old = S.days[t];
     S.plan = PLAN_CURRENT();
@@ -668,6 +743,12 @@ function save(opts = {}) {
   try { localStorage.setItem(STORE_KEY, JSON.stringify(S)); } catch {}
   if (!opts.quiet) render();
   scheduleSync();
+}
+
+/* A short label for a note when the brain did not give one. */
+function autoTitle(text) {
+  const first = String(text || '').split(/(?<=[.!?])\s|\n/)[0].trim();
+  return first.length > 60 ? first.slice(0, 57).trimEnd() + '...' : first || 'Note';
 }
 
 /* Every plan item is also a saved meal, once, by name. */
@@ -812,7 +893,7 @@ const ICON_FLAME = '<svg width="20" height="20" viewBox="0 0 24 24" fill="#2b5cf
 const SECTIONS = {
   now: [],
   fuel: [['plan', 'Plan'], ['macros', 'Macros'], ['meals', 'Your meals']],
-  body: [['weight', 'Weight'], ['trends', 'Trends'], ['photos', 'Photos'], ['tape', 'Tape']],
+  body: [['weight', 'Weight'], ['trends', 'Trends'], ['photos', 'Photos']],
   board: [['today', 'Today'], ['week', 'Week'], ['done', 'Done'], ['moved', 'Moved']],
   talk: [['chat', 'Chat'], ['notes', 'Notes'], ['wrap', 'Wrap'], ['backlog', 'Backlog']]
 };
@@ -938,7 +1019,8 @@ function renderStrip() {
   if (!open.length) { el.innerHTML = ''; return; }
   el.innerHTML = open.map((r) => {
     const old = r.date !== ymd();
-    return `<button class="rem" data-act="rem-done" data-id="${r.id}"><span class="tick">${ICON_CHECK}</span><span class="rt">${esc(r.text)}</span>${old ? `<span class="rd">${niceDate(r.date)}</span>` : ''}</button>`;
+    // The tick knocks it off, the words open it for editing. Two targets, one chip.
+    return `<div class="rem" data-id="${r.id}"><button class="tick" data-act="rem-done" data-id="${r.id}" aria-label="Done">${ICON_CHECK}</button><button class="rt" data-act="rem-edit" data-id="${r.id}">${esc(r.text)}</button>${old ? `<span class="rd">${niceDate(r.date)}</span>` : ''}</div>`;
   }).join('') + `<button class="rem add" data-act="rem-add"><span class="rt">+ Add</span></button>`;
 }
 function waterRow(day) {
@@ -951,12 +1033,15 @@ function renderFuel() {
   const day = today();
   const m = macrosToday(day);
   $('#cal-so-far').innerHTML = `${m.cal.toLocaleString()}<span>/${S.settings.calGoal.toLocaleString()}</span>`;
+  // The hero fills like a glass as the day's calories go in.
+  $('#fuel-fill').style.height = `${Math.min(100, Math.round((100 * m.cal) / Math.max(1, S.settings.calGoal)))}%`;
   const sec = ui.section.fuel;
   let html = '';
   if (sec === 'plan') {
     html += `<div class="card list">${day.meals.map((x) => rowHTML(x, 'meal', { parts: true })).join('')}</div>`;
     if (day.extras.length) html += `<div class="lbl grp-lbl">Also ate</div><div class="card list">${day.extras.map((e) => `<div class="row done" data-id="${e.id}"><div class="chk">${ICON_CHECK}</div><div class="txt"><div class="t">${esc(e.name)}</div><div class="s">${esc(e.slot || 'Extra')} · ${e.cal} cal · ${e.protein}g protein</div></div><button class="pill" data-act="remove-extra" data-id="${e.id}">Remove</button></div>`).join('')}</div>`;
     html += `<div style="display:flex;gap:10px"><button class="btn" style="flex:1" data-act="food-talk">${ICON_MIC} Talk it in</button><button class="btn" style="flex:1" data-act="food-snap">${ICON_CAM} Snap a photo</button></div>`;
+    html += `<button class="btn ghost wide" data-act="add-meal">+ Add a meal</button>`;
     html += `<div class="chips"><button class="pill" data-act="edit-plan">Edit the plan</button><button class="pill" data-act="edit-goals">Goals</button></div>`;
   } else if (sec === 'macros') {
     const bar = (n, v, g, cls) => `<div class="mac ${cls}"><div class="n">${n}</div><div class="barr"><i style="width:${Math.min(100, Math.round((100 * v) / g))}%"></i></div><div class="v">${v} / ${g}g</div></div>`;
@@ -979,6 +1064,7 @@ function renderBody() {
   const delta = last && base && last !== base ? (last.lb - base.lb) : null;
   $('#w-delta').innerHTML = delta != null ? `${delta > 0 ? '+' : ''}${delta.toFixed(1)}<span> lb</span>` : `<span>no trend yet</span>`;
   $('#w-delta').nextElementSibling.textContent = base && last && base !== last ? `since ${niceDate(base.date)}` : '30 days';
+  paintTrendHero(ws);
   const sec = ui.section.body;
   let html = '';
   if (sec === 'weight') {
@@ -1002,15 +1088,10 @@ function renderBody() {
   } else if (sec === 'photos') {
     const ps = [...S.photos].sort((a, b) => a.date.localeCompare(b.date));
     const p = ps[ps.length - 1];
-    const tape = tapeEstimate();
-    html += `<div class="card phys"><div class="pic">${p && p.thumbs[0] ? `<img src="${p.thumbs[0]}" alt="">` : '<svg width="90" height="120" viewBox="0 0 90 120"><circle cx="45" cy="16" r="12" fill="#6d6a63"></circle><path d="M25 40 Q45 30 65 40 L72 82 Q45 90 18 82 Z" fill="#6d6a63"></path><path d="M25 42 L10 78 L18 80 L30 52 Z" fill="#6d6a63"></path><path d="M65 42 L80 78 L72 80 L60 52 Z" fill="#6d6a63"></path><path d="M26 84 L30 118 L42 118 L44 90 Z" fill="#6d6a63"></path><path d="M64 84 L60 118 L48 118 L46 90 Z" fill="#6d6a63"></path></svg>'}${p ? `<div class="tag">${niceDate(p.date)}</div>` : ''}</div><div class="info"><div class="lbl">Est. body fat</div>${p ? `<div style="display:flex;align-items:baseline;gap:6px"><div class="big">${p.est.mid}<span>%</span></div><div class="s">${p.est.low} to ${p.est.high}</div></div><div class="s">${esc(p.est.read || '')}</div>` : `<div class="big">--</div><div class="s">Front and side, same light and pose each Sunday. Read alongside the tape.</div>`}<div class="meas"><div><div class="lbl">Waist</div><div class="t">${S.tape.waist ? S.tape.waist + ' in' : '--'}</div></div><div><div class="lbl">Neck</div><div class="t">${S.tape.neck ? S.tape.neck + ' in' : '--'}</div></div><div><div class="lbl">Tape est.</div><div class="t" style="color:#2b5cff">${tape != null ? tape + '%' : '--'}</div></div></div></div></div>`;
+    html += `<div class="card phys"><div class="pic">${p && p.thumbs[0] ? `<img src="${p.thumbs[0]}" alt="">` : '<svg width="90" height="120" viewBox="0 0 90 120"><circle cx="45" cy="16" r="12" fill="#6d6a63"></circle><path d="M25 40 Q45 30 65 40 L72 82 Q45 90 18 82 Z" fill="#6d6a63"></path><path d="M25 42 L10 78 L18 80 L30 52 Z" fill="#6d6a63"></path><path d="M65 42 L80 78 L72 80 L60 52 Z" fill="#6d6a63"></path><path d="M26 84 L30 118 L42 118 L44 90 Z" fill="#6d6a63"></path><path d="M64 84 L60 118 L48 118 L46 90 Z" fill="#6d6a63"></path></svg>'}${p ? `<div class="tag">${niceDate(p.date)}</div>` : ''}</div><div class="info"><div class="lbl">Est. body fat</div>${p ? `<div style="display:flex;align-items:baseline;gap:6px"><div class="big">${p.est.mid}<span>%</span></div><div class="s">${p.est.low} to ${p.est.high}</div></div><div class="s">${esc(p.est.read || '')}</div>` : `<div class="big">--</div><div class="s">Front and side, same light and pose each Sunday. The trend is the point, not the number.</div>`}</div></div>`;
     if (ps.length) html += `<div class="lbl grp-lbl">Last four</div><div class="thumbs">${ps.slice(-4).map((x) => `<div class="th">${x.thumbs[0] ? `<img src="${x.thumbs[0]}" alt="">` : ''}<div class="s">${MO[fromYmd(x.date).getMonth()]} ${fromYmd(x.date).getDate()} · ${x.est.mid}%</div></div>`).join('')}</div>`;
     html += `<button class="btn wide" data-act="phys">${ICON_CAM} Add photos</button>`;
     if (p && p.est.photo_tip) html += `<div class="s" style="padding:0 6px">${esc(p.est.photo_tip)}</div>`;
-  } else {
-    const tape = tapeEstimate();
-    html += `<div class="card" style="padding:16px;display:flex;flex-direction:column;gap:12px"><div class="lbl">Navy tape formula</div><div style="display:flex;align-items:baseline;gap:8px"><div class="big" style="font-size:40px">${tape != null ? tape : '--'}<span style="font-size:22px">${tape != null ? '%' : ''}</span></div><div class="s">within about 3 to 4 points</div></div><div class="s">Waist at the navel, neck just below the Adam's apple, both in inches, relaxed. Same time of day each week.</div></div>`;
-    html += `<div class="card" style="padding:16px;display:flex;flex-direction:column;gap:10px"><div class="field"><div class="lbl">Waist (in)</div><input id="tape-waist" type="number" step="0.1" inputmode="decimal" value="${S.tape.waist ?? ''}"></div><div class="field"><div class="lbl">Neck (in)</div><input id="tape-neck" type="number" step="0.1" inputmode="decimal" value="${S.tape.neck ?? ''}"></div><div class="field"><div class="lbl">Height (in)</div><input id="tape-height" type="number" step="0.5" inputmode="decimal" value="${S.settings.heightIn ?? ''}"></div><button class="btn blue wide" data-act="save-tape">Save tape</button></div>`;
   }
   $('#body-body').innerHTML = html;
 }
@@ -1054,11 +1135,24 @@ function renderTrends() {
   html += `<div class="s" style="padding:0 6px">Screenshot any Fitbit page (steps, weight, resting heart rate, energy) and the numbers land here. The live Fitbit link comes next and replaces this.</div>`;
   return html;
 }
-function tapeEstimate() {
-  const w = Number(S.tape.waist), n = Number(S.tape.neck), h = Number(S.settings.heightIn);
-  if (!w || !n || !h || w <= n) return null;
-  const bf = 86.010 * Math.log10(w - n) - 70.041 * Math.log10(h) + 36.76;
-  return Math.round(bf);
+
+/* The weight line, drawn faintly across the Body hero. */
+function paintTrendHero(ws) {
+  const el = $('#body-trend');
+  const pts = ws.slice(-24);
+  if (pts.length < 2) { el.innerHTML = ''; return; }
+  // Kept to the top third so it never runs through the words.
+  const W = 390, top = 26, bottom = 92;
+  const lo = Math.min(...pts.map((p) => p.lb)), hi = Math.max(...pts.map((p) => p.lb));
+  const span = Math.max(0.5, hi - lo);
+  const xy = pts.map((p, i) => [8 + ((W - 16) * i) / (pts.length - 1), bottom - ((bottom - top) * (p.lb - lo)) / span]);
+  const d = xy.map((q) => `${q[0].toFixed(1)},${q[1].toFixed(1)}`).join(' ');
+  let len = 0;
+  for (let i = 1; i < xy.length; i++) len += Math.hypot(xy[i][0] - xy[i - 1][0], xy[i][1] - xy[i - 1][1]);
+  const last = xy[xy.length - 1];
+  el.innerHTML = `<line x1="0" y1="${top}" x2="${W}" y2="${top}"></line><line x1="0" y1="${(top + bottom) / 2}" x2="${W}" y2="${(top + bottom) / 2}"></line><line x1="0" y1="${bottom}" x2="${W}" y2="${bottom}"></line>`
+    + `<polyline points="${d}" style="--len:${Math.ceil(len)};stroke-dasharray:${Math.ceil(len)}"></polyline>`
+    + `<circle cx="${last[0].toFixed(1)}" cy="${last[1].toFixed(1)}" r="5" style="transform-origin:${last[0].toFixed(1)}px ${last[1].toFixed(1)}px"></circle>`;
 }
 
 function renderBoard() {
@@ -1066,6 +1160,8 @@ function renderBoard() {
   const items = dayItems(day).filter((x) => !x.skipped);
   const done = items.filter((x) => x.done).length;
   $('#hit-count').innerHTML = `${done}<span>/${items.length}</span>`;
+  // One block per thing on today's board, lighting up as they land.
+  $('#board-blocks').innerHTML = items.map((x) => `<i class="${x.done ? 'on' : ''}"></i>`).join('');
   const sec = ui.section.board;
   let html = '';
   const all = [...day.meals.map((m) => ({ ...m, kind: 'meal' })), ...day.tasks.map((t) => ({ ...t, kind: 'task' }))];
@@ -1159,7 +1255,10 @@ function renderTalk() {
       const buckets = {};
       for (const n of notes) (buckets[n.bucket || 'Random'] = buckets[n.bucket || 'Random'] || []).push(n);
       for (const b of Object.keys(buckets).sort()) {
-        html += `<div class="lbl grp-lbl">${esc(b)} · ${buckets[b].length}</div><div class="card list">${buckets[b].map((n) => `<div class="row"><div class="txt"><div class="t" style="white-space:normal">${esc(n.text)}</div><div class="s">${n.date === ymd() ? 'Today' : niceDate(n.date)} · ${t12s(n.at)}</div></div><button class="pill" data-act="drop-note" data-id="${n.id}" style="color:#b8321f">x</button></div>`).join('')}</div>`;
+        html += `<div class="lbl grp-lbl">${esc(b)} · ${buckets[b].length}</div><div class="card list">${buckets[b].map((n) => {
+          const more = (n.text || '').length > (n.title || '').length + 4;
+          return `<div class="row"><div class="txt" data-act="open-note" data-id="${n.id}" style="cursor:pointer"><div class="t">${esc(n.title || autoTitle(n.text))}</div><div class="s">${n.date === ymd() ? 'Today' : niceDate(n.date)} · ${t12s(n.at)}${more ? ' · tap to read' : ''}</div></div>${more ? `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6d6a63" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><path d="M9 6l6 6-6 6"></path></svg>` : ''}</div>`;
+        }).join('')}</div>`;
       }
     }
   } else if (sec === 'wrap') {
@@ -1172,7 +1271,8 @@ function renderTalk() {
     const dates = Object.keys(S.days).filter((d) => d < ymd()).sort().reverse().slice(0, 30);
     html += dates.length ? dates.map((d) => dayCard(d, S.days[d])).join('') : `<div class="card" style="padding:18px"><div class="t">No days behind you yet.</div><div class="s" style="margin-top:4px">Tomorrow this fills in.</div></div>`;
   }
-  html += `<div class="s" style="text-align:center;padding:8px 0 0;color:#a8a49c">Daily Board ${APP_VERSION} · plan v${S.planVersion} · sync ${sync.status}</div>`;
+  // The version line belongs at the far end, not between the thread and the box.
+  if (sec === 'backlog') html += `<div class="s" style="text-align:center;padding:8px 0 0;color:#a8a49c">Daily Board ${APP_VERSION} · plan v${S.planVersion} · sync ${sync.status}</div>`;
   $('#talk-body').innerHTML = html;
   if (sec === 'chat') { const th = $('#talk-body .thread'); if (th) th.scrollTop = th.scrollHeight; }
 }
@@ -1249,19 +1349,20 @@ document.addEventListener('click', (e) => {
     const r = (S.reminders || []).find((x) => x.id === b.dataset.id);
     if (!r) return;
     snapshot(`Reminder: ${r.text}`);
-    b.classList.add('going');
+    b.closest('.rem')?.classList.add('going');
     buzz([12]);
     setTimeout(() => { r.done = true; r.doneAt = nowHM(); save(); toast({ t: 'Knocked off', s: r.text, cls: 'blue', undo: true, ms: 4000 }); }, 200);
   }
   else if (act === 'rem-add') openReminder();
-  else if (act === 'drop-note') { snapshot('Removed note'); S.notes = (S.notes || []).filter((n) => n.id !== b.dataset.id); save(); }
+  else if (act === 'rem-edit') openReminder(b.dataset.id);
+  else if (act === 'open-note') openNote(b.dataset.id);
+  else if (act === 'add-meal') openAddMeal();
   else if (act === 'score-sheet') openScore();
   else if (act === 'streak-sheet') openStreak();
   else if (act === 'steps-sheet') { ui.section.body = 'trends'; goPage('body'); }
   else if (act === 'weather') openWeather();
   else if (act === 'review') runReview();
   else if (act === 'open-review') openReview();
-  else if (act === 'save-tape') { S.tape.waist = Number($('#tape-waist').value) || null; S.tape.neck = Number($('#tape-neck').value) || null; S.settings.heightIn = Number($('#tape-height').value) || S.settings.heightIn; S.tape.updated = ymd(); save(); toast({ t: 'Tape saved', s: tapeEstimate() != null ? `About ${tapeEstimate()}% by the Navy formula` : 'Need waist, neck and height' }); }
   else if (act === 'wrap-talk') startListening('wrap');
   else if (act === 'add-task') openAddTask();
   else if (act === 'edit-plan') openPlanEditor();
@@ -1336,7 +1437,7 @@ function stateForBrain() {
     weights_recent: ws.slice(-6), streak: streak(), score: dayScore(today()),
     steps_today: S.steps.date === t ? S.steps.today : null,
     resting_hr: lastOf(fit.rhr), energy_burned_avg: lastOf(fit.energy), steps_weekly_avg: lastOf(fit.steps),
-    tape: S.tape, body_fat_photo: lastOf(S.photos) ? lastOf(S.photos).est : null,
+    body_fat_photo: lastOf(S.photos) ? lastOf(S.photos).est : null,
     library: S.library.map((f) => f.name),
     reminders_open: (S.reminders || []).filter((r) => !r.done).map((r) => ({ id: r.id, text: r.text, since: r.date })),
     note_buckets: [...new Set((S.notes || []).map((n) => n.bucket))],
@@ -1433,7 +1534,8 @@ function applyOp(op) {
     }
     case 'note': {
       S.notes = S.notes || [];
-      S.notes.push({ id: uid('n'), text: op.text, bucket: (op.bucket || 'Random').trim().slice(0, 20), date: t, at: nowHM() });
+      const text = String(op.text || '').trim();
+      S.notes.push({ id: uid('n'), title: (op.title || autoTitle(text)).trim().slice(0, 70), text, bucket: (op.bucket || 'Random').trim().slice(0, 20), date: t, at: nowHM() });
       if (S.notes.length > 500) S.notes = S.notes.slice(-500);
       return `Noted under ${op.bucket || 'Random'}`;
     }
@@ -1560,12 +1662,119 @@ function openWeigh() {
   $('#w-go').addEventListener('click', () => { const lb = Number($('#w-lb').value); const d = $('#w-date').value || ymd(); if (!lb) return; snapshot('Weigh-in'); S.weights = S.weights.filter((w) => w.date !== d); S.weights.push({ date: d, lb }); ensureDay(d).weight = lb; save(); closeSheet(); toast({ t: `${lb} lb logged`, s: niceDate(d), cls: 'blue', undo: true }); });
   setTimeout(() => $('#w-lb').focus(), 300);
 }
-function openReminder() {
-  openSheet('Reminder', 'What do you need to do?', `<div class="field"><input id="rm-text" placeholder="Grab eggs and coffee on the walk"></div><button class="btn blue wide" id="rm-go">Add</button><div class="s" style="padding:0 6px">It sits on the strip above the buttons until you tap it off. Saying it works too: "remind me to grab eggs".</div>`);
-  const add = () => { const t = $('#rm-text').value.trim(); if (!t) return; snapshot('Add reminder'); applyOp({ op: 'add_reminder', text: t }); save(); closeSheet(); toast({ t: 'On the strip', s: t, cls: 'blue', undo: true }); };
-  $('#rm-go').addEventListener('click', add);
-  $('#rm-text').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); add(); } });
-  setTimeout(() => $('#rm-text').focus(), 300);
+function openReminder(id) {
+  const r = id ? (S.reminders || []).find((x) => x.id === id) : null;
+  openSheet(r ? 'Reminder' : 'New reminder', r ? 'Change it' : 'What do you need to do?',
+    `<div class="field"><textarea id="rm-text" style="min-height:90px" placeholder="Grab eggs and coffee on the walk">${r ? esc(r.text) : ''}</textarea></div>
+     <button class="btn blue wide" id="rm-go">${r ? 'Save' : 'Add'}</button>
+     ${r ? `<div style="display:flex;gap:10px"><button class="btn ghost" style="flex:1" id="rm-done">Knock it off</button><button class="btn ghost" style="flex:1;color:#b8321f" id="rm-drop">Delete</button></div>` : ''}
+     <div class="s" style="padding:0 6px">It sits on the strip above the buttons until you tap the circle. Saying it works too: "remind me to grab eggs".</div>`);
+  const go = () => {
+    const t = $('#rm-text').value.trim();
+    if (!t) return;
+    snapshot(r ? 'Edit reminder' : 'Add reminder');
+    if (r) r.text = t; else applyOp({ op: 'add_reminder', text: t });
+    save(); closeSheet();
+    toast({ t: r ? 'Saved' : 'On the strip', s: t, cls: 'blue', undo: true });
+  };
+  $('#rm-go').addEventListener('click', go);
+  $('#rm-text').addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); go(); } });
+  $('#rm-done')?.addEventListener('click', () => { snapshot('Reminder done'); r.done = true; r.doneAt = nowHM(); save(); closeSheet(); toast({ t: 'Knocked off', s: r.text, cls: 'blue', undo: true }); });
+  $('#rm-drop')?.addEventListener('click', () => { snapshot('Removed reminder'); S.reminders = S.reminders.filter((x) => x.id !== r.id); save(); closeSheet(); toast({ t: 'Deleted', undo: true }); });
+  if (!r) setTimeout(() => $('#rm-text').focus(), 300);
+}
+
+function openNote(id) {
+  const n = (S.notes || []).find((x) => x.id === id);
+  if (!n) return;
+  openSheet(`${n.bucket} · ${n.date === ymd() ? 'Today' : niceDate(n.date)} ${t12s(n.at)}`, n.title || autoTitle(n.text),
+    `<div class="card" style="padding:16px"><div class="q" style="font-size:15px;line-height:1.5;color:#1d1d1f;white-space:pre-wrap">${esc(n.text)}</div></div>
+     <button class="fold" id="note-fold"><span class="lbl">Edit this note</span><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6d6a63" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"></path></svg></button>
+     <div class="list" id="note-edit" style="display:none;flex-direction:column;gap:10px">
+       <div class="field"><div class="lbl">Title</div><input id="n-title" value="${esc(n.title || '')}"></div>
+       <div class="field"><div class="lbl">Heading</div><input id="n-bucket" value="${esc(n.bucket || 'Random')}" list="bucket-list"></div>
+       <datalist id="bucket-list">${[...new Set((S.notes || []).map((x) => x.bucket))].map((b) => `<option value="${esc(b)}"></option>`).join('')}</datalist>
+       <div class="field"><div class="lbl">The note</div><textarea id="n-text" style="min-height:140px">${esc(n.text)}</textarea></div>
+       <button class="btn blue wide" id="n-save">Save</button>
+       <button class="btn ghost wide" id="n-drop" style="color:#b8321f">Delete</button>
+     </div>`);
+  $('#note-fold').addEventListener('click', (e) => { e.currentTarget.classList.toggle('open'); const el = $('#note-edit'); el.style.display = el.style.display === 'none' ? 'flex' : 'none'; });
+  $('#n-save').addEventListener('click', () => {
+    snapshot('Edited note');
+    n.text = $('#n-text').value.trim() || n.text;
+    n.title = $('#n-title').value.trim() || autoTitle(n.text);
+    n.bucket = ($('#n-bucket').value.trim() || 'Random').slice(0, 20);
+    save(); closeSheet(); toast({ t: 'Saved', s: n.title, cls: 'blue', undo: true });
+  });
+  $('#n-drop').addEventListener('click', () => { snapshot('Removed note'); S.notes = S.notes.filter((x) => x.id !== n.id); save(); closeSheet(); toast({ t: 'Deleted', s: n.title, undo: true }); });
+}
+
+/*
+ * Add a meal: pick one you already saved, or type a new one. Either way you
+ * choose the slot and the time, and decide whether it is a one-off for today
+ * or something the plan should start with every day.
+ */
+const addMeal = { mode: 'saved', pick: null, slot: null, time: null, toPlan: false };
+function openAddMeal() {
+  addMeal.mode = S.library.length ? 'saved' : 'new';
+  addMeal.pick = null;
+  addMeal.slot = nextSlot();
+  addMeal.time = nowHM();
+  addMeal.toPlan = false;
+  renderAddMeal();
+}
+function renderAddMeal() {
+  const slots = [...new Set(S.plan.map((m) => m.slot)), 'Extra'];
+  const p = addMeal.pick;
+  let body = `<div class="card seg"><button class="${addMeal.mode === 'saved' ? 'on' : ''}" data-am="mode-saved">Your meals</button><button class="${addMeal.mode === 'new' ? 'on' : ''}" data-am="mode-new">Type it in</button></div>`;
+  if (addMeal.mode === 'saved') {
+    body += S.library.length
+      ? `<div class="card list">${S.library.map((f) => `<div class="row${p && p.id === f.id ? ' done' : ''}" data-am="pick" data-id="${f.id}" style="cursor:pointer"><div class="chk${p && p.id === f.id ? ' done' : ''}">${ICON_CHECK}</div><div class="txt"><div class="t">${esc(f.name)}</div><div class="s">${f.cal} cal · ${f.protein}g P · ${f.carbs}g C · ${f.fat}g F</div></div></div>`).join('')}</div>`
+      : `<div class="card" style="padding:18px"><div class="t">No saved meals yet.</div><div class="s" style="margin-top:4px">Type one in, or snap a photo on the Plan tab and flip on Save as a meal.</div></div>`;
+  } else {
+    body += `<div class="card" style="padding:14px 16px;display:flex;flex-direction:column;gap:10px">
+      <div class="field"><div class="lbl">Name</div><input id="am-name" value="${p && p.typed ? esc(p.name) : ''}" placeholder="Greek yogurt and berries"></div>
+      <div style="display:flex;gap:10px"><div class="field" style="flex:1"><div class="lbl">Cal</div><input id="am-cal" type="number" inputmode="numeric" value="${p && p.typed ? p.cal : ''}"></div><div class="field" style="flex:1"><div class="lbl">Protein</div><input id="am-p" type="number" inputmode="numeric" value="${p && p.typed ? p.protein : ''}"></div><div class="field" style="flex:1"><div class="lbl">Carbs</div><input id="am-c" type="number" inputmode="numeric" value="${p && p.typed ? p.carbs : ''}"></div><div class="field" style="flex:1"><div class="lbl">Fat</div><input id="am-f" type="number" inputmode="numeric" value="${p && p.typed ? p.fat : ''}"></div></div>
+      <div class="field"><div class="lbl">What is in it (optional)</div><textarea id="am-parts" style="min-height:70px">${p && p.typed ? esc(p.parts || '') : ''}</textarea></div>
+    </div>`;
+  }
+  body += `<div class="lbl grp-lbl">Slot</div><div class="chips">${slots.map((s) => `<button class="pill" data-am="slot" data-slot="${esc(s)}" style="${addMeal.slot === s ? 'background:#1d1d1f;color:#fbfaf7;box-shadow:0 4px 0 #000' : ''}">${esc(s)}</button>`).join('')}</div>`;
+  body += `<div class="card" style="padding:14px 16px;display:flex;align-items:center;gap:12px"><div class="txt" style="flex-grow:1"><div class="t">Time</div><div class="s">When it lands on the board</div></div><input id="am-time" type="time" value="${addMeal.time}" style="width:130px;height:44px;border-radius:14px;border:1.5px solid var(--edge);background:var(--card);padding:0 12px;font-weight:700;font-size:15px;box-shadow:0 2px 0 var(--edge) inset;outline:none"></div>`;
+  body += `<div class="card switch"><div class="txt"><div class="t">Add to the plan too</div><div class="s">Off means today only. On means every day starts with it.</div></div><button class="tog${addMeal.toPlan ? ' on' : ''}" data-am="toplan"><i></i></button></div>`;
+  body += `<button class="btn blue wide" style="height:56px;font-size:17px" data-am="go">Add it</button>`;
+  openSheet('Fuel', 'Add a meal', body);
+}
+$('#sh-body').addEventListener('click', (e) => {
+  const b = e.target.closest('[data-am]');
+  if (!b) return;
+  const a = b.dataset.am;
+  if (a === 'mode-saved' || a === 'mode-new') { addMeal.mode = a === 'mode-saved' ? 'saved' : 'new'; if (addMeal.mode === 'new') stashTyped(); addMeal.pick = addMeal.mode === 'new' ? addMeal.pick : null; renderAddMeal(); }
+  else if (a === 'pick') { const f = S.library.find((x) => x.id === b.dataset.id); addMeal.pick = f ? { ...f } : null; renderAddMeal(); }
+  else if (a === 'slot') { stashTyped(); addMeal.slot = b.dataset.slot; renderAddMeal(); }
+  else if (a === 'toplan') { stashTyped(); addMeal.toPlan = !addMeal.toPlan; b.classList.toggle('on', addMeal.toPlan); }
+  else if (a === 'go') commitAddMeal();
+});
+/* Keep what he typed when the sheet redraws for a slot or a toggle. */
+function stashTyped() {
+  if (addMeal.mode !== 'new' || !$('#am-name')) return;
+  addMeal.pick = { typed: true, name: $('#am-name').value.trim(), cal: Number($('#am-cal').value) || 0, protein: Number($('#am-p').value) || 0, carbs: Number($('#am-c').value) || 0, fat: Number($('#am-f').value) || 0, parts: $('#am-parts').value.trim(), micros: null };
+}
+function commitAddMeal() {
+  stashTyped();
+  const time = $('#am-time')?.value || addMeal.time;
+  const p = addMeal.pick;
+  if (!p || !p.name) { toast({ t: addMeal.mode === 'saved' ? 'Pick one first' : 'It needs a name', cls: 'red', ms: 2500 }); return; }
+  snapshot(`Added ${p.name}`);
+  const item = { id: uid(`${ymd()}-m`), slot: addMeal.slot || 'Extra', name: p.name, time, cal: Math.round(p.cal || 0), protein: Math.round(p.protein || 0), carbs: Math.round(p.carbs || 0), fat: Math.round(p.fat || 0), parts: p.parts || '', micros: p.micros || null, done: false, doneAt: null, swapped: false, planned: p.name };
+  today().meals.push(item);
+  today().meals.sort((a, b) => minutes(a.time || '23:59') - minutes(b.time || '23:59'));
+  if (addMeal.toPlan) {
+    S.plan.push({ slot: item.slot, name: item.name, time, cal: item.cal, protein: item.protein, carbs: item.carbs, fat: item.fat, parts: item.parts, micros: item.micros });
+    S.plan.sort((a, b) => minutes(a.time || '23:59') - minutes(b.time || '23:59'));
+    seedLibrary();
+  }
+  save(); closeSheet();
+  toast({ t: `Added ${p.name}`, s: `${item.slot} · ${t12(time)}${addMeal.toPlan ? ' · in the plan too' : ' · today only'}`, cls: 'blue', undo: true });
 }
 function openAddTask() {
   openSheet('Board', 'Add a task', `<div class="field"><div class="lbl">What</div><input id="at-name" placeholder="Cut the Bears intro"></div><div class="field"><div class="lbl">Time (optional)</div><input id="at-time" type="time"></div><div class="field"><div class="lbl">Day</div><input id="at-date" type="date" value="${ymd()}"></div><button class="btn blue wide" id="at-go">Add</button>`);
@@ -1845,7 +2054,7 @@ $('#file-phys').addEventListener('change', async (e) => {
     const thumbs = await Promise.all(files.map((f) => shrink(f, 320, 0.7)));
     const prev = [...S.photos].sort((a, b) => a.date.localeCompare(b.date)).pop();
     const last = [...S.weights].sort((a, b) => a.date.localeCompare(b.date)).pop();
-    const r = await brain({ mode: 'physique', images: imgs, previous: prev ? { date: prev.date, mid: prev.est.mid } : null, tape: tapeEstimate() != null ? { estimate: tapeEstimate(), waist: S.tape.waist, neck: S.tape.neck } : null, weight: last ? last.lb : null });
+    const r = await brain({ mode: 'physique', images: imgs, previous: prev ? { date: prev.date, mid: prev.est.mid } : null, weight: last ? last.lb : null });
     snapshot('Physique photos');
     S.photos = S.photos.filter((p) => p.date !== ymd());
     S.photos.push({ date: ymd(), est: r.physique, thumbs });
