@@ -1,6 +1,6 @@
 // Daily Board service worker: keeps the shell openable offline. Network first
 // for the page itself (so a deploy shows up on the next open), cache fallback.
-const CACHE = 'daily-board-v1';
+const CACHE = 'daily-board-v3';
 const SHELL = ['/day/', '/day/index.html', '/day/manifest.webmanifest', '/day/icon-192.png', '/day/icon-512.png'];
 
 self.addEventListener('install', (e) => {
@@ -17,7 +17,7 @@ self.addEventListener('fetch', (e) => {
   const url = new URL(e.request.url);
   if (e.request.method !== 'GET' || url.origin !== location.origin || !url.pathname.startsWith('/day/')) return;
   e.respondWith(
-    fetch(e.request)
+    fetch(e.request, { cache: 'no-store' })
       .then((res) => {
         const copy = res.clone();
         caches.open(CACHE).then((c) => c.put(e.request, copy));

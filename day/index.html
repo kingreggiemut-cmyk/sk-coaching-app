@@ -358,6 +358,7 @@ const SB_URL = 'https://ksgxrxqvnfpfhidxsxcs.supabase.co';
 const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzZ3hyeHF2bmZwZmhpZHhzeGNzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE0MzkxMTgsImV4cCI6MjA5NzAxNTExOH0.pUD6sbkjhhTlgl5x4KHFJsThoHVlNkNBlSFES_8HHvM';
 const BRAIN = '/.netlify/functions/day-brain';
 const STORE_KEY = 'daily-board';
+const APP_VERSION = '0.3';
 const ROW_ID = 'reggie';
 
 const $ = (s, r = document) => r.querySelector(s);
@@ -427,7 +428,19 @@ let sync = { on: false, status: 'off', timer: null };
 function load() {
   try {
     const raw = localStorage.getItem(STORE_KEY);
-    if (raw) S = Object.assign(DEFAULT(), JSON.parse(raw));
+    if (raw) {
+      const saved = JSON.parse(raw);
+      const base = DEFAULT();
+      S = Object.assign(base, saved);
+      S.settings = Object.assign(base.settings, saved.settings || {});
+      S.settings.place = Object.assign(base.settings.place, (saved.settings || {}).place || {});
+      S.tape = Object.assign(base.tape, saved.tape || {});
+      S.steps = Object.assign(base.steps, saved.steps || {});
+      // The saved copy decides its own plan version. Without this line the
+      // fresh default (already current) masked an old saved plan and the
+      // migration never ran.
+      S.planVersion = saved.planVersion || 1;
+    }
   } catch { S = DEFAULT(); }
   migratePlan();
 }
@@ -803,6 +816,7 @@ function renderWrap() {
     const dates = Object.keys(S.days).filter((d) => d < ymd()).sort().reverse().slice(0, 30);
     html += dates.length ? dates.map((d) => dayCard(d, S.days[d])).join('') : `<div class="card" style="padding:18px"><div class="t">No days behind you yet.</div><div class="s" style="margin-top:4px">Tomorrow this fills in.</div></div>`;
   }
+  html += `<div class="s" style="text-align:center;padding:8px 0 0;color:#a8a49c">Daily Board ${APP_VERSION} · plan v${S.planVersion} · sync ${sync.status}</div>`;
   $('#wrap-body').innerHTML = html;
 }
 function dayCard(date, day) {
@@ -1266,7 +1280,7 @@ async function pullSync() {
     const rows = await r.json();
     if (!rows.length) { sync.status = 'on'; pushSync(); return; }
     const remote = rows[0].data;
-    if (remote && (remote.updatedAt || 0) > (S.updatedAt || 0)) { S = Object.assign(DEFAULT(), remote); localStorage.setItem(STORE_KEY, JSON.stringify(S)); render(); }
+    if (remote && (remote.updatedAt || 0) > (S.updatedAt || 0)) { S = Object.assign(DEFAULT(), remote); S.planVersion = remote.planVersion || 1; migratePlan(); localStorage.setItem(STORE_KEY, JSON.stringify(S)); render(); }
     sync.status = 'on';
   } catch { sync.status = 'offline'; }
 }
