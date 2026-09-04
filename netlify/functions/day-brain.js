@@ -4,9 +4,14 @@
 //
 // Modes (body.mode):
 //   command   spoken words about the day -> a list of operations the app applies
+//   photo     photos from the chat (usually a label) -> the same operations
 //   food      a photo and/or words about a meal -> one food line with macros + micros
 //   physique  front/side photos -> an estimated body-fat range
 //   wrap      the spoken end-of-day wrap -> a short tidy version plus a title
+//   review    one day -> a graded write-up
+//   week      seven days -> a graded write-up
+//   advise    what fits in what is left of today
+//   fitbit    a Fitbit screenshot -> steps, weight, resting HR, energy
 //
 // Every mode answers with JSON only. The app never trusts the shape blindly:
 // it checks each op before applying it, and an unparsable answer is reported
