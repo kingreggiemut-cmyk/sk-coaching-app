@@ -132,11 +132,17 @@
   .mac .barr { flex-grow: 1; height: 10px; border-radius: 5px; }
   .mac .barr i { background: var(--ink); }
   .mac.p .barr i { background: var(--blue); }
-  .micro-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 20px; padding: 4px 16px 10px; }
-  .micro { display: flex; justify-content: space-between; align-items: center; min-height: 32px; }
-  .micro .n { font-weight: 600; font-size: 13px; color: var(--mute); }
-  .micro .v { font-weight: 700; font-size: 13px; }
-  .micro .v span { color: var(--mute); font-weight: 600; }
+  .micro-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 20px; padding: 6px 16px 12px; }
+  .micro { min-width: 0; }
+  .micro .n { font-weight: 600; font-size: 12.5px; color: var(--mute); }
+  .micro .v { font-weight: 800; font-size: 13.5px; display: flex; justify-content: space-between; align-items: baseline; gap: 6px; }
+  .micro .v span { color: var(--mute); font-weight: 600; font-size: 12px; }
+  /* A bar per micro: a ceiling gone over reads red, a target reached reads blue. */
+  .micro .mbar { height: 5px; margin-top: 5px; border-radius: 99px; background: var(--line); overflow: hidden; }
+  .micro .mbar i { display: block; height: 100%; border-radius: 99px; background: #9a968d; transform-origin: left; transform: scaleX(0); transition: transform .5s cubic-bezier(.2,.9,.3,1); }
+  .micro.good .mbar i { background: var(--blue); }
+  .micro.bad .mbar i { background: #b8321f; }
+  .micro.bad .v { color: #b8321f; }
   .chips { display: flex; gap: 8px; flex-wrap: wrap; padding: 2px 4px; }
 
   /* body page */
@@ -527,7 +533,7 @@ const SB_URL = 'https://ksgxrxqvnfpfhidxsxcs.supabase.co';
 const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzZ3hyeHF2bmZwZmhpZHhzeGNzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE0MzkxMTgsImV4cCI6MjA5NzAxNTExOH0.pUD6sbkjhhTlgl5x4KHFJsThoHVlNkNBlSFES_8HHvM';
 const BRAIN = '/.netlify/functions/day-brain';
 const STORE_KEY = 'daily-board';
-const APP_VERSION = '1.7';
+const APP_VERSION = '1.8';
 const ROW_ID = 'reggie';
 /*
  * A copy served from localhost or opened off the disk is a test copy, and a test
@@ -562,7 +568,7 @@ function uid(p) { return `${p}${Date.now().toString(36)}${Math.floor(Math.random
  * corrected once he sends the labels. Bump PLAN_VERSION whenever these
  * defaults change so a phone that already has the app picks the new ones up.
  */
-const PLAN_VERSION = 8;
+const PLAN_VERSION = 9;
 const PROFILE = { heightIn: 73, age: 34, sex: 'male', ethnicity: 'Caucasian' };
 const GOAL_TEXT = 'Get below 180 lb, then a very slight lean bulk for the winter.';
 /*
@@ -574,22 +580,22 @@ const GOAL_TEXT = 'Get below 180 lb, then a very slight lean bulk for the winter
 const COFFEE = {
   slot: 'Coffee', name: 'Stok cold brew + protein', cal: 74, protein: 10, carbs: 5, fat: 1,
   parts: '350 ml Stok cold brew, 15 g Revolution High Whey, 450 ml water',
-  micros: { sodium_mg: 64, potassium_mg: 380, calcium_mg: 99, iron_mg: 0.1, magnesium_mg: 25 }
+  micros: { sodium_mg: 64, potassium_mg: 380, calcium_mg: 99, iron_mg: 0.1, magnesium_mg: 25, saturated_fat_g: 0.3, sugars_g: 0.5, cholesterol_mg: 15, zinc_mg: 0.4, selenium_mcg: 8, phosphorus_mg: 90, vitamin_b12_mcg: 0.4, folate_mcg: 9, vitamin_b6_mg: 0.05 }
 };
 const HYDRATION = {
   slot: 'Hydration', name: 'MiO Hydrate + 1 L water', cal: 10, protein: 1, carbs: 1, fat: 0,
   parts: 'One MiO Hydrate Berry Burst sachet (3.8 g), about a litre of water',
-  micros: { sodium_mg: 30, potassium_mg: 400, magnesium_mg: 10 }
+  micros: { sodium_mg: 30, potassium_mg: 400, magnesium_mg: 10, vitamin_b12_mcg: 0.6, vitamin_b6_mg: 0.4 }
 };
 const BERRY = {
   slot: 'Creami', name: 'Berry creami', cal: 105, protein: 2, carbs: 27, fat: 0,
   parts: '200 g Great Value 4 Berry Blend, Minute Maid Zero Sugar Mango Passion',
-  micros: { fiber_g: 6, sodium_mg: 20, potassium_mg: 336, calcium_mg: 29, iron_mg: 0.7, vitamin_c_mg: 90, magnesium_mg: 30 }
+  micros: { fiber_g: 6, sodium_mg: 20, potassium_mg: 336, calcium_mg: 29, iron_mg: 0.7, vitamin_c_mg: 90, magnesium_mg: 30, sugars_g: 18, zinc_mg: 0.4, selenium_mcg: 0.3, phosphorus_mg: 40, vitamin_a_mcg: 5, folate_mcg: 40, vitamin_b6_mg: 0.1 }
 };
 const BAR = {
   slot: 'Snack', name: 'Nature Valley protein bar', cal: 180, protein: 9, carbs: 14, fat: 11,
   parts: 'One bar (37 g), peanut butter dark chocolate',
-  micros: { fiber_g: 5, sodium_mg: 160, potassium_mg: 100, calcium_mg: 20, iron_mg: 1.25, magnesium_mg: 45 }
+  micros: { fiber_g: 5, sodium_mg: 160, potassium_mg: 100, calcium_mg: 20, iron_mg: 1.25, magnesium_mg: 45, saturated_fat_g: 3.5, sugars_g: 6.0, zinc_mg: 1.2, selenium_mcg: 5, phosphorus_mg: 120, folate_mcg: 15, vitamin_b6_mg: 0.05 }
 };
 const PLAN_V7 = () => [
   { ...COFFEE, time: '08:30' },
@@ -597,7 +603,7 @@ const PLAN_V7 = () => [
   { ...HYDRATION, time: '12:30' },
   { slot: 'Meal 1', name: 'Savory crepe + ground beef', time: '15:00', cal: 565, protein: 72, carbs: 5, fat: 29,
     parts: 'Crepe: 1 large egg (55 g), 1 tsp cottage cheese, 200 g egg whites, blended and cooked. 225 g extra lean ground beef. 1 tsp Inglehoffer creamy dill mustard. 14 Bicks hot and spicy banana pepper rings',
-    micros: { fiber_g: 0, sodium_mg: 1060, potassium_mg: 1045, calcium_mg: 100, iron_mg: 6.3, vitamin_d_mcg: 1, magnesium_mg: 80 } },
+    micros: { fiber_g: 0, sodium_mg: 1060, potassium_mg: 1045, calcium_mg: 100, iron_mg: 6.3, vitamin_d_mcg: 1, magnesium_mg: 80, saturated_fat_g: 10.5, sugars_g: 2.0, cholesterol_mg: 327, zinc_mg: 11.46, selenium_mcg: 90.8, phosphorus_mg: 578, vitamin_b12_mcg: 5.47, vitamin_a_mcg: 92, folate_mcg: 53, vitamin_b6_mg: 0.88 } },
   { ...BERRY, time: '15:15' },
   { ...HYDRATION, time: '17:00' },
   { slot: 'Drink', name: 'Crush Zero Sugar', time: '18:00', cal: 0, protein: 0, carbs: 0, fat: 0,
@@ -605,13 +611,13 @@ const PLAN_V7 = () => [
     micros: { sodium_mg: 75, potassium_mg: 50 } },
   { slot: 'Meal 2', name: 'Chicken bowl + tomato soup', time: '21:00', cal: 600, protein: 51, carbs: 85, fat: 7,
     parts: 'Pan: 100 g cooked chicken, 1 small yellow onion, 3/4 sweet pepper, 145 g Western Family riced cauliflower blend, 170 g diced hashbrown potatoes, 10 g hot and spicy pepper rings, 10 g Mezzetta pickled red onion, 5 g Manuka honey, 10 g sriracha. Soup: 350 g Pacific tomato basil blended with 70 g cottage cheese, cooked',
-    micros: { fiber_g: 11, sodium_mg: 1638, potassium_mg: 2180, calcium_mg: 224, iron_mg: 4.4, vitamin_c_mg: 200, magnesium_mg: 155 } },
+    micros: { fiber_g: 11, sodium_mg: 1638, potassium_mg: 2180, calcium_mg: 224, iron_mg: 4.4, vitamin_c_mg: 200, magnesium_mg: 155, saturated_fat_g: 2.0, sugars_g: 33.3, cholesterol_mg: 89, zinc_mg: 2.98, selenium_mcg: 35.8, phosphorus_mg: 580, vitamin_b12_mcg: 0.72, vitamin_a_mcg: 329, folate_mcg: 132, vitamin_b6_mg: 1.67 } },
   { ...BERRY, time: '21:15' },
   { ...BAR, time: '23:00' },
   { ...BAR, time: '23:00' },
   { slot: 'Creami', name: 'Protein creami', time: '23:00', cal: 113, protein: 15, carbs: 5, fat: 4,
     parts: '200 ml Silk unsweetened almond, 20 g Revolution High Whey, 5 g Jell-O mix, topped up with water',
-    micros: { sodium_mg: 265, potassium_mg: 157, calcium_mg: 372, iron_mg: 0.3, vitamin_d_mcg: 4, magnesium_mg: 45 } }
+    micros: { sodium_mg: 265, potassium_mg: 157, calcium_mg: 372, iron_mg: 0.3, vitamin_d_mcg: 4, magnesium_mg: 45, saturated_fat_g: 0.4, sugars_g: 0.7, cholesterol_mg: 20, zinc_mg: 0.7, selenium_mcg: 10.4, phosphorus_mg: 128, vitamin_b12_mcg: 1.1, vitamin_a_mcg: 150, folate_mcg: 8, vitamin_b6_mg: 0.06 } }
 ];
 const WALKS_LONG = [{ name: 'Walk', time: '14:00', end: '15:00' }, { name: 'Walk', time: '20:00', end: '21:00' }, { name: 'Walk', time: '22:00', end: '23:00' }];
 const WALKS_GYM = [{ name: 'Walk', time: '14:30', end: '15:00' }, { name: 'Walk', time: '20:00', end: '21:00' }, { name: 'Walk', time: '22:00', end: '23:00' }];
@@ -791,6 +797,24 @@ function migratePlan() {
     // Saved meals get the label numbers too, matched by name.
     S.library = (S.library || []).map((f) => { const p = S.plan.find((m) => m.name === f.name); return p ? { ...f, cal: p.cal, protein: p.protein, carbs: p.carbs, fat: p.fat, parts: p.parts, micros: p.micros } : f; });
     seedLibrary();
+  }
+  if (from < 9) {
+    /*
+     * Version 9 only deepens the micronutrients: ten more per item, worked out
+     * from his actual ingredients. It merges rather than replaces, so a row he
+     * has edited keeps his numbers and simply gains the keys it was missing,
+     * and a meal he added himself is left alone.
+     */
+    const stock = PLAN_CURRENT();
+    const fill = (item) => {
+      const src = stock.find((q) => q.slot === item.slot && q.time === item.time && q.name === item.name);
+      if (!src || !src.micros) return;
+      item.micros = { ...(item.micros || {}) };
+      for (const [k, v] of Object.entries(src.micros)) if (item.micros[k] == null) item.micros[k] = v;
+    };
+    S.plan.forEach(fill);
+    (S.library || []).forEach(fill);
+    for (const d of Object.keys(S.days)) if (d >= ymd()) (S.days[d].meals || []).forEach(fill);
   }
   if (from >= 3) {
     S.planVersion = PLAN_VERSION;
@@ -1267,7 +1291,7 @@ function renderFuel() {
   } else if (sec === 'macros') {
     const bar = (n, v, g, cls) => `<div class="mac ${cls}"><div class="n">${n}</div><div class="barr"><i style="transform:scaleX(${Math.min(1, v / g).toFixed(3)})"></i></div><div class="v">${v} / ${g}g</div></div>`;
     html += `<div class="card" style="padding:14px 16px;display:flex;flex-direction:column;gap:8px"><div style="display:flex;justify-content:space-between"><div class="lbl">Macros</div><div class="lbl" style="color:#2b5cff">Protein first</div></div>${bar('Protein', m.protein, S.settings.proteinGoal, 'p')}${bar('Carbs', m.carbs, S.settings.carbGoal, '')}${bar('Fat', m.fat, S.settings.fatGoal, '')}<div class="s">${m.cal} of ${S.settings.calGoal} cal · from ${day.meals.filter((x) => x.done).length} meals${day.extras.length ? ` + ${day.extras.length} extra` : ''}</div></div>`;
-    html += `<div class="card"><div style="display:flex;justify-content:space-between;padding:14px 16px 4px"><div class="lbl">Micros</div><div class="lbl">from ${m.counted} eaten</div></div><div class="micro-grid">${MICRO_DEFS.map(([k, n, g, u]) => `<div class="micro"><div class="n">${n}</div><div class="v">${Math.round(m.micros[k] || 0)}<span>/${g}${u}</span></div></div>`).join('')}</div><div class="s" style="padding:0 16px 14px">Estimates from what you have checked off. Tap any meal on the Plan to see or fix its own numbers.</div></div>`;
+    html += `<div class="card"><div style="display:flex;justify-content:space-between;padding:14px 16px 4px"><div class="lbl">Micros</div><div class="lbl">from ${m.counted} eaten</div></div>${microGrid(m.micros)}<div class="s" style="padding:0 16px 14px">Estimates from what you have checked off. Tap any meal on the Plan to see or fix its own numbers.</div></div>`;
   } else {
     html += S.library.length
       ? `<div class="card list">${S.library.map((f) => `<div class="row" data-id="${f.id}"><div class="txt"><div class="t">${esc(f.name)}</div><div class="s">${f.cal} cal · ${f.protein}g P · ${f.carbs}g C · ${f.fat}g F</div>${f.parts ? `<div class="s parts">${esc(f.parts)}</div>` : ''}</div><button class="pill" data-act="eat-saved" data-id="${f.id}">Ate it</button><button class="pill" data-act="drop-saved" data-id="${f.id}" style="color:#b8321f">x</button></div>`).join('')}</div>`
@@ -2543,7 +2567,44 @@ $('#sh-body').addEventListener('click', (e) => {
 });
 
 /* ---------- one item: the breakdown, editable ---------- */
-const MICRO_DEFS = [['fiber_g', 'Fiber', 30, 'g'], ['sodium_mg', 'Sodium', 2300, 'mg'], ['potassium_mg', 'Potassium', 3400, 'mg'], ['iron_mg', 'Iron', 8, 'mg'], ['vitamin_c_mg', 'Vitamin C', 90, 'mg'], ['calcium_mg', 'Calcium', 1000, 'mg'], ['vitamin_d_mcg', 'Vitamin D', 20, 'mcg'], ['magnesium_mg', 'Magnesium', 400, 'mg']];
+/*
+ * Micros. The fourth column is what the number means: 'cap' is a ceiling to
+ * stay under, everything else is a target to reach. They are grouped because
+ * eighteen figures in one grid is a wall, not information.
+ */
+const MICRO_DEFS = [
+  ['fiber_g', 'Fiber', 30, 'g'], ['sugars_g', 'Sugars', 50, 'g', 'cap'],
+  ['saturated_fat_g', 'Sat fat', 20, 'g', 'cap'], ['cholesterol_mg', 'Cholesterol', 300, 'mg', 'cap'],
+  ['sodium_mg', 'Sodium', 2300, 'mg', 'cap'], ['potassium_mg', 'Potassium', 3400, 'mg'],
+  ['calcium_mg', 'Calcium', 1000, 'mg'], ['magnesium_mg', 'Magnesium', 400, 'mg'],
+  ['iron_mg', 'Iron', 8, 'mg'], ['zinc_mg', 'Zinc', 11, 'mg'],
+  ['phosphorus_mg', 'Phosphorus', 700, 'mg'], ['selenium_mcg', 'Selenium', 55, 'mcg'],
+  ['vitamin_c_mg', 'Vitamin C', 90, 'mg'], ['vitamin_a_mcg', 'Vitamin A', 900, 'mcg'],
+  ['vitamin_d_mcg', 'Vitamin D', 20, 'mcg'], ['folate_mcg', 'Folate', 400, 'mcg'],
+  ['vitamin_b6_mg', 'Vitamin B6', 1.3, 'mg'], ['vitamin_b12_mcg', 'Vitamin B12', 2.4, 'mcg']
+];
+const MICRO_GROUPS = [
+  ['In the food', ['fiber_g', 'sugars_g', 'saturated_fat_g', 'cholesterol_mg']],
+  ['Minerals', ['sodium_mg', 'potassium_mg', 'calcium_mg', 'magnesium_mg', 'iron_mg', 'zinc_mg', 'phosphorus_mg', 'selenium_mcg']],
+  ['Vitamins', ['vitamin_c_mg', 'vitamin_a_mcg', 'vitamin_d_mcg', 'folate_mcg', 'vitamin_b6_mg', 'vitamin_b12_mcg']]
+];
+const MICRO_BY_KEY = Object.fromEntries(MICRO_DEFS.map((d) => [d[0], d]));
+const microRound = (v) => (v >= 100 ? Math.round(v) : Math.round(v * 10) / 10);
+/* One cell. A cap that is blown reads red; a target met reads blue. */
+function microCell(def, val, opts = {}) {
+  const [k, name, goal, unit, kind] = def;
+  const v = val || 0;
+  const pct = goal > 0 ? v / goal : 0;
+  const cap = kind === 'cap';
+  const cls = cap ? (pct > 1 ? ' bad' : '') : (pct >= 1 ? ' good' : '');
+  const right = opts.pct ? `${Math.round(pct * 100)}%` : `/${goal.toLocaleString()}${unit}`;
+  return `<div class="micro${cls}"><div class="n">${name}</div><div class="v">${microRound(v).toLocaleString()}<span>${right}</span></div><div class="mbar"><i style="transform:scaleX(${Math.min(1, pct).toFixed(3)})"></i></div></div>`;
+}
+function microGrid(micros, opts = {}) {
+  return MICRO_GROUPS.map(([title, keys]) =>
+    `<div class="lbl grp-lbl" style="padding:12px 16px 0">${title}</div><div class="micro-grid">${keys.map((k) => microCell(MICRO_BY_KEY[k], micros[k], opts)).join('')}</div>`
+  ).join('');
+}
 function openItem(kind, id) {
   const f = findItem(kind, id);
   if (!f) return;
@@ -2553,7 +2614,7 @@ function openItem(kind, id) {
     const planIdx = S.plan.findIndex((p) => p.name === x.planned && p.time === x.time);
     openSheet(`${x.slot} · ${x.time ? t12(x.time) : 'no time'}`, x.name, `
       <div class="card macs"><div><div class="n">Calories</div><div class="v">${x.cal || 0}</div></div><div><div class="n">Protein</div><div class="v" style="color:#2b5cff">${x.protein || 0}g</div></div><div><div class="n">Carbs</div><div class="v">${x.carbs || 0}g</div></div><div><div class="n">Fat</div><div class="v">${x.fat || 0}g</div></div></div>
-      <div class="card"><div style="display:flex;justify-content:space-between;padding:12px 16px 0"><div class="lbl">Micros</div><div class="lbl">${x.micros ? 'estimates' : 'none yet'}</div></div><div class="micro-grid">${MICRO_DEFS.map(([k, n, g, u]) => `<div class="micro"><div class="n">${n}</div><div class="v">${Math.round((mi[k] || 0) * 10) / 10}<span>${u} · ${Math.round((100 * (mi[k] || 0)) / g)}%</span></div></div>`).join('')}</div></div>
+      <div class="card"><div style="display:flex;justify-content:space-between;padding:12px 16px 0"><div class="lbl">Micros</div><div class="lbl">${x.micros ? 'estimates' : 'none yet'}</div></div>${microGrid(mi, { pct: true })}</div>
       ${x.parts ? `<div class="card" style="padding:14px 16px"><div class="lbl">What is in it</div><div class="s" style="margin-top:6px;color:#3a3a3a;line-height:1.4">${esc(x.parts)}</div></div>` : ''}
       <button class="fold" id="edit-fold"><span class="lbl">Edit this one</span><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6d6a63" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"></path></svg></button>
       <div class="list" id="edit-body" style="display:none;flex-direction:column;gap:10px">
