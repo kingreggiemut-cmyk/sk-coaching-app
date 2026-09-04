@@ -166,6 +166,7 @@ async function ask(system, content, maxTokens) {
   const data = await res.json();
   if (!res.ok) throw new Error(`model ${res.status}: ${data?.error?.message || 'unknown'}`);
   const text = (data.content || []).filter((c) => c.type === 'text').map((c) => c.text).join('\n');
+  if (data.stop_reason === 'max_tokens') throw new Error('the answer ran past its length limit, try again');
   return { parsed: parseJson(text), usage: data.usage };
 }
 
@@ -191,7 +192,7 @@ exports.handler = async (event) => {
         `STATE:\n${JSON.stringify(body.state || {})}\n\n` +
         (history ? `HISTORY (oldest first):\n${history}\n\n` : '') +
         `SAID NOW:\n${transcript}`;
-      const { parsed, usage } = await ask(COMMAND_SYSTEM, [{ type: 'text', text: user }], 2000);
+      const { parsed, usage } = await ask(COMMAND_SYSTEM, [{ type: 'text', text: user }], 4000);
       const ops = Array.isArray(parsed.ops) ? parsed.ops : [];
       return json(200, { say: String(parsed.say || ''), ops, usage });
     }
@@ -202,7 +203,7 @@ exports.handler = async (event) => {
         `PROFILE: ${JSON.stringify(body.profile || {})}\n` +
         `GOALS: ${body.goals || ''}\n\n` +
         `DAY:\n${JSON.stringify(body.day || {})}\n\nReturn the JSON.`;
-      const { parsed, usage } = await ask(REVIEW_SYSTEM, [{ type: 'text', text }], 1200);
+      const { parsed, usage } = await ask(REVIEW_SYSTEM, [{ type: 'text', text }], 4000);
       return json(200, { review: parsed, usage });
     }
 
@@ -211,7 +212,7 @@ exports.handler = async (event) => {
       const words = String(body.transcript || '').trim();
       if (!blocks.length && !words) return json(400, { error: 'need a photo or some words' });
       const text = (words ? `HE SAID: ${words}\n` : '') + (blocks.length ? 'Read the photo.' : '') + '\nReturn the JSON.';
-      const { parsed, usage } = await ask(FOOD_SYSTEM, [...blocks, { type: 'text', text }], 700);
+      const { parsed, usage } = await ask(FOOD_SYSTEM, [...blocks, { type: 'text', text }], 2000);
       return json(200, { food: parsed, usage });
     }
 
@@ -223,7 +224,7 @@ exports.handler = async (event) => {
       if (body.tape) extra.push(`TAPE (Navy formula): ${JSON.stringify(body.tape)}`);
       if (body.weight) extra.push(`WEIGHT: ${body.weight} lb`);
       const text = (extra.join('\n') || 'No previous data.') + '\nReturn the JSON.';
-      const { parsed, usage } = await ask(PHYSIQUE_SYSTEM, [...blocks, { type: 'text', text }], 500);
+      const { parsed, usage } = await ask(PHYSIQUE_SYSTEM, [...blocks, { type: 'text', text }], 1500);
       return json(200, { physique: parsed, usage });
     }
 
@@ -231,7 +232,7 @@ exports.handler = async (event) => {
       const blocks = imageBlocks(body.images);
       if (!blocks.length) return json(400, { error: 'need a screenshot' });
       const text = `TODAY IS: ${body.now || ''}\nRead the screenshot and return the JSON.`;
-      const { parsed, usage } = await ask(FITBIT_SYSTEM, [...blocks, { type: 'text', text }], 1200);
+      const { parsed, usage } = await ask(FITBIT_SYSTEM, [...blocks, { type: 'text', text }], 3000);
       return json(200, { fit: parsed, usage });
     }
 
@@ -239,7 +240,7 @@ exports.handler = async (event) => {
       const transcript = String(body.transcript || '').trim();
       if (!transcript) return json(400, { error: 'nothing said' });
       const text = `DATE: ${body.now || ''}\nSCORE: ${body.score ?? ''}\n\nHE SAID:\n${transcript}`;
-      const { parsed, usage } = await ask(WRAP_SYSTEM, [{ type: 'text', text }], 600);
+      const { parsed, usage } = await ask(WRAP_SYSTEM, [{ type: 'text', text }], 1500);
       return json(200, { wrap: parsed, usage });
     }
 
