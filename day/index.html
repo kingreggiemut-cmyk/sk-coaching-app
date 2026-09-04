@@ -298,10 +298,10 @@
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s7-6.5 7-12a7 7 0 0 0-14 0c0 5.5 7 12 7 12z"></path><circle cx="12" cy="10" r="2.5"></circle></svg>
           <span id="place">Sherwood Park</span>
         </button>
-        <div class="chip" id="wx-chip">
+        <button class="chip" id="wx-chip" data-act="weather">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"></path></svg>
           <span id="wx">loading weather</span>
-        </div>
+        </button>
       </div>
       <div class="clock" id="clock-wrap">
         <div class="lbl" id="greet">Good evening</div>
@@ -311,9 +311,10 @@
     <div class="next" id="next"></div>
     <div class="stack" style="margin-top: 12px;">
       <div class="tiles" id="tiles"></div>
+      <div id="upcoming"></div>
       <div id="review-card"></div>
       <div>
-        <button class="fold open" id="fold-board"><span class="lbl">Still on the board <span id="left-count"></span></span><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6d6a63" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"></path></svg></button>
+        <button class="fold" id="fold-board"><span class="lbl">Still on the board <span id="left-count"></span></span><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6d6a63" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"></path></svg></button>
         <div class="card list" id="now-left"></div>
       </div>
     </div>
@@ -379,7 +380,7 @@ const SB_URL = 'https://ksgxrxqvnfpfhidxsxcs.supabase.co';
 const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzZ3hyeHF2bmZwZmhpZHhzeGNzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE0MzkxMTgsImV4cCI6MjA5NzAxNTExOH0.pUD6sbkjhhTlgl5x4KHFJsThoHVlNkNBlSFES_8HHvM';
 const BRAIN = '/.netlify/functions/day-brain';
 const STORE_KEY = 'daily-board';
-const APP_VERSION = '0.6';
+const APP_VERSION = '0.7';
 const ROW_ID = 'reggie';
 
 const $ = (s, r = document) => r.querySelector(s);
@@ -407,13 +408,14 @@ function uid(p) { return `${p}${Date.now().toString(36)}${Math.floor(Math.random
  * corrected once he sends the labels. Bump PLAN_VERSION whenever these
  * defaults change so a phone that already has the app picks the new ones up.
  */
-const PLAN_VERSION = 5;
+const PLAN_VERSION = 6;
 const COFFEE_PARTS = '350 ml Stok cold brew, 15 g Revolution protein powder, 450 ml water';
 const COFFEE = { slot: 'Coffee', name: 'Stok cold brew + protein', cal: 60, protein: 12, carbs: 1, fat: 1, parts: COFFEE_PARTS, micros: { sodium_mg: 60, potassium_mg: 150, calcium_mg: 100, iron_mg: 0.5 } };
 const PROFILE = { heightIn: 73, age: 34, sex: 'male', ethnicity: 'Caucasian' };
 const GOAL_TEXT = 'Get below 180 lb, then a very slight lean bulk for the winter.';
 const HYDRATION = { slot: 'Hydration', name: 'MiO hydration pack + 1 L water', cal: 10, protein: 0, carbs: 2, fat: 0, parts: 'MiO hydration (not the energy one), about a litre of water', micros: { potassium_mg: 400, sodium_mg: 100 } };
 const BERRY = { slot: 'Creami', name: 'Berry creami', cal: 90, protein: 2, carbs: 21, fat: 1, parts: '200 g frozen berries, zero sugar juice (5 cal)', micros: { fiber_g: 5, potassium_mg: 200, vitamin_c_mg: 40, iron_mg: 1, calcium_mg: 30, magnesium_mg: 20 } };
+const BAR = { slot: 'Snack', name: 'Nature Valley protein bar', cal: 150, protein: 10, carbs: 14, fat: 6, parts: '1 bar, about 150 cal', micros: { fiber_g: 5, sodium_mg: 175, potassium_mg: 100, iron_mg: 1, calcium_mg: 50, magnesium_mg: 30 } };
 const PLAN_V3 = () => [
   { ...COFFEE, time: '08:30' },
   { ...COFFEE, time: '11:30' },
@@ -424,7 +426,8 @@ const PLAN_V3 = () => [
   { slot: 'Drink', name: 'Diet soda', time: '18:00', cal: 0, protein: 0, carbs: 0, fat: 0, parts: 'One can, between the two meals', micros: { sodium_mg: 40 } },
   { slot: 'Meal 2', name: 'Chicken bowl + tomato soup', time: '21:00', cal: 615, protein: 50, carbs: 84, fat: 8, parts: 'Pan: 100 g cooked chicken, 1 small yellow onion, about 3/4 sweet pepper, 145 g diced cauliflower/peas/corn mix, 170 g frozen diced potatoes, 10 g pickled jalapenos, 10 g pickled red onion, 5 g honey, 10 g sriracha. Soup: 350 g low-cal tomato soup blended with 70 g cottage cheese, cooked', micros: { fiber_g: 12, sodium_mg: 1500, potassium_mg: 1600, iron_mg: 4, vitamin_c_mg: 120, calcium_mg: 120, magnesium_mg: 90 } },
   { ...BERRY, time: '21:15' },
-  { slot: 'Snack', name: 'Two Nature Valley protein bars', time: '23:00', cal: 300, protein: 20, carbs: 28, fat: 12, parts: '2 bars, about 150 cal each', micros: { fiber_g: 10, sodium_mg: 350, potassium_mg: 200, iron_mg: 2, calcium_mg: 100, magnesium_mg: 60 } },
+  { ...BAR, time: '23:00' },
+  { ...BAR, time: '23:00' },
   { slot: 'Creami', name: 'Protein creami', time: '23:00', cal: 115, protein: 17, carbs: 3, fat: 4, parts: '200 ml almond milk, 20 g Revolution protein powder, 5 g Jell-O mix, topped up with water', micros: { sodium_mg: 250, potassium_mg: 250, calcium_mg: 400, vitamin_d_mcg: 2.5, iron_mg: 0.5 } }
 ];
 const WALKS_LONG = [{ name: 'Walk', time: '14:00', end: '15:00' }, { name: 'Walk', time: '20:00', end: '21:00' }, { name: 'Walk', time: '22:00', end: '23:00' }];
@@ -466,7 +469,7 @@ const DEFAULT = () => ({
   planVersion: PLAN_VERSION,
   plan: PLAN_CURRENT(),
   routine: ROUTINE_CURRENT(),
-  library: [],
+  library: PLAN_V3().filter((m, i, a) => a.findIndex((x) => x.name === m.name) === i).map((m) => ({ id: uid('f'), name: m.name, cal: m.cal, protein: m.protein, carbs: m.carbs, fat: m.fat, parts: m.parts || '', micros: m.micros || null })),
   days: {},
   weights: SEED_WEIGHTS.map(([date, lb]) => ({ date, lb })),
   photos: [],
@@ -530,6 +533,13 @@ function migratePlan() {
     if (S.settings.weightGoal === 185) S.settings.weightGoal = 180;
     if (!Array.isArray(S.chat)) S.chat = [];
   }
+  if (from < 6) {
+    // version 6: the bars become two single bars, every plan item is a saved meal
+    const splitBars = (list, mk) => { const i = list.findIndex((m) => /^Two Nature Valley/.test(m.name)); if (i < 0) return; const was = list[i]; list.splice(i, 1, mk(was), mk(was)); };
+    splitBars(S.plan, (was) => ({ ...BAR, time: was.time }));
+    Object.values(S.days).forEach((d) => splitBars(d.meals, (was) => ({ ...BAR, id: uid(`${d.meals[0]?.id?.slice(0, 10) || 'x'}-m`), time: was.time, done: was.done, doneAt: was.doneAt, swapped: false, planned: BAR.name })));
+    seedLibrary();
+  }
   if (from >= 3) {
     S.planVersion = PLAN_VERSION;
     try { localStorage.setItem(STORE_KEY, JSON.stringify(S)); } catch {}
@@ -554,6 +564,15 @@ function save(opts = {}) {
   try { localStorage.setItem(STORE_KEY, JSON.stringify(S)); } catch {}
   if (!opts.quiet) render();
   scheduleSync();
+}
+
+/* Every plan item is also a saved meal, once, by name. */
+function seedLibrary() {
+  S.library = S.library || [];
+  for (const m of S.plan) {
+    if (S.library.some((f) => f.name === m.name)) continue;
+    S.library.push({ id: uid('f'), name: m.name, cal: m.cal, protein: m.protein, carbs: m.carbs, fat: m.fat, parts: m.parts || '', micros: m.micros || null });
+  }
 }
 
 /* ---------- days ---------- */
@@ -642,14 +661,16 @@ async function loadWeather(force) {
     if (c && !force && Date.now() - c.at < 30 * 60 * 1000) { showWx(c.d); return; }
   } catch {}
   try {
-    const u = `https://api.open-meteo.com/v1/forecast?latitude=${p.lat}&longitude=${p.lon}&current=temperature_2m,weather_code&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=auto&forecast_days=1`;
+    const u = `https://api.open-meteo.com/v1/forecast?latitude=${p.lat}&longitude=${p.lon}&current=temperature_2m,apparent_temperature,weather_code,wind_speed_10m,relative_humidity_2m&hourly=temperature_2m,precipitation_probability,weather_code,wind_speed_10m&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max,sunrise,sunset,wind_speed_10m_max&timezone=auto&forecast_days=2&temperature_unit=celsius&wind_speed_unit=kmh`;
     const r = await fetch(u);
     const d = await r.json();
     localStorage.setItem(cacheKey, JSON.stringify({ at: Date.now(), d }));
     showWx(d);
   } catch { $('#wx').textContent = 'no weather'; }
 }
+let WX = null;
 function showWx(d) {
+  WX = d;
   try {
     const t = Math.round(d.current.temperature_2m);
     const hi = Math.round(d.daily.temperature_2m_max[0]);
@@ -734,20 +755,56 @@ function renderNow() {
   const steps = S.steps.date === ymd() && S.steps.today != null ? S.steps.today : null;
   const stepPct = steps != null ? Math.min(100, Math.round((100 * steps) / S.settings.stepGoal)) : 0;
   $('#tiles').innerHTML = `
-    <div class="card tile"><div class="lbl">Day score</div><div style="display:flex;align-items:center;gap:8px"><svg class="ring" viewBox="0 0 40 40"><circle cx="20" cy="20" r="16" fill="none" stroke="#e0ddd5" stroke-width="7"></circle><circle cx="20" cy="20" r="16" fill="none" stroke="#2b5cff" stroke-width="7" stroke-linecap="round" stroke-dasharray="100.5" stroke-dashoffset="${off}" transform="rotate(-90 20 20)" style="transition:stroke-dashoffset .6s"></circle></svg><div class="big">${score}</div></div></div>
-    <div class="card tile"><div class="lbl">Steps</div><div class="big">${steps != null ? steps.toLocaleString() : '<span style="font-size:14px;color:#6d6a63">Say your count</span>'}</div><div class="barr"><i style="width:${stepPct}%"></i></div><div class="s" style="margin-top:-2px">of ${S.settings.stepGoal.toLocaleString()}</div></div>
-    <div class="card tile slim"><div class="lbl">Streak</div><div style="display:flex;align-items:center;gap:4px">${ICON_FLAME}<div class="big">${streak()}</div></div></div>`;
+    <button class="card tile" data-act="score-sheet" style="text-align:left"><div class="lbl">Day score</div><div style="display:flex;align-items:center;gap:8px"><svg class="ring" viewBox="0 0 40 40"><circle cx="20" cy="20" r="16" fill="none" stroke="#e0ddd5" stroke-width="7"></circle><circle cx="20" cy="20" r="16" fill="none" stroke="#2b5cff" stroke-width="7" stroke-linecap="round" stroke-dasharray="100.5" stroke-dashoffset="${off}" transform="rotate(-90 20 20)" style="transition:stroke-dashoffset .6s"></circle></svg><div class="big">${score}</div></div></button>
+    <button class="card tile" data-act="steps-sheet" style="text-align:left"><div class="lbl">Steps</div><div class="big">${steps != null ? steps.toLocaleString() : '<span style="font-size:14px;color:#6d6a63">Say your count</span>'}</div><div class="barr"><i style="width:${stepPct}%"></i></div><div class="s" style="margin-top:-2px">of ${S.settings.stepGoal.toLocaleString()}</div></button>
+    <button class="card tile slim" data-act="streak-sheet" style="text-align:left"><div class="lbl">Streak</div><div style="display:flex;align-items:center;gap:4px">${ICON_FLAME}<div class="big">${streak()}</div></div></button>`;
 
   const rv = day.review;
   $('#review-card').innerHTML = rv
     ? `<button class="card review" data-act="open-review" style="width:100%;text-align:left"><div style="display:flex;align-items:center;gap:12px"><div class="grade">${esc(rv.grade || '')}</div><div style="min-width:0"><div class="lbl" style="color:#2b5cff">Day review · ${t12s(rv.at)}</div><div class="t" style="margin-top:2px">${esc(rv.title || 'Reviewed')}</div><div class="s" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc((rv.lines || [])[0] || '')}</div></div></div></button>`
     : `<button class="card review" data-act="review" style="width:100%;text-align:left"><div style="display:flex;align-items:center;gap:12px"><div class="grade" style="background:#1d1d1f;box-shadow:0 4px 0 #000"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fbfaf7" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V5M4 15l4-4 4 3 5-6 3 2"></path></svg></div><div><div class="t">Review my day</div><div class="s">Meals, steps, walks, sodium and water, and where the scale should land tomorrow.</div></div></div></button>`;
 
+  $('#upcoming').innerHTML = renderUpcoming(day, nm);
+
   const left = [...day.tasks.filter((t) => !t.done && !t.moved && !t.skipped), ...day.meals.filter((m) => !m.done)];
   $('#left-count').textContent = left.length ? `· ${left.length}` : '· clear';
   $('#now-left').innerHTML = left.length
     ? [...day.tasks.filter((t) => !t.done && !t.moved && !t.skipped).map((t) => rowHTML(t, 'task')), ...day.meals.filter((m) => !m.done).map((m) => rowHTML(m, 'meal'))].join('') + waterRow(day)
     : `<div class="row"><div class="txt"><div class="t">Everything is in.</div><div class="s">Streak ticks at midnight.</div></div></div>`;
+}
+/*
+ * Coming up: the next few timed things, with a get-ready line for anything
+ * that takes preparation (gym, basketball, a workout). Once today is spent,
+ * it looks at tomorrow so the last thing he sees at night is the morning.
+ */
+const PREP = [[/gym|basketball|workout/i, 30], [/walk/i, 10]];
+function prepFor(name) { for (const [re, m] of PREP) if (re.test(name)) return m; return 0; }
+function relTime(diff) { if (diff <= 0) return 'now'; if (diff < 60) return `in ${diff}m`; const h = Math.floor(diff / 60), m = diff % 60; return m ? `in ${h}h ${pad(m)}m` : `in ${h}h`; }
+function renderUpcoming(day, nm) {
+  const collect = (d, offsetMin) => [
+    ...d.tasks.filter((t) => !t.done && !t.moved && !t.skipped && t.time).map((t) => ({ ...t, kind: 'task', at: minutes(t.time) + offsetMin })),
+    ...d.meals.filter((m) => !m.done && m.time).map((m) => ({ ...m, kind: 'meal', at: minutes(m.time) + offsetMin }))
+  ];
+  let items = collect(day, 0).filter((x) => x.at >= nm - 20).sort((a, b) => a.at - b.at);
+  let label = 'Coming up';
+  if (items.length < 3) {
+    const tm = ensureDay(addDays(ymd(), 1));
+    const tomorrow = collect(tm, 24 * 60).sort((a, b) => a.at - b.at).slice(0, 5 - items.length);
+    if (tomorrow.length) { items = [...items, ...tomorrow]; if (!items.some((x) => x.at < 24 * 60)) label = 'Tomorrow'; }
+  }
+  items = items.slice(0, 5);
+  if (!items.length) return '';
+  const rows = items.map((x) => {
+    const diff = x.at - nm;
+    const isTomorrow = x.at >= 24 * 60;
+    const prep = prepFor(x.name);
+    const prepAt = prep ? x.at - prep : null;
+    const when = isTomorrow ? `Tomorrow ${t12(x.time)}` : `${t12(x.time)}${x.end ? ' to ' + t12s(x.end) : ''}`;
+    const prepTxt = prep ? ` · get ready ${isTomorrow ? 'at' : prepAt - nm > 0 ? 'in ' + relTime(prepAt - nm).replace('in ', '') + ', at' : 'at'} ${t12s(`${pad(Math.floor((prepAt % (24 * 60)) / 60))}:${pad(prepAt % 60)}`)}` : '';
+    const rel = isTomorrow ? relTime(diff) : diff < -5 ? 'open' : relTime(diff);
+    return `<div class="row" data-id="${x.id}"><div class="txt" data-act="${isTomorrow ? '' : 'open-item'}" data-kind="${x.kind}" data-id="${x.id}"><div class="t">${esc(x.name)}${x.kind === 'meal' && x.slot ? ` <span style="color:#6d6a63;font-weight:600">· ${esc(x.slot)}</span>` : ''}</div><div class="s">${when}${prepTxt}</div></div><div class="time" style="${diff <= 0 && !isTomorrow ? '' : 'color:#1d1d1f'}${Math.abs(diff) <= 15 ? ';color:#2b5cff' : ''}">${rel}</div></div>`;
+  }).join('');
+  return `<div class="lbl grp-lbl" style="margin-bottom:8px">${label}</div><div class="card list">${rows}</div>`;
 }
 function waterRow(day) {
   const g = S.settings.waterGoal;
@@ -772,7 +829,7 @@ function renderFuel() {
     html += `<div class="card"><div style="display:flex;justify-content:space-between;padding:14px 16px 4px"><div class="lbl">Micros</div><div class="lbl">from ${m.counted} eaten</div></div><div class="micro-grid">${MICRO_DEFS.map(([k, n, g, u]) => `<div class="micro"><div class="n">${n}</div><div class="v">${Math.round(m.micros[k] || 0)}<span>/${g}${u}</span></div></div>`).join('')}</div><div class="s" style="padding:0 16px 14px">Estimates from what you have checked off. Tap any meal on the Plan to see or fix its own numbers.</div></div>`;
   } else {
     html += S.library.length
-      ? `<div class="card list">${S.library.map((f) => `<div class="row" data-id="${f.id}"><div class="txt"><div class="t">${esc(f.name)}</div><div class="s">${f.cal} cal · ${f.protein}g P · ${f.carbs}g C · ${f.fat}g F</div></div><button class="pill" data-act="eat-saved" data-id="${f.id}">Ate it</button><button class="pill" data-act="drop-saved" data-id="${f.id}" style="color:#b8321f">x</button></div>`).join('')}</div>`
+      ? `<div class="card list">${S.library.map((f) => `<div class="row" data-id="${f.id}"><div class="txt"><div class="t">${esc(f.name)}</div><div class="s">${f.cal} cal · ${f.protein}g P · ${f.carbs}g C · ${f.fat}g F</div>${f.parts ? `<div class="s parts">${esc(f.parts)}</div>` : ''}</div><button class="pill" data-act="eat-saved" data-id="${f.id}">Ate it</button><button class="pill" data-act="drop-saved" data-id="${f.id}" style="color:#b8321f">x</button></div>`).join('')}</div>`
       : `<div class="card" style="padding:18px"><div class="t">No saved meals yet.</div><div class="s" style="margin-top:4px">Snap or talk in a meal and flip on Save as a meal. Then you can just say "the chicken bowl".</div></div>`;
     html += `<div style="display:flex;gap:10px"><button class="btn" style="flex:1" data-act="food-talk">${ICON_MIC} Talk it in</button><button class="btn" style="flex:1" data-act="food-snap">${ICON_CAM} Snap a photo</button></div>`;
   }
@@ -1034,6 +1091,10 @@ document.addEventListener('click', (e) => {
   else if (act === 'phys') $('#file-phys').click();
   else if (act === 'fit-shot') $('#file-fit').click();
   else if (act === 'chat-clear') { snapshot('Cleared chat'); S.chat = []; save(); }
+  else if (act === 'score-sheet') openScore();
+  else if (act === 'streak-sheet') openStreak();
+  else if (act === 'steps-sheet') { ui.section.body = 'trends'; goPage('body'); }
+  else if (act === 'weather') openWeather();
   else if (act === 'review') runReview();
   else if (act === 'open-review') openReview();
   else if (act === 'save-tape') { S.tape.waist = Number($('#tape-waist').value) || null; S.tape.neck = Number($('#tape-neck').value) || null; S.settings.heightIn = Number($('#tape-height').value) || S.settings.heightIn; S.tape.updated = ymd(); save(); toast({ t: 'Tape saved', s: tapeEstimate() != null ? `About ${tapeEstimate()}% by the Navy formula` : 'Need waist, neck and height' }); }
@@ -1343,6 +1404,54 @@ function openRoutineEditor() {
     S.routine = Object.assign({ Mon: [], Tue: [], Wed: [], Thu: [], Fri: [], Sat: [], Sun: [] }, r);
     save(); closeSheet(); toast({ t: 'Routine saved', cls: 'blue' });
   });
+}
+
+/* ---------- front page deep dives ---------- */
+function openWeather() {
+  const d = WX;
+  if (!d) { toast({ t: 'No weather yet', ms: 1500 }); loadWeather(true); return; }
+  const now = new Date();
+  const hours = d.hourly.time.map((t, i) => ({ t, temp: d.hourly.temperature_2m[i], rain: d.hourly.precipitation_probability[i], code: d.hourly.weather_code[i], wind: d.hourly.wind_speed_10m[i] }));
+  const startIdx = Math.max(0, hours.findIndex((h) => new Date(h.t) >= new Date(now.getTime() - 30 * 60 * 1000)));
+  const next = hours.slice(startIdx, startIdx + 14);
+  const hh = (t) => { const x = new Date(t); const h = x.getHours(); return `${((h + 11) % 12) + 1}${h >= 12 ? 'p' : 'a'}`; };
+  const day0 = d.daily;
+  const sun = (s) => { const x = new Date(s); return `${((x.getHours() + 11) % 12) + 1}:${pad(x.getMinutes())}`; };
+  openSheet(`${S.settings.place.name} · Celsius`, `${Math.round(d.current.temperature_2m)}° and ${WX_TEXT(d.current.weather_code)}`, `
+    <div class="card" style="padding:14px 16px;display:flex;justify-content:space-between;gap:10px">
+      <div><div class="lbl">Feels like</div><div class="big" style="font-size:24px;margin-top:4px">${Math.round(d.current.apparent_temperature)}°</div></div>
+      <div><div class="lbl">Today</div><div class="big" style="font-size:24px;margin-top:4px">${Math.round(day0.temperature_2m_max[0])}° <span style="color:#6d6a63;font-size:16px">/ ${Math.round(day0.temperature_2m_min[0])}°</span></div></div>
+      <div><div class="lbl">Rain</div><div class="big" style="font-size:24px;margin-top:4px">${day0.precipitation_probability_max[0] ?? 0}%</div></div>
+      <div><div class="lbl">Wind</div><div class="big" style="font-size:24px;margin-top:4px">${Math.round(d.current.wind_speed_10m)} <span style="color:#6d6a63;font-size:14px">km/h</span></div></div>
+    </div>
+    <div class="card" style="padding:12px 6px 10px"><div class="lbl" style="padding:0 10px 8px">Next hours</div><div style="display:flex;overflow-x:auto;gap:4px;padding:0 6px;scrollbar-width:none">${next.map((h) => `<div style="flex:0 0 52px;display:flex;flex-direction:column;align-items:center;gap:4px;padding:8px 0;border-radius:14px;${new Date(h.t).getHours() === now.getHours() ? 'background:#dbe4ff' : ''}"><div class="s">${hh(h.t)}</div><div class="big" style="font-size:18px">${Math.round(h.temp)}°</div><div class="s" style="font-size:11px;color:${h.rain >= 50 ? '#2b5cff' : '#6d6a63'}">${h.rain}%</div><div class="s" style="font-size:10px">${WX_TEXT(h.code).split(' ')[0]}</div></div>`).join('')}</div></div>
+    <div class="card" style="padding:14px 16px;display:flex;justify-content:space-between">
+      <div><div class="lbl">Sunrise</div><div class="t" style="margin-top:4px">${sun(day0.sunrise[0])}</div></div>
+      <div><div class="lbl">Sunset</div><div class="t" style="margin-top:4px">${sun(day0.sunset[0])}</div></div>
+      <div><div class="lbl">Humidity</div><div class="t" style="margin-top:4px">${d.current.relative_humidity_2m}%</div></div>
+      <div><div class="lbl">Tomorrow</div><div class="t" style="margin-top:4px">${Math.round(day0.temperature_2m_max[1])}° / ${Math.round(day0.temperature_2m_min[1])}°${(day0.precipitation_probability_max[1] ?? 0) >= 40 ? ` · ${day0.precipitation_probability_max[1]}% rain` : ''}</div></div>
+    </div>
+    <div class="s" style="padding:0 6px">Walk windows today: ${today().tasks.filter((t) => /walk/i.test(t.name) && t.time).map((t) => { const i = hours.findIndex((h) => new Date(h.t).getHours() === Number(t.time.split(':')[0]) && new Date(h.t).getDate() === now.getDate()); const h = hours[i]; return h ? `${t12s(t.time)} ${Math.round(h.temp)}°, ${h.rain}% rain` : t12s(t.time); }).join(' · ') || 'none'}</div>
+    <button class="btn ghost wide" id="wx-refresh">Refresh</button>`);
+  $('#wx-refresh').addEventListener('click', async () => { await loadWeather(true); closeSheet(); setTimeout(openWeather, 350); });
+}
+function openScore() {
+  const day = today();
+  const items = dayItems(day).filter((x) => !x.skipped);
+  const done = items.filter((x) => x.done), left = items.filter((x) => !x.done);
+  const water = day.water >= S.settings.waterGoal;
+  openSheet('Day score', `${dayScore(day)} out of 100`, `
+    <div class="card" style="padding:14px 16px"><div class="s" style="line-height:1.45;color:#1d1d1f">Every meal, drink, walk and workout on today's board counts once, and the water goal counts once. Score is what is done over what is planned. Skipped things do not count against you, moved things leave the day. 80 or better keeps the streak.</div></div>
+    <div class="card" style="padding:14px 16px;display:flex;justify-content:space-between"><div><div class="lbl">Done</div><div class="big" style="font-size:26px;margin-top:4px">${done.length + (water ? 1 : 0)}</div></div><div><div class="lbl">Still to do</div><div class="big" style="font-size:26px;margin-top:4px">${left.length + (water ? 0 : 1)}</div></div><div><div class="lbl">Water</div><div class="big" style="font-size:26px;margin-top:4px">${day.water}<span style="color:#6d6a63;font-size:16px">/${S.settings.waterGoal}</span></div></div></div>
+    ${left.length ? `<div class="lbl grp-lbl">Still to do</div><div class="card list">${left.map((x) => `<div class="row"><div class="txt"><div class="t">${esc(x.name)}</div><div class="s">${x.time ? t12(x.time) : ''}</div></div></div>`).join('')}</div>` : ''}
+    ${done.length ? `<div class="lbl grp-lbl">Done</div><div class="card list">${done.map((x) => `<div class="row done"><div class="txt"><div class="t">${esc(x.name)}</div><div class="s">${x.doneAt ? 'Done ' + t12s(x.doneAt) : ''}</div></div></div>`).join('')}</div>` : ''}`);
+}
+function openStreak() {
+  const days = [];
+  for (let i = 13; i >= 0; i--) { const d = addDays(ymd(), -i); const st = S.days[d]; days.push({ d, score: st ? dayScore(st) : null }); }
+  openSheet('Streak', `${streak()} day${streak() === 1 ? '' : 's'}`, `
+    <div class="card" style="padding:14px 16px"><div class="s" style="line-height:1.45;color:#1d1d1f">A day counts when its score hits 80 or better. Today joins the streak the moment it gets there, and the count ticks over at midnight. Miss a day and it starts again from zero.</div></div>
+    <div class="card" style="padding:14px 12px"><div class="lbl" style="padding:0 4px 10px">Last two weeks</div><div style="display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px">${days.map((x) => `<div style="display:flex;flex-direction:column;align-items:center;gap:4px"><div style="width:100%;aspect-ratio:1;border-radius:12px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;background:${x.score == null ? '#e9e7e2' : x.score >= 80 ? '#2b5cff' : '#e3e1db'};color:${x.score == null ? '#a8a49c' : x.score >= 80 ? '#fbfaf7' : '#6d6a63'};box-shadow:${x.score >= 80 ? '0 3px 0 #1a3fc2' : '0 2px 0 #cfccc4'}">${x.score == null ? '·' : x.score}</div><div class="s" style="font-size:10px">${WD[fromYmd(x.d).getDay()]}</div></div>`).join('')}</div></div>`);
 }
 
 /* ---------- the day review ---------- */
