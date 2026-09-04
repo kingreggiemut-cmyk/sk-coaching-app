@@ -501,7 +501,7 @@ const SB_URL = 'https://ksgxrxqvnfpfhidxsxcs.supabase.co';
 const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzZ3hyeHF2bmZwZmhpZHhzeGNzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE0MzkxMTgsImV4cCI6MjA5NzAxNTExOH0.pUD6sbkjhhTlgl5x4KHFJsThoHVlNkNBlSFES_8HHvM';
 const BRAIN = '/.netlify/functions/day-brain';
 const STORE_KEY = 'daily-board';
-const APP_VERSION = '1.5';
+const APP_VERSION = '1.6';
 const ROW_ID = 'reggie';
 /*
  * A copy served from localhost or opened off the disk is a test copy, and a test
@@ -1860,7 +1860,9 @@ async function handleSpeech(mode, text, onDone, shots) {
       toast({ t: 'Filed under today', s: r.wrap.title || '', cls: 'blue', undo: true });
     } else {
       const now = new Date();
-      const r = await brain({ mode: 'command', transcript: text, images: shots.map((s) => s.full), now: `${ymd()} ${nowHM()}`, weekday: WDL[now.getDay()], tomorrow: addDays(ymd(), 1), state: stateForBrain(), profile: profileForBrain(), goals: S.settings.goalText, history: chatHistoryForBrain() });
+      // A photo is its own job with its own prompt: reading a label alongside
+      // every rule about walks and creamis was slow enough to time out.
+      const r = await brain({ mode: shots.length ? 'photo' : 'command', transcript: text, images: shots.map((s) => s.full), now: `${ymd()} ${nowHM()}`, weekday: WDL[now.getDay()], tomorrow: addDays(ymd(), 1), state: stateForBrain(), profile: profileForBrain(), goals: S.settings.goalText, history: chatHistoryForBrain() });
       applyOps(Array.isArray(r.ops) ? r.ops : [], r.say, text, shots.map((s) => s.thumb));
     }
   } catch (err) {

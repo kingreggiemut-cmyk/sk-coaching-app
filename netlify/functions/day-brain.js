@@ -180,6 +180,39 @@ Reply with ONE JSON object and nothing else:
 }
 ${NO_DASHES}`;
 
+/*
+ * Photos get their own prompt rather than riding the full command prompt. The
+ * command prompt is mostly rules about walks, creamis and note filing, none of
+ * which help read a nutrition label, and carrying all of it alongside his whole
+ * plan pushed a photo swap past thirty seconds. This is the same op vocabulary,
+ * just the part that applies, so the app applies the answer the same way.
+ */
+const PHOTO_SYSTEM = `Reggie photographs something and tells you what to do with it. You answer with operations his day tracker applies immediately. He can undo anything, so be decisive and never ask him to clarify.
+
+You get his PROFILE and GOALS, his standing meal PLAN (each row has a "pid", his real portion in "parts", and its macros and micros), TODAY's items with ids, what he SAID, and the photos.
+
+Reply with ONE JSON object and nothing else:
+{ "say": "one short plain sentence back, max 14 words", "ops": [ ... ] }
+
+Most photos are a package he just bought and wants swapped into the plan for good:
+  {"op":"edit_plan","pid":"...","name":"...","parts":"...","cal":n,"protein":n,"carbs":n,"fat":n,"micros":{"sodium_mg":n,"potassium_mg":n}}
+Read the label properly. Find the SERVING SIZE first, then scale to the amount he actually uses, which is in that plan row's "parts" (for example 145 g of the riced veg blend, 350 g of soup). If the amount is not changing, keep his portion and only recompute the numbers for the new product: a label per 100 g with a 145 g portion means multiply by 1.45. Do the arithmetic. Never copy per-serving figures across unchanged. Send only the fields that change; anything you leave out keeps its current value. Always carry sodium and potassium, he watches those. Put the new product and his portion into "parts". In "say", give him the number that moved: "Sodium drops 597 mg a day."
+
+The other kinds:
+  {"op":"swap_meal","id":"...","name":"...","cal":n,"protein":n,"carbs":n,"fat":n}   a photo of a plate he ate instead of a planned meal
+  {"op":"log_food","slot":"Extra","name":"...","cal":n,"protein":n,"carbs":n,"fat":n}  a photo of something extra he ate
+  {"op":"log_steps","steps":n} and {"op":"log_weight","lb":n,"date":"YYYY-MM-DD"}     a Fitbit screenshot
+  {"op":"add_reminder","text":"..."}   a receipt or shopping list of things still to get
+  {"op":"note","title":"...","text":"...","bucket":"..."}   something to keep, no deadline
+  {"op":"answer","text":"..."}   he asked a question about the photo, or you cannot act; full reply here, do not repeat it in "say"
+
+Rules:
+- A label he wants swapped in is edit_plan (every day from now on). A plate of food is swap_meal or log_food (today only). Do not confuse the two.
+- If part of a label is blurry or cut off, use what you can read and say which part you could not. Never invent a number you cannot see.
+- If you cannot tell what the photo is, or no plan row matches what he is asking to swap, say so in an answer op instead of guessing at ops.
+- If he sends a photo and says nothing, read it and put it where it belongs, then tell him what you did.
+- Several photos of the same product are the front and the label; treat them as one thing.`;
+
 function imageBlocks(images) {
   return (images || []).slice(0, 4).map((img) => {
     const m = /^data:(image\/[a-z]+);base64,(.+)$/i.exec(img || '');
@@ -242,6 +275,23 @@ exports.handler = async (event) => {
         (shots.length ? `PHOTOS ATTACHED: ${shots.length}\n\n` : '') +
         `SAID NOW:\n${transcript || '(nothing said, just the photo)'}`;
       const { parsed, usage } = await ask(COMMAND_SYSTEM, [...shots, { type: 'text', text: user }], 4000);
+      const ops = Array.isArray(parsed.ops) ? parsed.ops : [];
+      return json(200, { say: String(parsed.say || ''), ops, usage });
+    }
+
+    if (mode === 'photo') {
+      const shots = imageBlocks(body.images);
+      if (!shots.length) return json(400, { error: 'no photo' });
+      const st = body.state || {};
+      const day = (st.days || {})[st.today] || {};
+      const text =
+        `NOW: ${body.now || ''} (${body.weekday || ''})\n` +
+        `PROFILE: ${JSON.stringify(body.profile || {})}\n` +
+        `GOALS: ${body.goals || ''}\n\n` +
+        `PLAN:\n${JSON.stringify(st.plan || [])}\n\n` +
+        `TODAY: ${JSON.stringify(day.meals || [])}\n\n` +
+        `SAID: ${String(body.transcript || '').trim() || '(nothing said, just the photo)'}`;
+      const { parsed, usage } = await ask(PHOTO_SYSTEM, [...shots, { type: 'text', text }], 2000);
       const ops = Array.isArray(parsed.ops) ? parsed.ops : [];
       return json(200, { say: String(parsed.say || ''), ops, usage });
     }
