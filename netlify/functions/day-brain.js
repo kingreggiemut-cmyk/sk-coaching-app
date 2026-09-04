@@ -113,6 +113,32 @@ Reply with ONE JSON object and nothing else:
 }
 Be direct and specific with his numbers, like a coach who knows him, never preachy. If the day is incomplete (items still to come tonight), say so and review what is there. ${NO_DASHES}`;
 
+const WEEK_SYSTEM = `You review one person's week for his private tracker: the pattern, not the day. You get his PROFILE, GOALS, and WEEK: seven days each with its score, what was eaten against his targets, steps, workouts and walks done or missed, plus his weigh-ins across the period, resting heart rate and average energy burned.
+
+The daily review already tells him about yesterday. Your job is the thing only a week can show: whether the pattern holds, which day of the week keeps breaking, whether the scale agrees with the food, and what one change would matter most.
+
+Reply with ONE JSON object and nothing else:
+{
+  "title": "a plain four to seven word label for the week",
+  "lines": ["four to six short lines: adherence (how many days on target, which ones slipped and whether they share a pattern), food averages against his goals, movement, and what the scale did against what the food says it should have done"],
+  "pattern": "one or two sentences naming the strongest pattern you can actually see in these seven days. If a particular weekday keeps failing, say which. If there is no pattern yet, say that instead of inventing one.",
+  "focus": "the single change for next week, concrete enough to act on tomorrow",
+  "grade": "A"|"B"|"C"|"D"
+}
+Use his real numbers. Compare like with like: a partial week is a partial week, say so rather than projecting it. ${NO_DASHES}`;
+
+const ADVISE_SYSTEM = `You answer "what should I eat" for one person, before he eats it. You get his PROFILE, GOALS, what he has eaten TODAY with the running macro totals, what is still LEFT on his plan for today, his SAVED meals, the time, and his QUESTION.
+
+He eats close to the same thing every day, so the interesting cases are the exceptions: he is going out, something is not available, he is short on time, or he wants to know what still fits. Answer that, with his real remaining numbers.
+
+Reply with ONE JSON object and nothing else:
+{
+  "answer": "two to four sentences. Lead with the numbers that decide it: what is left in calories and protein today. Then the recommendation, in his own vocabulary.",
+  "options": [ {"name": "...", "why": "one short line", "cal": n, "protein": n} ],
+  "watch": "one short line on the thing most likely to trip him up here, or empty"
+}
+Two or three options, never more. Prefer what he already eats and already has when that fits; only suggest something new when the situation calls for it. If a restaurant is involved, name dish types he can actually order, not brands. Numbers are estimates and whole. ${NO_DASHES}`;
+
 const FITBIT_SYSTEM = `You read screenshots from the Fitbit app (or any health app) and pull the numbers out for one person's private tracker, so his charts fill in without a live link. Read every number you can see with its date or period. Be literal: copy the values on screen, do not estimate what is not shown.
 
 Reply with ONE JSON object and nothing else:
@@ -235,6 +261,27 @@ exports.handler = async (event) => {
       const text = (extra.join('\n') || 'No previous data.') + '\nReturn the JSON.';
       const { parsed, usage } = await ask(PHYSIQUE_SYSTEM, [...blocks, { type: 'text', text }], 1500);
       return json(200, { physique: parsed, usage });
+    }
+
+    if (mode === 'week') {
+      const text =
+        `NOW: ${body.now || ''}\n` +
+        `PROFILE: ${JSON.stringify(body.profile || {})}\n` +
+        `GOALS: ${body.goals || ''}\n\n` +
+        `WEEK:\n${JSON.stringify(body.week || {})}\n\nReturn the JSON.`;
+      const { parsed, usage } = await ask(WEEK_SYSTEM, [{ type: 'text', text }], 4000);
+      return json(200, { week: parsed, usage });
+    }
+
+    if (mode === 'advise') {
+      const text =
+        `NOW: ${body.now || ''}\n` +
+        `PROFILE: ${JSON.stringify(body.profile || {})}\n` +
+        `GOALS: ${body.goals || ''}\n\n` +
+        `TODAY:\n${JSON.stringify(body.today || {})}\n\n` +
+        `QUESTION: ${body.question || 'What should I eat with what is left today?'}\n\nReturn the JSON.`;
+      const { parsed, usage } = await ask(ADVISE_SYSTEM, [{ type: 'text', text }], 2500);
+      return json(200, { advise: parsed, usage });
     }
 
     if (mode === 'fitbit') {

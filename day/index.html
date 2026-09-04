@@ -115,6 +115,7 @@
   .fold svg { transition: transform .2s; }
   .fold.open svg { transform: rotate(180deg); }
   .fold + .list { display: none; }
+  .fold-row { display: flex; align-items: center; justify-content: space-between; }
   .fold.open + .list { display: flex; }
 
   /* macros */
@@ -275,6 +276,27 @@
   .toast .undo { height: 36px; padding: 0 14px; border-radius: 999px; background: rgba(251,250,247,0.18); color: var(--card); font-weight: 700; font-size: 13px; flex-shrink: 0; }
   @keyframes toastIn { from { transform: translateY(-20px) scale(.96); opacity: 0; } to { transform: none; opacity: 1; } }
   @keyframes toastOut { to { transform: translateY(-10px); opacity: 0; } }
+
+  /* the day is done: the one big moment the app owes him */
+  #done { position: fixed; inset: 0; z-index: 60; background: var(--blue); color: var(--card); display: none; flex-direction: column; justify-content: center; padding: calc(var(--sat) + 28px) 24px calc(var(--sab) + 28px); overflow: hidden; }
+  #done.show { display: flex; animation: doneIn .45s cubic-bezier(.2,.9,.3,1) both; }
+  @keyframes doneIn { from { opacity: 0; transform: scale(1.04); } to { opacity: 1; transform: none; } }
+  #done .swoosh { position: absolute; left: -10%; right: -10%; top: 18%; height: 46%; background: var(--ink); border-radius: 50% 50% 46% 54% / 22% 26% 74% 78%; transform: rotate(-7deg); }
+  #done .inner { position: relative; display: flex; flex-direction: column; gap: 22px; }
+  #done .kicker { font-weight: 700; font-size: 13px; letter-spacing: 0.14em; text-transform: uppercase; color: #cfd9ff; }
+  #done h1 { margin: 0; font-weight: 800; font-size: 58px; line-height: 0.92; letter-spacing: -0.03em; }
+  #done .sub { font-weight: 600; font-size: 16px; color: #cfd9ff; max-width: 300px; }
+  #done .figs { display: flex; justify-content: space-between; gap: 10px; }
+  #done .fig { display: flex; flex-direction: column; gap: 2px; }
+  #done .fig b { font-weight: 800; font-size: 30px; line-height: 1; letter-spacing: -0.02em; }
+  #done .fig span { font-weight: 700; font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: #a8b8ff; }
+  #done .wk { display: flex; gap: 6px; }
+  #done .wk i { flex: 1 1 0; height: 42px; border-radius: 12px; background: rgba(251,250,247,0.22); display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 13px; font-style: normal; color: #cfd9ff; }
+  #done .wk i.on { background: var(--card); color: var(--blue); }
+  #done .wk i.now { box-shadow: 0 0 0 3px var(--card); }
+  #done .go { height: 58px; border-radius: 999px; background: var(--card); color: var(--blue); font-weight: 800; font-size: 18px; display: flex; align-items: center; justify-content: center; box-shadow: 0 6px 0 #c4c1b9; }
+  #done .go:active { transform: translateY(5px); box-shadow: 0 1px 0 #c4c1b9; }
+  @media (prefers-reduced-motion: reduce) { #done.show { animation: none; } }
 
   /* sheets */
   #sheet-back { position: fixed; inset: 0; background: rgba(29,29,31,0.35); z-index: 50; display: none; }
@@ -449,6 +471,7 @@
 </button>
 
 <div id="toasts"></div>
+<div id="done" aria-hidden="true"><div id="done-card"></div></div>
 <div id="sheet-back"></div>
 <div id="sheet"><div class="sh-head"><div><div class="lbl" id="sh-lbl"></div><div class="big" id="sh-title"></div></div><button class="x" id="sh-x"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"></path></svg></button></div><div class="sh-body" id="sh-body"></div></div>
 <input type="file" id="file-food" accept="image/*" capture="environment" class="hidden">
@@ -465,8 +488,15 @@ const SB_URL = 'https://ksgxrxqvnfpfhidxsxcs.supabase.co';
 const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzZ3hyeHF2bmZwZmhpZHhzeGNzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE0MzkxMTgsImV4cCI6MjA5NzAxNTExOH0.pUD6sbkjhhTlgl5x4KHFJsThoHVlNkNBlSFES_8HHvM';
 const BRAIN = '/.netlify/functions/day-brain';
 const STORE_KEY = 'daily-board';
-const APP_VERSION = '1.1';
+const APP_VERSION = '1.2';
 const ROW_ID = 'reggie';
+/*
+ * A copy served from localhost or opened off the disk is a test copy, and a test
+ * copy must never be able to write over the live day. Blocked by host rather than
+ * allowed by host on purpose: if the site ever moves to another domain, the worst
+ * a wrong guess here can do is let a test through, not silently kill real syncing.
+ */
+const IS_TEST_HOST = location.protocol === 'file:' || /^(localhost|127\.|0\.0\.0\.0$|\[::1\]$|.*\.local$)/i.test(location.hostname);
 
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
@@ -593,6 +623,8 @@ const DEFAULT = () => ({
   reminders: [],
   /* Thoughts worth keeping, sorted into buckets by the brain. */
   notes: [],
+  /* One weekly review per Monday, keyed by that Monday's date. */
+  weeks: {},
   fit: FIT_SEED()
 });
 
@@ -624,6 +656,7 @@ function load() {
       if (!Array.isArray(S.library)) S.library = [];
       if (!Array.isArray(S.reminders)) S.reminders = [];
       if (!Array.isArray(S.notes)) S.notes = [];
+      if (!S.weeks || typeof S.weeks !== 'object') S.weeks = {};
       if (!S.days || typeof S.days !== 'object') S.days = {};
       // The saved copy decides its own plan version. Without this line the
       // fresh default (already current) masked an old saved plan and the
@@ -786,19 +819,82 @@ function previewDay(date) {
   };
 }
 function dayItems(day) { return [...day.meals, ...day.tasks.filter((t) => !t.moved)]; }
+/* Everything on the board landed. The water counter is not part of this. */
+function dayComplete(day) { const it = dayItems(day).filter((x) => !x.skipped); return it.length > 0 && it.every((x) => x.done); }
 function dayScore(day) {
   const items = dayItems(day).filter((x) => !x.skipped);
   const total = items.length + 1;
   const done = items.filter((x) => x.done).length + (day.water >= S.settings.waterGoal ? 1 : 0);
   return total ? Math.round((100 * done) / total) : 0;
 }
-function streak() {
-  let n = 0;
+/*
+ * The streak, rebuilt to be worth keeping.
+ *
+ * It used to need 80 of a 17 item day, so missing a creami, a walk and a
+ * hydration pack killed a streak on a day the food and the gym both landed.
+ * That is a tripwire, not a streak. Now a day counts at 70, and you earn a
+ * freeze for every fortnight you hold, so one bad day costs a freeze instead
+ * of the whole run. Two bad days in a row still ends it, which is the point.
+ */
+const STREAK_MIN = 70;
+function streakInfo() {
+  const counts = (d) => S.days[d] && dayScore(S.days[d]) >= STREAK_MIN;
+  const earned = (n) => 1 + Math.floor(n / 14);
+  let n = 0, used = 0, frozen = [];
+  // Today can only ever help: an unfinished day never breaks the run.
   let d = ymd();
-  if (S.days[d] && dayScore(S.days[d]) >= 80) n++;
+  if (counts(d)) n++;
   d = addDays(d, -1);
-  while (S.days[d] && dayScore(S.days[d]) >= 80) { n++; d = addDays(d, -1); }
-  return n;
+  let missedLast = false;
+  while (S.days[d]) {
+    if (counts(d)) { n++; missedLast = false; }
+    else if (!missedLast && n > 0 && used < earned(n)) { used++; frozen.push(d); n++; missedLast = true; }
+    else break;
+    d = addDays(d, -1);
+  }
+  return { n, used, left: Math.max(0, earned(n) - used), frozen };
+}
+function streak() { return streakInfo().n; }
+
+/*
+ * Where the scale is heading, from a least squares fit over his recent
+ * weigh-ins. Returns null rather than a guess when there is not enough to
+ * fit, or when the trend runs away from the goal.
+ */
+function projection() {
+  const g = S.settings.weightGoal;
+  const ws = [...S.weights].sort((a, b) => a.date.localeCompare(b.date)).filter((w) => w.date >= addDays(ymd(), -45));
+  if (ws.length < 3 || !g) return null;
+  const x0 = fromYmd(ws[0].date).getTime();
+  const pts = ws.map((w) => [(fromYmd(w.date).getTime() - x0) / 86400000, w.lb]);
+  const n = pts.length;
+  const sx = pts.reduce((a, p) => a + p[0], 0), sy = pts.reduce((a, p) => a + p[1], 0);
+  const sxx = pts.reduce((a, p) => a + p[0] * p[0], 0), sxy = pts.reduce((a, p) => a + p[0] * p[1], 0);
+  const denom = n * sxx - sx * sx;
+  if (!denom) return null;
+  const slope = (n * sxy - sx * sy) / denom;              // lb per day
+  const intercept = (sy - slope * sx) / n;
+  const todayX = (fromYmd(ymd()).getTime() - x0) / 86400000;
+  const now = slope * todayX + intercept;
+  const perWeek = slope * 7;
+  if (Math.abs(perWeek) < 0.15) return { perWeek, now, verdict: 'flat', span: ws.length };
+  const need = (g - now) / slope;                          // days to reach the goal
+  if (need < 0 || !isFinite(need)) return { perWeek, now, verdict: slope > 0 ? 'away' : 'past', span: ws.length };
+  if (need > 400) return { perWeek, now, verdict: 'slow', span: ws.length };
+  return { perWeek, now, verdict: 'on', date: addDays(ymd(), Math.round(need)), days: Math.round(need), span: ws.length };
+}
+function projectionLine() {
+  const p = projection();
+  const g = S.settings.weightGoal;
+  if (!p) return 'A few more weigh-ins and it can call a date.';
+  const rate = `${Math.abs(p.perWeek).toFixed(1)} lb a week`;
+  if (p.verdict === 'flat') return `Trend is flat. Nothing is moving toward ${g} yet.`;
+  if (p.verdict === 'away') return `Trend is up ${rate}, away from ${g}.`;
+  if (p.verdict === 'past') return `Already under ${g} on the trend line.`;
+  if (p.verdict === 'slow') return `Down ${rate}. At that rate ${g} is more than a year out.`;
+  const by = S.settings.weightGoalDate;
+  const early = by && p.date <= by;
+  return `Down ${rate}. On this trend you hit ${g} on ${niceDate(p.date)}${by ? `, ${early ? 'ahead of' : 'past'} ${niceDate(by)}` : ''}.`;
 }
 function findItem(target, id) {
   for (const date of Object.keys(S.days)) {
@@ -1052,6 +1148,7 @@ function renderFuel() {
     html += `<div class="card list">${day.meals.map((x) => rowHTML(x, 'meal', { parts: true })).join('')}</div>`;
     if (day.extras.length) html += `<div class="lbl grp-lbl">Also ate</div><div class="card list">${day.extras.map((e) => `<div class="row done" data-id="${e.id}"><div class="chk">${ICON_CHECK}</div><div class="txt"><div class="t">${esc(e.name)}</div><div class="s">${esc(e.slot || 'Extra')} · ${e.cal} cal · ${e.protein}g protein</div></div><button class="pill" data-act="remove-extra" data-id="${e.id}">Remove</button></div>`).join('')}</div>`;
     html += `<div style="display:flex;gap:10px"><button class="btn" style="flex:1" data-act="food-talk">${ICON_MIC} Talk it in</button><button class="btn" style="flex:1" data-act="food-snap">${ICON_CAM} Snap a photo</button></div>`;
+    html += `<button class="btn blue wide" data-act="advise"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fbfaf7" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><path d="M9.5 9.5a2.5 2.5 0 1 1 3 2.45V14"></path><path d="M12 17.2v.01"></path></svg> What fits right now?</button>`;
     html += `<button class="btn ghost wide" data-act="add-meal">+ Add a meal</button>`;
     html += `<div class="chips"><button class="pill" data-act="edit-plan">Edit the plan</button><button class="pill" data-act="edit-goals">Goals</button></div>`;
   } else if (sec === 'macros') {
@@ -1092,6 +1189,7 @@ function renderBody() {
       spark = `<svg class="spark" viewBox="0 0 330 70" preserveAspectRatio="none"><line x1="0" y1="60" x2="330" y2="60" stroke="#e6e3dc" stroke-width="1.5"></line><line x1="0" y1="35" x2="330" y2="35" stroke="#e6e3dc" stroke-width="1.5"></line><line x1="0" y1="10" x2="330" y2="10" stroke="#e6e3dc" stroke-width="1.5"></line><polyline points="${xs.map((p) => p.join(',')).join(' ')}" fill="none" stroke="#1d1d1f" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"></polyline><circle cx="${xs[xs.length - 1][0]}" cy="${xs[xs.length - 1][1]}" r="5" fill="#2b5cff"></circle></svg><div style="display:flex;justify-content:space-between"><div class="s">${niceDate(pts[0].date)} · ${pts[0].lb}</div><div class="s">${niceDate(last.date)} · ${last.lb}</div></div>`;
     } else spark = `<div class="s">Log a couple of weigh-ins and the trend line shows up here.</div>`;
     html += `<div class="card" style="padding:14px 16px 12px;display:flex;flex-direction:column;gap:8px"><div class="weight-hero"><div><div class="lbl">Weight${last ? ' · ' + niceDate(last.date) : ''}</div><div style="display:flex;align-items:baseline;gap:6px"><div class="big">${last ? last.lb : '--'}</div><div class="s">lb</div></div></div><div style="text-align:right"><div class="t" style="color:#2b5cff">${wkTxt}</div><div class="s">Goal ${S.settings.weightGoal} by ${niceDate(S.settings.weightGoalDate)}</div></div></div>${spark}</div>`;
+    html += `<div class="card" style="padding:14px 16px;display:flex;align-items:flex-start;gap:12px"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#2b5cff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:1px"><path d="M4 19V5"></path><path d="M4 15l5-5 4 3 6-7"></path><path d="M15 6h4v4"></path></svg><div><div class="lbl">On this trend</div><div class="t" style="margin-top:4px;line-height:1.4;font-size:14.5px">${esc(projectionLine())}</div></div></div>`;
     html += `<button class="btn wide" data-act="weigh">Log weigh-in</button>`;
     if (ws.length) html += `<div class="lbl grp-lbl">Recent</div><div class="card list">${ws.slice(-7).reverse().map((w) => `<div class="row"><div class="txt"><div class="t">${w.lb} lb</div><div class="s">${niceDate(w.date)}</div></div><button class="pill" data-act="drop-weight" data-date="${w.date}">x</button></div>`).join('')}</div>`;
   } else if (sec === 'trends') {
@@ -1100,7 +1198,7 @@ function renderBody() {
     const ps = [...S.photos].sort((a, b) => a.date.localeCompare(b.date));
     const p = ps[ps.length - 1];
     html += `<div class="card phys"><div class="pic">${p && p.thumbs[0] ? `<img src="${p.thumbs[0]}" alt="">` : '<svg width="90" height="120" viewBox="0 0 90 120"><circle cx="45" cy="16" r="12" fill="#6d6a63"></circle><path d="M25 40 Q45 30 65 40 L72 82 Q45 90 18 82 Z" fill="#6d6a63"></path><path d="M25 42 L10 78 L18 80 L30 52 Z" fill="#6d6a63"></path><path d="M65 42 L80 78 L72 80 L60 52 Z" fill="#6d6a63"></path><path d="M26 84 L30 118 L42 118 L44 90 Z" fill="#6d6a63"></path><path d="M64 84 L60 118 L48 118 L46 90 Z" fill="#6d6a63"></path></svg>'}${p ? `<div class="tag">${niceDate(p.date)}</div>` : ''}</div><div class="info"><div class="lbl">Est. body fat</div>${p ? `<div style="display:flex;align-items:baseline;gap:6px"><div class="big">${p.est.mid}<span>%</span></div><div class="s">${p.est.low} to ${p.est.high}</div></div><div class="s">${esc(p.est.read || '')}</div>` : `<div class="big">--</div><div class="s">Front and side, same light and pose each Sunday. The trend is the point, not the number.</div>`}</div></div>`;
-    if (ps.length) html += `<div class="lbl grp-lbl">Last four</div><div class="thumbs">${ps.slice(-4).map((x) => `<div class="th">${x.thumbs[0] ? `<img src="${x.thumbs[0]}" alt="">` : ''}<div class="s">${MO[fromYmd(x.date).getMonth()]} ${fromYmd(x.date).getDate()} · ${x.est.mid}%</div></div>`).join('')}</div>`;
+    if (ps.length) html += `<div class="fold-row"><div class="lbl grp-lbl">Last four</div>${ps.length > 1 ? '<button class="lbl" style="color:#2b5cff;padding:6px 4px" data-act="compare">Compare</button>' : ''}</div><div class="thumbs">${ps.slice(-4).map((x) => `<div class="th">${x.thumbs[0] ? `<img src="${x.thumbs[0]}" alt="">` : ''}<div class="s">${MO[fromYmd(x.date).getMonth()]} ${fromYmd(x.date).getDate()} · ${x.est.mid}%</div></div>`).join('')}</div>`;
     html += `<button class="btn wide" data-act="phys">${ICON_CAM} Add photos</button>`;
     if (p && p.est.photo_tip) html += `<div class="s" style="padding:0 6px">${esc(p.est.photo_tip)}</div>`;
   }
@@ -1277,6 +1375,10 @@ function renderTalk() {
     html += day.review
       ? `<button class="card review" data-act="open-review" style="width:100%;text-align:left"><div style="display:flex;align-items:center;gap:12px"><div class="grade">${esc(day.review.grade || '')}</div><div><div class="lbl" style="color:#2b5cff">Day review</div><div class="t" style="margin-top:2px">${esc(day.review.title || '')}</div></div></div></button>`
       : `<button class="btn ghost wide" data-act="review">Review my day</button>`;
+    const wk = (S.weeks || {})[weekKey()];
+    html += wk
+      ? `<button class="card review" data-act="open-week" style="width:100%;text-align:left"><div style="display:flex;align-items:center;gap:12px"><div class="grade" style="background:#1d1d1f;box-shadow:0 4px 0 #000">${esc(wk.grade || '')}</div><div><div class="lbl" style="color:#2b5cff">This week</div><div class="t" style="margin-top:2px">${esc(wk.title || '')}</div></div></div></button>`
+      : `<button class="btn ghost wide" data-act="review-week">Review my week</button>`;
     if (day.wrap) html += dayCard(ymd(), day);
   } else {
     const dates = Object.keys(S.days).filter((d) => d < ymd()).sort().reverse().slice(0, 30);
@@ -1330,10 +1432,48 @@ function toggleItem(kind, id) {
   it.doneAt = it.done ? nowHM() : null;
   if (it.done && f.day === today()) buzz([12]);
   save();
-  if (it.done && dayScore(today()) === 100) celebrate();
+  if (it.done && dayComplete(today())) celebrate();
 }
 function buzz(p) { try { navigator.vibrate && navigator.vibrate(p); } catch {} }
-function celebrate() { toast({ t: 'Day is done.', s: `Score 100 · streak ${streak()}`, cls: 'blue', ms: 5000 }); buzz([20, 40, 20]); }
+/*
+ * The payoff. Everything on the board landed, so the app gets out of the way
+ * and says so properly, once per day, full screen.
+ */
+function celebrate() {
+  const day = today();
+  if (day.celebrated) return;
+  day.celebrated = true;
+  const st = streakInfo();
+  const m = macrosToday(day);
+  const steps = S.steps.date === ymd() ? S.steps.today : null;
+  const items = dayItems(day).filter((x) => !x.skipped);
+  const mon = addDays(ymd(), -((fromYmd(ymd()).getDay() + 6) % 7));
+  const week = Array.from({ length: 7 }, (_, i) => {
+    const d = addDays(mon, i);
+    const s = S.days[d] ? dayScore(S.days[d]) : null;
+    return `<i class="${s != null && s >= STREAK_MIN ? 'on' : ''}${d === ymd() ? ' now' : ''}">${WD[fromYmd(d).getDay()][0]}</i>`;
+  }).join('');
+  $('#done-card').innerHTML = `<div class="swoosh"></div><div class="inner">
+    <div>
+      <div class="kicker">${WDL[fromYmd(ymd()).getDay()]}, ${MO[fromYmd(ymd()).getMonth()]} ${fromYmd(ymd()).getDate()}</div>
+      <h1>Day ${st.n}<br>done.</h1>
+    </div>
+    <div class="sub">${items.length} of ${items.length} on the board.${st.n > 1 ? ` That is ${st.n} days running.` : ''}</div>
+    <div class="figs">
+      <div class="fig"><b>${dayScore(day)}</b><span>Score</span></div>
+      <div class="fig"><b>${steps != null ? steps.toLocaleString() : '--'}</b><span>Steps</span></div>
+      <div class="fig"><b>${m.protein}g</b><span>Protein</span></div>
+      <div class="fig"><b>${st.n}</b><span>Streak</span></div>
+    </div>
+    <div class="wk">${week}</div>
+    <button class="go" data-act="done-close">Nice</button>
+  </div>`;
+  $('#done').classList.add('show');
+  $('#done').setAttribute('aria-hidden', 'false');
+  buzz([18, 40, 18, 40, 28]);
+  save({ quiet: true });
+}
+function closeDone() { $('#done').classList.remove('show'); $('#done').setAttribute('aria-hidden', 'true'); }
 
 document.addEventListener('click', (e) => {
   const b = e.target.closest('[data-act], [data-tab], [data-go], .fold');
@@ -1364,6 +1504,11 @@ document.addEventListener('click', (e) => {
     buzz([12]);
     setTimeout(() => { r.done = true; r.doneAt = nowHM(); save(); toast({ t: 'Knocked off', s: r.text, cls: 'blue', undo: true, ms: 4000 }); }, 200);
   }
+  else if (act === 'done-close') closeDone();
+  else if (act === 'review-week') runWeek();
+  else if (act === 'open-week') openWeek();
+  else if (act === 'advise') openAdvise();
+  else if (act === 'compare') openCompare();
   else if (act === 'rem-add') openReminder();
   else if (act === 'rem-edit') openReminder(b.dataset.id);
   else if (act === 'open-note') openNote(b.dataset.id);
@@ -1477,7 +1622,7 @@ function applyOps(ops, say, said) {
   else if (doing.length) toast({ t: say || 'Done.', s: lines.join(' · '), cls: 'blue', undo: true, ms: 6500 });
   else toast({ t: say || 'Heard you, nothing to change.', ms: 3000 });
   if (doing.length) buzz([15, 30, 15]);
-  if (dayScore(today()) === 100) celebrate();
+  if (dayComplete(today())) celebrate();
 }
 function applyOp(op) {
   const t = ymd();
@@ -1880,11 +2025,13 @@ function openScore() {
     ${done.length ? `<div class="lbl grp-lbl">Done</div><div class="card list">${done.map((x) => `<div class="row done"><div class="txt"><div class="t">${esc(x.name)}</div><div class="s">${x.doneAt ? 'Done ' + t12s(x.doneAt) : ''}</div></div></div>`).join('')}</div>` : ''}`);
 }
 function openStreak() {
+  const info = streakInfo();
   const days = [];
-  for (let i = 13; i >= 0; i--) { const d = addDays(ymd(), -i); const st = S.days[d]; days.push({ d, score: st ? dayScore(st) : null }); }
-  openSheet('Streak', `${streak()} day${streak() === 1 ? '' : 's'}`, `
-    <div class="card" style="padding:14px 16px"><div class="s" style="line-height:1.45;color:#1d1d1f">A day counts when its score hits 80 or better. Today joins the streak the moment it gets there, and the count ticks over at midnight. Miss a day and it starts again from zero.</div></div>
-    <div class="card" style="padding:14px 12px"><div class="lbl" style="padding:0 4px 10px">Last two weeks</div><div style="display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px">${days.map((x) => `<div style="display:flex;flex-direction:column;align-items:center;gap:4px"><div style="width:100%;aspect-ratio:1;border-radius:12px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;background:${x.score == null ? '#e9e7e2' : x.score >= 80 ? '#2b5cff' : '#e3e1db'};color:${x.score == null ? '#a8a49c' : x.score >= 80 ? '#fbfaf7' : '#6d6a63'};box-shadow:${x.score >= 80 ? '0 3px 0 #1a3fc2' : '0 2px 0 #cfccc4'}">${x.score == null ? '·' : x.score}</div><div class="s" style="font-size:10px">${WD[fromYmd(x.d).getDay()]}</div></div>`).join('')}</div></div>`);
+  for (let i = 13; i >= 0; i--) { const d = addDays(ymd(), -i); const st = S.days[d]; days.push({ d, score: st ? dayScore(st) : null, frozen: info.frozen.includes(d) }); }
+  openSheet('Streak', `${info.n} day${info.n === 1 ? '' : 's'}`, `
+    <div class="card" style="padding:14px 16px"><div class="s" style="line-height:1.45;color:#1d1d1f">A day counts at ${STREAK_MIN} or better, so one skipped creami will not cost you the run. You earn a freeze for every two weeks you hold, and a freeze covers a single bad day. Two bad days in a row still ends it.</div></div>
+    <div class="card" style="padding:14px 16px;display:flex;justify-content:space-between"><div><div class="lbl">Freezes left</div><div class="big" style="font-size:26px;margin-top:4px">${info.left}</div></div><div><div class="lbl">Used in this run</div><div class="big" style="font-size:26px;margin-top:4px">${info.used}</div></div><div><div class="lbl">Counts at</div><div class="big" style="font-size:26px;margin-top:4px">${STREAK_MIN}</div></div></div>
+    <div class="card" style="padding:14px 12px"><div class="lbl" style="padding:0 4px 10px">Last two weeks</div><div style="display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px">${days.map((x) => { const ok = x.score != null && x.score >= STREAK_MIN; const bg = x.score == null ? '#e9e7e2' : ok ? '#2b5cff' : x.frozen ? '#9db3ff' : '#e3e1db'; const fg = x.score == null ? '#a8a49c' : ok || x.frozen ? '#fbfaf7' : '#67645d'; return `<div style="display:flex;flex-direction:column;align-items:center;gap:4px"><div style="width:100%;aspect-ratio:1;border-radius:12px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;background:${bg};color:${fg};box-shadow:${ok ? '0 3px 0 #1a3fc2' : '0 2px 0 #cfccc4'}">${x.score == null ? '·' : x.score}</div><div class="s" style="font-size:10px;${x.frozen ? 'color:#2b5cff' : ''}">${x.frozen ? 'froze' : WD[fromYmd(x.d).getDay()]}</div></div>`; }).join('')}</div></div>`);
 }
 
 /* ---------- the day review ---------- */
@@ -1930,6 +2077,161 @@ function openReview() {
     <div class="card" style="padding:14px 16px"><div class="lbl">Tomorrow</div><div class="t" style="margin-top:4px;font-size:15px">${esc(rv.tomorrow || '')}</div></div>
     <button class="btn wide" data-act="review">Review again</button>`);
 }
+
+/* ---------- the week: the pattern the daily review cannot see ---------- */
+function weekKey(d = ymd()) { return addDays(d, -((fromYmd(d).getDay() + 6) % 7)); }
+function weekForBrain() {
+  const mon = weekKey();
+  const fit = S.fit || {};
+  const lastOf = (a) => (a && a.length ? [...a].sort((x, y) => x.date.localeCompare(y.date)).pop() : null);
+  const days = [];
+  for (let i = 0; i < 7; i++) {
+    const d = addDays(mon, i);
+    const day = S.days[d];
+    if (!day || d > ymd()) continue;
+    const m = macrosToday(day);
+    days.push({
+      date: d, weekday: WDL[fromYmd(d).getDay()], score: dayScore(day),
+      eaten: { cal: m.cal, protein: m.protein, carbs: m.carbs, fat: m.fat, sodium_mg: Math.round(m.micros.sodium_mg || 0), potassium_mg: Math.round(m.micros.potassium_mg || 0) },
+      meals_done: `${day.meals.filter((x) => x.done).length} of ${day.meals.length}`,
+      tasks: day.tasks.map((x) => `${x.name}${x.done ? ' (done)' : x.moved ? ' (moved)' : x.skipped ? ' (skipped)' : ' (missed)'}`),
+      steps: S.steps.date === d ? S.steps.today : null,
+      water: day.water, wrap: day.wrap ? day.wrap.lines : null
+    });
+  }
+  const ws = [...S.weights].sort((a, b) => a.date.localeCompare(b.date));
+  return {
+    week_of: mon, days_so_far: days.length, days,
+    goals: { cal: S.settings.calGoal, protein: S.settings.proteinGoal, carbs: S.settings.carbGoal, fat: S.settings.fatGoal, steps: S.settings.stepGoal, weight: S.settings.weightGoal, weight_by: S.settings.weightGoalDate },
+    weights_recent: ws.slice(-8), trend: projection(), streak: streakInfo().n,
+    resting_hr: lastOf(fit.rhr), energy_burned_avg: lastOf(fit.energy)
+  };
+}
+async function runWeek() {
+  toast({ t: 'Reading your week', ms: 3000 });
+  try {
+    const r = await brain({ mode: 'week', now: `${ymd()} ${nowHM()}`, profile: profileForBrain(), goals: S.settings.goalText, week: weekForBrain() });
+    S.weeks = S.weeks || {};
+    S.weeks[weekKey()] = { ...r.week, at: nowHM(), date: ymd() };
+    addChat('assistant', `Week review: ${r.week.title}\n\n${(r.week.lines || []).join('\n')}\n\nPattern: ${r.week.pattern || ''}\n\nNext week: ${r.week.focus || ''}`);
+    save();
+    openWeek();
+  } catch (err) { toast({ t: 'Could not review the week', s: err.message, cls: 'red', ms: 6000 }); }
+}
+function openWeek() {
+  const w = (S.weeks || {})[weekKey()];
+  if (!w) return;
+  const mon = weekKey();
+  openSheet(`Week of ${niceDate(mon)} · ${t12s(w.at)}`, w.title || 'Your week', `
+    <div class="card" style="padding:14px 16px;display:flex;flex-direction:column;gap:6px">${(w.lines || []).map((l) => `<div class="q" style="font-weight:600;font-size:14.5px;line-height:1.4;color:#1d1d1f">${esc(l)}</div>`).join('')}</div>
+    ${w.pattern ? `<div class="card" style="padding:14px 16px;display:flex;gap:12px;align-items:flex-start"><div class="grade" style="background:#1d1d1f;box-shadow:0 4px 0 #000">${esc(w.grade || '')}</div><div><div class="lbl" style="color:#2b5cff">The pattern</div><div class="s" style="margin-top:4px;color:#1d1d1f;line-height:1.4;font-size:14px">${esc(w.pattern)}</div></div></div>` : ''}
+    ${w.focus ? `<div class="card" style="padding:14px 16px"><div class="lbl">Next week</div><div class="t" style="margin-top:4px;font-size:15px;line-height:1.35">${esc(w.focus)}</div></div>` : ''}
+    <button class="btn wide" data-act="review-week">Review again</button>`);
+}
+
+/* ---------- what fits: asked before he eats, not after ---------- */
+function todayForAdvise() {
+  const day = today();
+  const m = macrosToday(day);
+  const g = S.settings;
+  return {
+    time: nowHM(),
+    eaten: day.meals.filter((x) => x.done).map((x) => `${x.slot}: ${x.name}`).concat(day.extras.map((e) => `extra: ${e.name}`)),
+    totals: { cal: m.cal, protein: m.protein, carbs: m.carbs, fat: m.fat },
+    goals: { cal: g.calGoal, protein: g.proteinGoal, carbs: g.carbGoal, fat: g.fatGoal },
+    left: { cal: g.calGoal - m.cal, protein: g.proteinGoal - m.protein, carbs: g.carbGoal - m.carbs, fat: g.fatGoal - m.fat },
+    still_on_the_plan: day.meals.filter((x) => !x.done).map((x) => ({ slot: x.slot, name: x.name, time: x.time, cal: x.cal, protein: x.protein })),
+    saved_meals: S.library.map((f) => ({ name: f.name, cal: f.cal, protein: f.protein }))
+  };
+}
+async function askAdvice(question) {
+  $('#sh-body').innerHTML = `<div class="card" style="padding:20px;display:flex;align-items:center;gap:12px"><div class="spin" style="border-color:#cfccc4;border-top-color:#1d1d1f"></div><div class="t">Working it out</div></div>`;
+  try {
+    const r = await brain({ mode: 'advise', now: `${ymd()} ${nowHM()}`, profile: profileForBrain(), goals: S.settings.goalText, today: todayForAdvise(), question });
+    const a = r.advise;
+    addChat('user', question);
+    addChat('assistant', `${a.answer}\n\n${(a.options || []).map((o) => `${o.name} (${o.cal} cal, ${o.protein}g): ${o.why}`).join('\n')}`);
+    save({ quiet: true });
+    renderAdvise(question, a);
+  } catch (err) {
+    $('#sh-body').innerHTML = `<div class="card" style="padding:18px"><div class="t">Could not work that out.</div><div class="s" style="margin-top:4px">${esc(err.message)}</div></div><button class="btn wide" data-act="advise">Try again</button>`;
+  }
+}
+function renderAdvise(question, a) {
+  const m = macrosToday(today());
+  const g = S.settings;
+  const left = { cal: g.calGoal - m.cal, p: g.proteinGoal - m.protein };
+  $('#sh-lbl').textContent = 'What fits';
+  $('#sh-title').textContent = question.length > 42 ? question.slice(0, 40).trimEnd() + '...' : question;
+  $('#sh-body').innerHTML = `
+    <div class="card macs"><div><div class="n">Cal left</div><div class="v">${left.cal}</div></div><div><div class="n">Protein left</div><div class="v" style="color:#2b5cff">${left.p}g</div></div><div><div class="n">Eaten</div><div class="v">${m.cal}</div></div></div>
+    <div class="card" style="padding:16px"><div class="q" style="font-size:15px;line-height:1.5;color:#1d1d1f;white-space:pre-wrap">${esc(a.answer || '')}</div></div>
+    ${(a.options || []).length ? `<div class="lbl grp-lbl">Options</div><div class="card list">${a.options.map((o) => `<div class="row"><div class="txt"><div class="t">${esc(o.name)}</div><div class="s">${o.cal} cal · ${o.protein}g protein · ${esc(o.why || '')}</div></div></div>`).join('')}</div>` : ''}
+    ${a.watch ? `<div class="card" style="padding:14px 16px"><div class="lbl" style="color:#2b5cff">Watch</div><div class="s" style="margin-top:4px;color:#1d1d1f;line-height:1.4;font-size:14px">${esc(a.watch)}</div></div>` : ''}
+    <button class="btn ghost wide" data-act="advise">Ask something else</button>`;
+}
+function openAdvise() {
+  const m = macrosToday(today());
+  const g = S.settings;
+  const quick = ['What fits in what is left today?', 'I am going out for dinner, what should I order?', 'I am short on time, what is quickest?', 'I want something sweet, what works?'];
+  openSheet('What fits', 'Ask before you eat', `
+    <div class="card macs"><div><div class="n">Cal left</div><div class="v">${g.calGoal - m.cal}</div></div><div><div class="n">Protein left</div><div class="v" style="color:#2b5cff">${g.proteinGoal - m.protein}g</div></div><div><div class="n">Carbs left</div><div class="v">${g.carbGoal - m.carbs}g</div></div><div><div class="n">Fat left</div><div class="v">${g.fatGoal - m.fat}g</div></div></div>
+    <div class="field"><textarea id="ad-q" style="min-height:80px" placeholder="Going for wings with the boys, what should I get?"></textarea></div>
+    <button class="btn blue wide" id="ad-go">Ask</button>
+    <div class="lbl grp-lbl">Or one of these</div>
+    <div class="chips">${quick.map((q) => `<button class="pill" data-quick="${esc(q)}">${esc(q.length > 34 ? q.slice(0, 32) + '...' : q)}</button>`).join('')}</div>`);
+  const go = () => { const q = $('#ad-q').value.trim(); if (q) askAdvice(q); };
+  $('#ad-go').addEventListener('click', go);
+  $('#ad-q').addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); go(); } });
+  setTimeout(() => $('#ad-q').focus(), 300);
+}
+
+/* ---------- two Sundays, side by side ---------- */
+const compare = { a: null, b: null };
+function openCompare() {
+  const ps = [...S.photos].sort((x, y) => x.date.localeCompare(y.date));
+  if (ps.length < 2) { toast({ t: 'Need two sets of photos', s: 'Add another Sunday and they can go side by side', ms: 4000 }); return; }
+  compare.a = compare.a && ps.some((p) => p.date === compare.a) ? compare.a : ps[0].date;
+  compare.b = compare.b && ps.some((p) => p.date === compare.b) ? compare.b : ps[ps.length - 1].date;
+  renderCompare();
+}
+function renderCompare() {
+  const ps = [...S.photos].sort((x, y) => x.date.localeCompare(y.date));
+  const A = ps.find((p) => p.date === compare.a), B = ps.find((p) => p.date === compare.b);
+  const wAt = (d) => { const w = [...S.weights].sort((x, y) => x.date.localeCompare(y.date)).filter((x) => x.date <= d).pop(); return w ? w.lb : null; };
+  const wa = wAt(A.date), wb = wAt(B.date);
+  const dBf = B.est.mid - A.est.mid, dW = wa != null && wb != null ? wb - wa : null;
+  const gap = Math.round((fromYmd(B.date) - fromYmd(A.date)) / 86400000);
+  const pane = (p, w) => `<div style="flex:1 1 0;min-width:0;display:flex;flex-direction:column;gap:8px">
+      <div class="card" style="aspect-ratio:3/4;overflow:hidden;background:#d6d2c8;position:relative">${p.thumbs[0] ? `<img src="${p.thumbs[0]}" alt="" style="width:100%;height:100%;object-fit:cover">` : ''}<div style="position:absolute;left:8px;bottom:8px;padding:4px 8px;border-radius:6px;background:#1d1d1f;color:#fbfaf7;font-weight:700;font-size:11px">${niceDate(p.date)}</div></div>
+      <div style="text-align:center"><div class="big" style="font-size:26px">${p.est.mid}<span style="font-size:15px">%</span></div><div class="s">${w != null ? w + ' lb' : 'no weigh-in'}</div></div>
+    </div>`;
+  const pick = (which, sel) => `<select data-cmp="${which}" style="flex:1 1 0;min-width:0;height:44px;border-radius:14px;border:1.5px solid var(--edge);background:var(--card);padding:0 12px;font-weight:700;font-size:14px;color:var(--ink);box-shadow:0 2px 0 var(--edge) inset;outline:none">${ps.map((p) => `<option value="${p.date}"${p.date === sel ? ' selected' : ''}>${niceDate(p.date)} · ${p.est.mid}%</option>`).join('')}</select>`;
+  const arrow = (v, unit, goodDown = true) => {
+    if (v == null) return '<span class="s">no reading</span>';
+    const good = goodDown ? v < 0 : v > 0;
+    return `<span style="color:${v === 0 ? '#67645d' : good ? '#2b5cff' : '#b8321f'};font-weight:800">${v > 0 ? '+' : ''}${unit === '%' ? v : v.toFixed(1)}${unit}</span>`;
+  };
+  openSheet('Body', `${gap} day${gap === 1 ? '' : 's'} apart`, `
+    <div style="display:flex;gap:10px">${pane(A, wa)}${pane(B, wb)}</div>
+    <div style="display:flex;gap:10px">${pick('a', compare.a)}${pick('b', compare.b)}</div>
+    <div class="card" style="padding:14px 16px;display:flex;justify-content:space-between">
+      <div><div class="lbl">Body fat</div><div class="big" style="font-size:24px;margin-top:4px">${arrow(dBf, '%')}</div></div>
+      <div><div class="lbl">Weight</div><div class="big" style="font-size:24px;margin-top:4px">${arrow(dW, ' lb')}</div></div>
+      <div><div class="lbl">Between</div><div class="big" style="font-size:24px;margin-top:4px">${gap}d</div></div>
+    </div>
+    <div class="s" style="padding:0 6px">Photo estimates carry a few points of error each, so read the gap between them, not either number on its own.</div>`);
+}
+$('#sh-body').addEventListener('change', (e) => {
+  const sel = e.target.closest('[data-cmp]');
+  if (!sel) return;
+  compare[sel.dataset.cmp] = sel.value;
+  renderCompare();
+});
+$('#sh-body').addEventListener('click', (e) => {
+  const q = e.target.closest('[data-quick]');
+  if (q) askAdvice(q.dataset.quick);
+});
 
 /* ---------- one item: the breakdown, editable ---------- */
 const MICRO_DEFS = [['fiber_g', 'Fiber', 30, 'g'], ['sodium_mg', 'Sodium', 2300, 'mg'], ['potassium_mg', 'Potassium', 3400, 'mg'], ['iron_mg', 'Iron', 8, 'mg'], ['vitamin_c_mg', 'Vitamin C', 90, 'mg'], ['calcium_mg', 'Calcium', 1000, 'mg'], ['vitamin_d_mcg', 'Vitamin D', 20, 'mcg'], ['magnesium_mg', 'Magnesium', 400, 'mg']];
@@ -2150,6 +2452,7 @@ function applyFit(fit) {
 const sbHeaders = { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}`, 'Content-Type': 'application/json' };
 function scheduleSync() { clearTimeout(sync.timer); sync.timer = setTimeout(pushSync, 1500); }
 async function pushSync() {
+  if (IS_TEST_HOST) { sync.status = 'local'; return; }
   if (!SB_KEY || SB_KEY.startsWith('__')) return;
   try {
     const r = await fetch(`${SB_URL}/rest/v1/day_state`, { method: 'POST', headers: { ...sbHeaders, Prefer: 'resolution=merge-duplicates,return=minimal' }, body: JSON.stringify([{ id: ROW_ID, data: S, updated_at: new Date().toISOString() }]) });
@@ -2157,6 +2460,7 @@ async function pushSync() {
   } catch { sync.status = 'offline'; }
 }
 async function pullSync() {
+  if (IS_TEST_HOST) { sync.status = 'local'; return; }
   if (!SB_KEY || SB_KEY.startsWith('__')) return;
   try {
     const r = await fetch(`${SB_URL}/rest/v1/day_state?id=eq.${ROW_ID}&select=data,updated_at`, { headers: sbHeaders });
