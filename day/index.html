@@ -179,8 +179,8 @@
 
   /* bottom nav: one icon per area, the way Fitbit does it */
   #nav { position: fixed; left: 0; right: 0; bottom: 0; height: calc(var(--barh) + var(--sab)); padding: 8px 10px calc(var(--sab) + 8px); display: flex; gap: 4px; align-items: stretch; background: var(--card); box-shadow: 0 -1px 0 #fff inset, 0 -6px 0 var(--edge), 0 -14px 24px rgba(0,0,0,0.08); z-index: 20; }
-  .nb { flex: 1 1 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; border-radius: 18px; color: var(--mute); font-weight: 700; font-size: 10.5px; letter-spacing: 0.04em; text-transform: uppercase; transition: transform .08s, box-shadow .08s, background .12s; min-width: 0; }
-  .nb svg { width: 24px; height: 24px; }
+  .nb { flex: 1 1 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; border-radius: 16px; color: var(--mute); font-weight: 700; font-size: 9.5px; letter-spacing: 0.03em; text-transform: uppercase; transition: transform .08s, box-shadow .08s, background .12s; min-width: 0; padding: 0 2px; }
+  .nb svg { width: 22px; height: 22px; }
   .nb:active { transform: translateY(2px); }
   .nb.on { background: var(--ink); color: var(--card); box-shadow: 0 4px 0 #000; }
   .nb:last-child { margin-right: 60px; }
@@ -250,6 +250,20 @@
   .spin { width: 22px; height: 22px; border-radius: 50%; border: 3px solid rgba(251,250,247,0.3); border-top-color: var(--card); animation: spin .8s linear infinite; }
   @keyframes spin { to { transform: rotate(360deg); } }
 
+  /* chat */
+  .thread { display: flex; flex-direction: column; gap: 10px; padding-bottom: 8px; }
+  .msg { max-width: 86%; padding: 12px 14px; border-radius: 20px; font-weight: 600; font-size: 15px; line-height: 1.4; white-space: pre-wrap; }
+  .msg.me { align-self: flex-end; background: var(--ink); color: var(--card); box-shadow: 0 4px 0 #000; border-bottom-right-radius: 6px; }
+  .msg.ai { align-self: flex-start; background: var(--card); color: var(--ink); box-shadow: var(--raise); border-bottom-left-radius: 6px; }
+  .msg .ops { margin-top: 8px; padding-top: 8px; border-top: 1.5px solid var(--line); font-size: 12.5px; color: var(--blue); font-weight: 700; }
+  .msg .when { display: block; margin-top: 4px; font-size: 11px; color: var(--soft); font-weight: 600; }
+  .msg.me .when { color: #a8a49c; }
+  .chat-in { display: flex; gap: 8px; margin-top: 12px; }
+  .chat-in input { flex-grow: 1; height: 46px; border-radius: 999px; border: 1.5px solid var(--edge); background: var(--card); padding: 0 16px; font-weight: 600; font-size: 15px; color: var(--ink); box-shadow: 0 2px 0 var(--edge) inset; outline: none; min-width: 0; }
+  .chat-in input:focus { border-color: var(--blue); }
+  .review { display: flex; flex-direction: column; gap: 8px; padding: 14px 16px; }
+  .review .grade { width: 46px; height: 46px; border-radius: 14px; background: var(--blue); color: var(--card); display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 22px; box-shadow: 0 4px 0 var(--blue-deep); flex-shrink: 0; }
+
   /* desktop */
   @media (min-width: 1000px) {
     #track { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); grid-auto-rows: minmax(0, 1fr); gap: 16px; padding: 16px 16px 16px; overflow: hidden; scroll-snap-type: none; }
@@ -297,6 +311,7 @@
     <div class="next" id="next"></div>
     <div class="stack" style="margin-top: 12px;">
       <div class="tiles" id="tiles"></div>
+      <div id="review-card"></div>
       <div>
         <button class="fold open" id="fold-board"><span class="lbl">Still on the board <span id="left-count"></span></span><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6d6a63" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"></path></svg></button>
         <div class="card list" id="now-left"></div>
@@ -327,6 +342,15 @@
     <div class="in-tabs" data-for="wrap"></div>
     <div id="wrap-body" class="stack"></div>
   </section>
+
+  <section class="page chat" data-page="chat">
+    <div class="hdr"><div><div class="lbl">Chat</div><div class="big">Ask me anything</div></div><button class="pill" data-act="chat-clear">Clear</button></div>
+    <div id="chat-thread" class="thread"></div>
+    <div class="chat-in">
+      <input id="chat-text" placeholder="Type, or tap the mic" autocomplete="off">
+      <button class="btn blue" id="chat-send" style="height:46px;padding:0 16px">Send</button>
+    </div>
+  </section>
 </div>
 
 <nav id="nav"></nav>
@@ -355,7 +379,7 @@ const SB_URL = 'https://ksgxrxqvnfpfhidxsxcs.supabase.co';
 const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzZ3hyeHF2bmZwZmhpZHhzeGNzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE0MzkxMTgsImV4cCI6MjA5NzAxNTExOH0.pUD6sbkjhhTlgl5x4KHFJsThoHVlNkNBlSFES_8HHvM';
 const BRAIN = '/.netlify/functions/day-brain';
 const STORE_KEY = 'daily-board';
-const APP_VERSION = '0.5';
+const APP_VERSION = '0.6';
 const ROW_ID = 'reggie';
 
 const $ = (s, r = document) => r.querySelector(s);
@@ -383,8 +407,11 @@ function uid(p) { return `${p}${Date.now().toString(36)}${Math.floor(Math.random
  * corrected once he sends the labels. Bump PLAN_VERSION whenever these
  * defaults change so a phone that already has the app picks the new ones up.
  */
-const PLAN_VERSION = 4;
-const COFFEE = { slot: 'Coffee', name: 'Stok cold brew + protein', cal: 60, protein: 12, carbs: 1, fat: 1, parts: '300 ml Stok cold brew, 15 g Revolution protein powder', micros: { sodium_mg: 60, potassium_mg: 150, calcium_mg: 100, iron_mg: 0.5 } };
+const PLAN_VERSION = 5;
+const COFFEE_PARTS = '350 ml Stok cold brew, 15 g Revolution protein powder, 450 ml water';
+const COFFEE = { slot: 'Coffee', name: 'Stok cold brew + protein', cal: 60, protein: 12, carbs: 1, fat: 1, parts: COFFEE_PARTS, micros: { sodium_mg: 60, potassium_mg: 150, calcium_mg: 100, iron_mg: 0.5 } };
+const PROFILE = { heightIn: 73, age: 34, sex: 'male', ethnicity: 'Caucasian' };
+const GOAL_TEXT = 'Get below 180 lb, then a very slight lean bulk for the winter.';
 const HYDRATION = { slot: 'Hydration', name: 'MiO hydration pack + 1 L water', cal: 10, protein: 0, carbs: 2, fat: 0, parts: 'MiO hydration (not the energy one), about a litre of water', micros: { potassium_mg: 400, sodium_mg: 100 } };
 const BERRY = { slot: 'Creami', name: 'Berry creami', cal: 90, protein: 2, carbs: 21, fat: 1, parts: '200 g frozen berries, zero sugar juice (5 cal)', micros: { fiber_g: 5, potassium_mg: 200, vitamin_c_mg: 40, iron_mg: 1, calcium_mg: 30, magnesium_mg: 20 } };
 const PLAN_V3 = () => [
@@ -432,8 +459,10 @@ const DEFAULT = () => ({
   settings: {
     place: { name: 'Sherwood Park', lat: 53.5417, lon: -113.2963, auto: true },
     waterGoal: 4, ...GOALS_V3,
-    weightGoal: 185, weightGoalDate: '2026-11-01', heightIn: 70
+    weightGoal: 180, weightGoalDate: '2026-11-01', heightIn: 73,
+    profile: { ...PROFILE }, goalText: GOAL_TEXT
   },
+  chat: [],
   planVersion: PLAN_VERSION,
   plan: PLAN_CURRENT(),
   routine: ROUTINE_CURRENT(),
@@ -462,6 +491,8 @@ function load() {
       S.tape = Object.assign(base.tape, saved.tape || {});
       S.steps = Object.assign(base.steps, saved.steps || {});
       S.fit = Object.assign(base.fit, saved.fit || {});
+      S.settings.profile = Object.assign(base.settings.profile, (saved.settings || {}).profile || {});
+      if (!Array.isArray(S.chat)) S.chat = [];
       // The saved copy decides its own plan version. Without this line the
       // fresh default (already current) masked an old saved plan and the
       // migration never ran.
@@ -487,6 +518,19 @@ function migratePlan() {
     // version 4: the Fitbit history and the weigh-ins read off his screenshots
     if (!S.fit || !S.fit.rhr) S.fit = FIT_SEED();
     for (const [date, lb] of SEED_WEIGHTS) if (!S.weights.some((w) => w.date === date)) S.weights.push({ date, lb });
+  }
+  if (from < 5) {
+    // version 5: the coffees carry their water, his profile and the real goal
+    const fixCoffee = (m) => { if (m.slot === 'Coffee' && /^300 ml/.test(m.parts || '')) m.parts = COFFEE_PARTS; };
+    S.plan.forEach(fixCoffee);
+    Object.values(S.days).forEach((d) => d.meals.forEach(fixCoffee));
+    S.settings.profile = { ...PROFILE, ...(S.settings.profile || {}) };
+    S.settings.heightIn = 73;
+    if (!S.settings.goalText) S.settings.goalText = GOAL_TEXT;
+    if (S.settings.weightGoal === 185) S.settings.weightGoal = 180;
+    if (!Array.isArray(S.chat)) S.chat = [];
+  }
+  if (from >= 3) {
     S.planVersion = PLAN_VERSION;
     try { localStorage.setItem(STORE_KEY, JSON.stringify(S)); } catch {}
     return;
@@ -642,12 +686,13 @@ const ICON_FLAME = '<svg width="20" height="20" viewBox="0 0 24 24" fill="#2b5cf
 
 const SECTIONS = {
   now: [],
+  chat: [],
   fuel: [['plan', 'Plan'], ['macros', 'Macros'], ['meals', 'Your meals']],
   body: [['weight', 'Weight'], ['trends', 'Trends'], ['photos', 'Photos'], ['tape', 'Tape']],
   board: [['today', 'Today'], ['week', 'Week'], ['done', 'Done'], ['moved', 'Moved']],
   wrap: [['talk', 'Talk'], ['backlog', 'Backlog']]
 };
-const PAGES = ['now', 'fuel', 'body', 'board', 'wrap'];
+const PAGES = ['now', 'fuel', 'body', 'board', 'wrap', 'chat'];
 const ui = { page: 'now', section: { fuel: 'plan', body: 'weight', board: 'today', wrap: 'talk' } };
 
 function rowHTML(x, kind, opts = {}) {
@@ -692,6 +737,11 @@ function renderNow() {
     <div class="card tile"><div class="lbl">Day score</div><div style="display:flex;align-items:center;gap:8px"><svg class="ring" viewBox="0 0 40 40"><circle cx="20" cy="20" r="16" fill="none" stroke="#e0ddd5" stroke-width="7"></circle><circle cx="20" cy="20" r="16" fill="none" stroke="#2b5cff" stroke-width="7" stroke-linecap="round" stroke-dasharray="100.5" stroke-dashoffset="${off}" transform="rotate(-90 20 20)" style="transition:stroke-dashoffset .6s"></circle></svg><div class="big">${score}</div></div></div>
     <div class="card tile"><div class="lbl">Steps</div><div class="big">${steps != null ? steps.toLocaleString() : '<span style="font-size:14px;color:#6d6a63">Say your count</span>'}</div><div class="barr"><i style="width:${stepPct}%"></i></div><div class="s" style="margin-top:-2px">of ${S.settings.stepGoal.toLocaleString()}</div></div>
     <div class="card tile slim"><div class="lbl">Streak</div><div style="display:flex;align-items:center;gap:4px">${ICON_FLAME}<div class="big">${streak()}</div></div></div>`;
+
+  const rv = day.review;
+  $('#review-card').innerHTML = rv
+    ? `<button class="card review" data-act="open-review" style="width:100%;text-align:left"><div style="display:flex;align-items:center;gap:12px"><div class="grade">${esc(rv.grade || '')}</div><div style="min-width:0"><div class="lbl" style="color:#2b5cff">Day review · ${t12s(rv.at)}</div><div class="t" style="margin-top:2px">${esc(rv.title || 'Reviewed')}</div><div class="s" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc((rv.lines || [])[0] || '')}</div></div></div></button>`
+    : `<button class="card review" data-act="review" style="width:100%;text-align:left"><div style="display:flex;align-items:center;gap:12px"><div class="grade" style="background:#1d1d1f;box-shadow:0 4px 0 #000"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fbfaf7" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V5M4 15l4-4 4 3 5-6 3 2"></path></svg></div><div><div class="t">Review my day</div><div class="s">Meals, steps, walks, sodium and water, and where the scale should land tomorrow.</div></div></div></button>`;
 
   const left = [...day.tasks.filter((t) => !t.done && !t.moved && !t.skipped), ...day.meals.filter((m) => !m.done)];
   $('#left-count').textContent = left.length ? `· ${left.length}` : '· clear';
@@ -892,6 +942,9 @@ function renderWrap() {
   let html = '';
   if (sec === 'talk') {
     html += `<div class="prompt"><p>${day.wrap ? 'Filed. Talk again to add to it, or read it below.' : 'Talk it out for a minute. What went right, what got skipped, how you feel. It gets filed under today with your score.'}</p><div class="go"><button class="mic-btn" data-act="wrap-talk"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round"><rect x="9" y="3" width="6" height="11" rx="3"></rect><path d="M6 11a6 6 0 0 0 12 0M12 17v4"></path></svg></button><div><div class="big" style="font-size:20px">${day.wrap ? 'Add to today' : 'Wrap up today'}</div><div class="s" style="color:#a8a49c">Score so far ${dayScore(day)} · ${dayItems(day).filter((x) => x.done).length} of ${dayItems(day).filter((x) => !x.skipped).length} hit</div></div></div></div>`;
+    html += day.review
+      ? `<button class="card review" data-act="open-review" style="width:100%;text-align:left"><div style="display:flex;align-items:center;gap:12px"><div class="grade">${esc(day.review.grade || '')}</div><div><div class="lbl" style="color:#2b5cff">Day review</div><div class="t" style="margin-top:2px">${esc(day.review.title || '')}</div></div></div></button>`
+      : `<button class="btn ghost wide" data-act="review">Review my day</button>`;
     if (day.wrap) html += dayCard(ymd(), day);
     if (day.notes.length) html += `<div class="lbl grp-lbl">Notes today</div><div class="card list">${day.notes.map((n) => `<div class="row"><div class="txt"><div class="t">${esc(n.text)}</div><div class="s">${t12s(n.at)}</div></div></div>`).join('')}</div>`;
   } else {
@@ -914,9 +967,10 @@ const NAV_ICONS = {
   fuel: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M5 3v18M5 3c3 0 4 2 4 5s-1 5-4 5"></path><path d="M15 3v18M20 3v8a2.5 2.5 0 0 1-5 0V3"></path></svg>',
   body: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5.5" r="2.8"></circle><path d="M6 12.5c2-2 10-2 12 0"></path><path d="M9 11.5V21M15 11.5V21"></path><path d="M9 15.5h6"></path></svg>',
   board: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="4"></rect><path d="M8 12.5l2.5 2.5L16 9.5"></path></svg>',
-  wrap: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a7 7 0 1 0 10.5 10.5z"></path></svg>'
+  wrap: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a7 7 0 1 0 10.5 10.5z"></path></svg>',
+  chat: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6.5A2.5 2.5 0 0 1 6.5 4h11A2.5 2.5 0 0 1 20 6.5v7a2.5 2.5 0 0 1-2.5 2.5H10l-4.5 4v-4A2.5 2.5 0 0 1 4 13.5z"></path><path d="M8.5 9h7M8.5 12.5h4"></path></svg>'
 };
-const NAV_LABELS = { now: 'Now', fuel: 'Fuel', body: 'Body', board: 'Board', wrap: 'Wrap' };
+const NAV_LABELS = { now: 'Now', fuel: 'Fuel', body: 'Body', board: 'Board', wrap: 'Wrap', chat: 'Chat' };
 function renderTabs() {
   $$('.in-tabs').forEach((el) => {
     const pg = el.dataset.for;
@@ -924,9 +978,24 @@ function renderTabs() {
   });
   $('#nav').innerHTML = PAGES.map((p) => `<button class="nb${p === ui.page ? ' on' : ''}" data-go="${p}" aria-label="${NAV_LABELS[p]}">${NAV_ICONS[p]}<span>${NAV_LABELS[p]}</span></button>`).join('');
 }
+function renderChat() {
+  const th = $('#chat-thread');
+  const msgs = (S.chat || []).slice(-80);
+  th.innerHTML = msgs.length
+    ? msgs.map((m) => `<div class="msg ${m.role === 'user' ? 'me' : 'ai'}">${esc(m.text)}${m.ops && m.ops.length ? `<div class="ops">${esc(m.ops.join(' · '))}</div>` : ''}<span class="when">${m.date === ymd() ? '' : niceDate(m.date) + ' · '}${t12s(m.at)}</span></div>`).join('')
+    : `<div class="card" style="padding:18px"><div class="t">This is where the conversation lives.</div><div class="s" style="margin-top:6px;line-height:1.4">Everything you say to the mic and everything it does lands here, so you can scroll back and ask it to explain itself. Try "how is my protein looking today" or "what should I eat if I skip the bars".</div></div>`;
+  th.scrollTop = th.scrollHeight;
+  const pg = $('.page.chat');
+  if (ui.page === 'chat') pg.scrollTop = pg.scrollHeight;
+}
+function addChat(role, text, ops) {
+  if (!Array.isArray(S.chat)) S.chat = [];
+  S.chat.push({ role, text, ops: ops || null, at: nowHM(), date: ymd() });
+  if (S.chat.length > 300) S.chat = S.chat.slice(-300);
+}
 function render() {
   ensureDay(ymd());
-  renderNow(); renderFuel(); renderBody(); renderBoard(); renderWrap(); renderTabs();
+  renderNow(); renderFuel(); renderBody(); renderBoard(); renderWrap(); renderChat(); renderTabs();
 }
 
 /* ---------- interactions ---------- */
@@ -964,6 +1033,9 @@ document.addEventListener('click', (e) => {
   else if (act === 'drop-weight') { snapshot('Removed weigh-in'); S.weights = S.weights.filter((w) => w.date !== b.dataset.date); save(); }
   else if (act === 'phys') $('#file-phys').click();
   else if (act === 'fit-shot') $('#file-fit').click();
+  else if (act === 'chat-clear') { snapshot('Cleared chat'); S.chat = []; save(); }
+  else if (act === 'review') runReview();
+  else if (act === 'open-review') openReview();
   else if (act === 'save-tape') { S.tape.waist = Number($('#tape-waist').value) || null; S.tape.neck = Number($('#tape-neck').value) || null; S.settings.heightIn = Number($('#tape-height').value) || S.settings.heightIn; S.tape.updated = ymd(); save(); toast({ t: 'Tape saved', s: tapeEstimate() != null ? `About ${tapeEstimate()}% by the Navy formula` : 'Need waist, neck and height' }); }
   else if (act === 'wrap-talk') startListening('wrap');
   else if (act === 'add-task') openAddTask();
@@ -1028,21 +1100,43 @@ function stateForBrain() {
       extras: day.extras.map((e) => e.name)
     };
   });
-  return { today: t, days, weight: S.weights.slice(-1)[0] || null, streak: streak(), score: dayScore(today()), steps: S.steps.date === t ? S.steps.today : null, library: S.library.map((f) => f.name) };
+  const ws = [...S.weights].sort((a, b) => a.date.localeCompare(b.date));
+  const m = macrosToday(today());
+  const fit = S.fit || {};
+  const lastOf = (arr) => (arr && arr.length ? [...arr].sort((a, b) => a.date.localeCompare(b.date)).pop() : null);
+  return {
+    today: t, days,
+    macros_today: { cal: m.cal, protein: m.protein, carbs: m.carbs, fat: m.fat, sodium_mg: Math.round(m.micros.sodium_mg || 0), potassium_mg: Math.round(m.micros.potassium_mg || 0), fiber_g: Math.round(m.micros.fiber_g || 0) },
+    goals: { cal: S.settings.calGoal, protein: S.settings.proteinGoal, carbs: S.settings.carbGoal, fat: S.settings.fatGoal, steps: S.settings.stepGoal, water_bottles: S.settings.waterGoal, weight: S.settings.weightGoal, weight_by: S.settings.weightGoalDate },
+    weights_recent: ws.slice(-6), streak: streak(), score: dayScore(today()),
+    steps_today: S.steps.date === t ? S.steps.today : null,
+    resting_hr: lastOf(fit.rhr), energy_burned_avg: lastOf(fit.energy), steps_weekly_avg: lastOf(fit.steps),
+    tape: S.tape, body_fat_photo: lastOf(S.photos) ? lastOf(S.photos).est : null,
+    library: S.library.map((f) => f.name)
+  };
 }
-function applyOps(ops, say) {
-  if (!ops.length) { toast({ t: say || 'Heard you, nothing to change.', ms: 3000 }); return; }
-  snapshot(say || 'Voice change');
+function profileForBrain() { const p = S.settings.profile || {}; return { height_in: S.settings.heightIn, weight_lb: (S.weights.slice().sort((a, b) => a.date.localeCompare(b.date)).pop() || {}).lb, age: p.age, sex: p.sex, ethnicity: p.ethnicity, lives_in: S.settings.place.name }; }
+function chatHistoryForBrain() { return (S.chat || []).slice(-12).map((m) => ({ role: m.role, text: m.text.slice(0, 600) })); }
+function applyOps(ops, say, said) {
+  const answers = ops.filter((o) => o.op === 'answer').map((o) => String(o.text || ''));
+  const doing = ops.filter((o) => o.op !== 'answer');
   const lines = [];
-  for (const op of ops) {
-    try {
-      const r = applyOp(op);
-      if (r) lines.push(r);
-    } catch (err) { lines.push(`Could not do one: ${err.message}`); }
+  if (doing.length) {
+    snapshot(say || 'Voice change');
+    for (const op of doing) {
+      try {
+        const r = applyOp(op);
+        if (r) lines.push(r);
+      } catch (err) { lines.push(`Could not do one: ${err.message}`); }
+    }
   }
+  if (said) addChat('user', said);
+  addChat('assistant', [say, ...answers].filter(Boolean).join('\n\n') || (lines.length ? 'Done.' : 'Heard you, nothing to change.'), lines);
   save();
-  toast({ t: say || 'Done.', s: lines.join(' · '), cls: 'blue', undo: true, ms: 6500 });
-  buzz([15, 30, 15]);
+  if (answers.length) toast({ t: say || 'Answered', s: answers[0].slice(0, 140) + (answers[0].length > 140 ? '... (full answer in Chat)' : ''), cls: 'blue', ms: 9000 });
+  else if (doing.length) toast({ t: say || 'Done.', s: lines.join(' · '), cls: 'blue', undo: true, ms: 6500 });
+  else toast({ t: say || 'Heard you, nothing to change.', ms: 3000 });
+  if (doing.length) buzz([15, 30, 15]);
   if (dayScore(today()) === 100) celebrate();
 }
 function applyOp(op) {
@@ -1111,7 +1205,7 @@ function applyOp(op) {
     }
     case 'note': { today().notes.push({ text: op.text, at: nowHM() }); return `Noted`; }
     case 'log_steps': { S.steps = { today: Math.max(0, Math.round(op.steps)), date: t }; return `Steps ${S.steps.today.toLocaleString()}`; }
-    case 'answer': { toast({ t: op.text, ms: 8000 }); return null; }
+    case 'answer': { return null; }
     default: throw new Error(`unknown op ${op.op}`);
   }
 }
@@ -1172,13 +1266,16 @@ async function handleSpeech(mode, text, onDone) {
       toast({ t: 'Filed under today', s: r.wrap.title || '', cls: 'blue', undo: true });
     } else {
       const now = new Date();
-      const r = await brain({ mode: 'command', transcript: text, now: `${ymd()} ${nowHM()}`, weekday: WDL[now.getDay()], tomorrow: addDays(ymd(), 1), state: stateForBrain() });
-      applyOps(Array.isArray(r.ops) ? r.ops : [], r.say);
+      const r = await brain({ mode: 'command', transcript: text, now: `${ymd()} ${nowHM()}`, weekday: WDL[now.getDay()], tomorrow: addDays(ymd(), 1), state: stateForBrain(), profile: profileForBrain(), goals: S.settings.goalText, history: chatHistoryForBrain() });
+      applyOps(Array.isArray(r.ops) ? r.ops : [], r.say, text);
     }
   } catch (err) {
     toast({ t: 'The brain did not answer', s: err.message, cls: 'red', ms: 6000 });
+    if (mode !== 'wrap') { addChat('user', text); addChat('assistant', `Could not answer: ${err.message}`); save(); }
   } finally { voice.busy = false; setMic('idle'); }
 }
+$('#chat-send').addEventListener('click', () => { const t = $('#chat-text').value.trim(); if (!t) return; $('#chat-text').value = ''; handleSpeech('command', t, null); });
+$('#chat-text').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); $('#chat-send').click(); } });
 async function brain(body) {
   const r = await fetch(BRAIN, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
   const d = await r.json().catch(() => ({}));
@@ -1220,8 +1317,8 @@ function openAddTask() {
 }
 function openGoals() {
   const s = S.settings;
-  openSheet('Fuel', 'Goals', `<div class="field"><div class="lbl">Calories</div><input id="g-cal" type="number" value="${s.calGoal}"></div><div class="field"><div class="lbl">Protein (g)</div><input id="g-p" type="number" value="${s.proteinGoal}"></div><div class="field"><div class="lbl">Carbs (g)</div><input id="g-c" type="number" value="${s.carbGoal}"></div><div class="field"><div class="lbl">Fat (g)</div><input id="g-f" type="number" value="${s.fatGoal}"></div><div class="field"><div class="lbl">Water bottles a day</div><input id="g-w" type="number" value="${s.waterGoal}"></div><div class="field"><div class="lbl">Goal weight (lb)</div><input id="g-wt" type="number" step="0.1" value="${s.weightGoal}"></div><div class="field"><div class="lbl">By</div><input id="g-wd" type="date" value="${s.weightGoalDate}"></div><button class="btn blue wide" id="g-go">Save</button>`);
-  $('#g-go').addEventListener('click', () => { s.calGoal = Number($('#g-cal').value) || s.calGoal; s.proteinGoal = Number($('#g-p').value) || s.proteinGoal; s.carbGoal = Number($('#g-c').value) || s.carbGoal; s.fatGoal = Number($('#g-f').value) || s.fatGoal; s.waterGoal = Number($('#g-w').value) || s.waterGoal; s.weightGoal = Number($('#g-wt').value) || s.weightGoal; s.weightGoalDate = $('#g-wd').value || s.weightGoalDate; save(); closeSheet(); toast({ t: 'Goals saved' }); });
+  openSheet('Fuel', 'Goals', `<div class="field"><div class="lbl">The goal, in words</div><textarea id="g-txt" style="min-height:70px">${esc(s.goalText || '')}</textarea></div><div style="display:flex;gap:10px"><div class="field" style="flex:1"><div class="lbl">Height (in)</div><input id="g-h" type="number" step="0.5" value="${s.heightIn}"></div><div class="field" style="flex:1"><div class="lbl">Age</div><input id="g-age" type="number" value="${s.profile?.age ?? ''}"></div></div><div class="field"><div class="lbl">Calories</div><input id="g-cal" type="number" value="${s.calGoal}"></div><div class="field"><div class="lbl">Protein (g)</div><input id="g-p" type="number" value="${s.proteinGoal}"></div><div class="field"><div class="lbl">Carbs (g)</div><input id="g-c" type="number" value="${s.carbGoal}"></div><div class="field"><div class="lbl">Fat (g)</div><input id="g-f" type="number" value="${s.fatGoal}"></div><div class="field"><div class="lbl">Water bottles a day</div><input id="g-w" type="number" value="${s.waterGoal}"></div><div class="field"><div class="lbl">Goal weight (lb)</div><input id="g-wt" type="number" step="0.1" value="${s.weightGoal}"></div><div class="field"><div class="lbl">By</div><input id="g-wd" type="date" value="${s.weightGoalDate}"></div><button class="btn blue wide" id="g-go">Save</button>`);
+  $('#g-go').addEventListener('click', () => { s.goalText = $('#g-txt').value.trim() || s.goalText; s.heightIn = Number($('#g-h').value) || s.heightIn; s.profile = { ...(s.profile || PROFILE), age: Number($('#g-age').value) || (s.profile || PROFILE).age }; s.calGoal = Number($('#g-cal').value) || s.calGoal; s.proteinGoal = Number($('#g-p').value) || s.proteinGoal; s.carbGoal = Number($('#g-c').value) || s.carbGoal; s.fatGoal = Number($('#g-f').value) || s.fatGoal; s.waterGoal = Number($('#g-w').value) || s.waterGoal; s.weightGoal = Number($('#g-wt').value) || s.weightGoal; s.weightGoalDate = $('#g-wd').value || s.weightGoalDate; save(); closeSheet(); toast({ t: 'Goals saved' }); });
 }
 function openPlanEditor() {
   const lines = S.plan.map((m) => `${m.slot} | ${m.time} | ${m.name} | ${m.cal} | ${m.protein} | ${m.carbs} | ${m.fat}${m.parts ? ' | ' + m.parts : ''}`).join('\n');
@@ -1246,6 +1343,47 @@ function openRoutineEditor() {
     S.routine = Object.assign({ Mon: [], Tue: [], Wed: [], Thu: [], Fri: [], Sat: [], Sun: [] }, r);
     save(); closeSheet(); toast({ t: 'Routine saved', cls: 'blue' });
   });
+}
+
+/* ---------- the day review ---------- */
+function dayForReview() {
+  const day = today();
+  const m = macrosToday(day);
+  const fit = S.fit || {};
+  const lastOf = (arr) => (arr && arr.length ? [...arr].sort((a, b) => a.date.localeCompare(b.date)).pop() : null);
+  const ws = [...S.weights].sort((a, b) => a.date.localeCompare(b.date));
+  return {
+    date: ymd(), time_now: nowHM(), score: dayScore(day),
+    meals: day.meals.map((x) => ({ slot: x.slot, name: x.name, time: x.time, done: x.done, swapped: x.swapped, cal: x.cal, protein: x.protein, carbs: x.carbs, fat: x.fat, micros: x.micros || null })),
+    extras: day.extras.map((e) => ({ name: e.name, cal: e.cal, protein: e.protein, micros: e.micros || null })),
+    eaten_totals: { cal: m.cal, protein: m.protein, carbs: m.carbs, fat: m.fat, micros: Object.fromEntries(Object.entries(m.micros).map(([k, v]) => [k, Math.round(v)])) },
+    goals: { cal: S.settings.calGoal, protein: S.settings.proteinGoal, carbs: S.settings.carbGoal, fat: S.settings.fatGoal, steps: S.settings.stepGoal, water_bottles: S.settings.waterGoal, weight: S.settings.weightGoal, weight_by: S.settings.weightGoalDate },
+    water_bottles: day.water,
+    tasks: day.tasks.map((x) => ({ name: x.name, time: x.time, end: x.end, done: x.done, moved: x.moved, skipped: !!x.skipped })),
+    steps_today: S.steps.date === ymd() ? S.steps.today : null,
+    weights_recent: ws.slice(-6), resting_hr: lastOf(fit.rhr), energy_burned_avg: lastOf(fit.energy), steps_weekly_avg: lastOf(fit.steps),
+    notes: day.notes, wrap: day.wrap
+  };
+}
+async function runReview() {
+  toast({ t: 'Reading your day', ms: 3000 });
+  try {
+    const r = await brain({ mode: 'review', now: `${ymd()} ${nowHM()}`, profile: profileForBrain(), goals: S.settings.goalText, day: dayForReview() });
+    const rv = { ...r.review, at: nowHM() };
+    today().review = rv;
+    addChat('assistant', `Day review: ${rv.title}\n\n${(rv.lines || []).join('\n')}\n\nScale: ${rv.weight_outlook || ''}\n\nTomorrow: ${rv.tomorrow || ''}`);
+    save();
+    openReview();
+  } catch (err) { toast({ t: 'Could not review the day', s: err.message, cls: 'red', ms: 6000 }); }
+}
+function openReview() {
+  const rv = today().review;
+  if (!rv) return;
+  openSheet(`Day review · ${t12s(rv.at)}`, rv.title || 'Your day', `
+    <div class="card" style="padding:14px 16px;display:flex;flex-direction:column;gap:6px">${(rv.lines || []).map((l) => `<div class="q" style="font-weight:600;font-size:14.5px;line-height:1.4;color:#1d1d1f">${esc(l)}</div>`).join('')}</div>
+    <div class="card" style="padding:14px 16px;display:flex;gap:12px;align-items:flex-start"><div class="grade">${esc(rv.grade || '')}</div><div><div class="lbl" style="color:#2b5cff">The scale tomorrow</div><div class="s" style="margin-top:4px;color:#1d1d1f;line-height:1.4;font-size:14px">${esc(rv.weight_outlook || '')}</div></div></div>
+    <div class="card" style="padding:14px 16px"><div class="lbl">Tomorrow</div><div class="t" style="margin-top:4px;font-size:15px">${esc(rv.tomorrow || '')}</div></div>
+    <button class="btn wide" data-act="review">Review again</button>`);
 }
 
 /* ---------- one item: the breakdown, editable ---------- */

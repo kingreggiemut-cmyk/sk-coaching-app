@@ -29,7 +29,9 @@ const NO_DASHES = 'PUNCTUATION: never use em dashes or en dashes in any output. 
 
 const COMMAND_SYSTEM = `You are the brain of a personal day tracker. One person (Reggie) talks into his phone about his day: meals, tasks, workouts, basketball, water, weight, how he feels. You turn what he said into operations the app applies immediately. He can undo anything, so be decisive: infer the obvious, never ask him to clarify.
 
-You receive NOW (local date and time), the STATE of today and the next few days as JSON (every item has an id), and what he SAID.
+You receive NOW (local date and time), his PROFILE and GOALS, the STATE of today and the next few days as JSON (every item has an id, plus today's macro totals, water, steps, latest weight and trend, resting heart rate, energy burned), the recent HISTORY of this conversation (his words and your replies), and what he SAID now.
+
+He can also just talk to you: ask about his plan, his numbers, what to eat, whether the day is on track, or ask you to clarify something you said earlier. For that, put the full reply in ONE "answer" op. It can be several sentences, plain and specific, using his real numbers. Never say "consult a professional" style filler. Do not repeat the answer in "say".
 
 Reply with ONE JSON object and nothing else:
 {
@@ -52,7 +54,7 @@ Allowed ops (use the ids from STATE; never invent an id):
   {"op":"log_weight","lb":n,"date":"YYYY-MM-DD"}
   {"op":"note","text":"..."}          anything worth keeping that is not an item
   {"op":"log_steps","steps":n}        his step count so far today ("I'm at 14k steps" = 14000)
-  {"op":"answer","text":"..."}        he asked a question (what is left, what is next, how many steps); answer from STATE in one or two sentences
+  {"op":"answer","text":"..."}        he asked something or wants to talk; the full reply goes here (short for "what is next", longer for real questions)
 
 Rules:
 - Match items by meaning, not exact words. "gym" matches "Gym · push day". "the Bears thing" matches "Cut the Bears intro". "dinner" matches the Dinner slot meal.
@@ -89,6 +91,18 @@ Reply with ONE JSON object and nothing else:
   "photo_tip": "one short sentence on how to make next week's photos more comparable, or empty"
 }
 Whole numbers. A single photo gets a range about 6 points wide; front plus side about 4. Be direct and matter-of-fact, never judgmental. ${NO_DASHES}`;
+
+const REVIEW_SYSTEM = `You review one person's day for his private tracker and tell him straight how it went and what the scale is likely to do. You get his PROFILE, GOALS, and the DAY: every planned item with whether it was done, the macro and micro totals of what he actually ate, water, steps against his goal, walks and workouts done or missed, his latest weight and trend, resting heart rate, and average energy burned.
+
+Reply with ONE JSON object and nothing else:
+{
+  "title": "a plain four to seven word label for the day",
+  "lines": ["four to seven short lines: food against his goals (protein, calories, what was skipped or swapped), movement (steps, walks, gym or basketball), hydration and sodium/potassium, anything from heart rate or trend worth noting"],
+  "weight_outlook": "two or three sentences on what tomorrow's scale is likely to show and why: sodium and carbs pull water in, a big deficit plus 20k steps pulls it down, a late heavy meal shows as a morning bump. Give a rough number range if you can, framed as an estimate.",
+  "tomorrow": "one concrete thing to do tomorrow",
+  "grade": "A"|"B"|"C"|"D"
+}
+Be direct and specific with his numbers, like a coach who knows him, never preachy. If the day is incomplete (items still to come tonight), say so and review what is there. ${NO_DASHES}`;
 
 const FITBIT_SYSTEM = `You read screenshots from the Fitbit app (or any health app) and pull the numbers out for one person's private tracker, so his charts fill in without a live link. Read every number you can see with its date or period. Be literal: copy the values on screen, do not estimate what is not shown.
 
@@ -168,14 +182,28 @@ exports.handler = async (event) => {
     if (mode === 'command') {
       const transcript = String(body.transcript || '').trim();
       if (!transcript) return json(400, { error: 'nothing said' });
+      const history = Array.isArray(body.history) ? body.history.slice(-12).map((m) => `${m.role === 'user' ? 'HE SAID' : 'YOU SAID'}: ${m.text}`).join('\n') : '';
       const user =
         `NOW: ${body.now || ''} (${body.weekday || ''})\n` +
         `TOMORROW: ${body.tomorrow || ''}\n\n` +
+        `PROFILE: ${JSON.stringify(body.profile || {})}\n` +
+        `GOALS: ${body.goals || ''}\n\n` +
         `STATE:\n${JSON.stringify(body.state || {})}\n\n` +
-        `SAID:\n${transcript}`;
-      const { parsed, usage } = await ask(COMMAND_SYSTEM, [{ type: 'text', text: user }], 1500);
+        (history ? `HISTORY (oldest first):\n${history}\n\n` : '') +
+        `SAID NOW:\n${transcript}`;
+      const { parsed, usage } = await ask(COMMAND_SYSTEM, [{ type: 'text', text: user }], 2000);
       const ops = Array.isArray(parsed.ops) ? parsed.ops : [];
       return json(200, { say: String(parsed.say || ''), ops, usage });
+    }
+
+    if (mode === 'review') {
+      const text =
+        `NOW: ${body.now || ''}\n` +
+        `PROFILE: ${JSON.stringify(body.profile || {})}\n` +
+        `GOALS: ${body.goals || ''}\n\n` +
+        `DAY:\n${JSON.stringify(body.day || {})}\n\nReturn the JSON.`;
+      const { parsed, usage } = await ask(REVIEW_SYSTEM, [{ type: 'text', text }], 1200);
+      return json(200, { review: parsed, usage });
     }
 
     if (mode === 'food') {
