@@ -185,6 +185,25 @@
   .nb.on { background: var(--ink); color: var(--card); box-shadow: 0 4px 0 #000; }
   .nb:last-child { margin-right: 60px; }
 
+  /* the now divider inside the flow list */
+  .nowline { display: flex; align-items: center; gap: 10px; padding: 6px 16px; border-top: 1.5px solid var(--line); }
+  .nowline span { flex: 1 1 0; height: 2px; border-radius: 1px; background: var(--line); }
+
+  /* reminder strip, parked above the nav */
+  #strip { position: fixed; left: 0; right: 0; bottom: calc(var(--barh) + var(--sab)); z-index: 21; display: none; gap: 8px; padding: 22px 12px 10px; overflow-x: auto; scrollbar-width: none; background: linear-gradient(180deg, rgba(233,231,226,0) 0%, var(--ground) 42%); }
+  #strip::-webkit-scrollbar { display: none; }
+  #strip.show { display: flex; }
+  .rem { flex: 0 0 auto; display: inline-flex; align-items: center; gap: 8px; height: 42px; padding: 0 14px 0 10px; border-radius: 999px; background: var(--card); box-shadow: 0 1px 0 #fff inset, 0 4px 0 var(--edge); max-width: 74vw; transition: transform .08s, box-shadow .08s, opacity .2s; }
+  .rem:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--edge); }
+  .rem .tick { width: 22px; height: 22px; border-radius: 50%; flex-shrink: 0; background: var(--ground); box-shadow: 0 2px 0 var(--edge) inset; display: flex; align-items: center; justify-content: center; }
+  .rem .tick svg { width: 13px; height: 13px; opacity: 0; }
+  .rem .rt { font-weight: 700; font-size: 14px; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .rem .rd { font-weight: 700; font-size: 11px; color: var(--blue); flex-shrink: 0; }
+  .rem.add { background: transparent; box-shadow: 0 0 0 2px var(--edge) inset; }
+  .rem.add .rt { color: var(--mute); }
+  .rem.going { opacity: 0; transform: scale(.9); }
+  .has-strip .page { padding-bottom: calc(var(--barh) + var(--sab) + 76px); }
+
   /* mic */
   #mic { position: fixed; right: 12px; bottom: calc(var(--sab) + 12px); z-index: 30; height: 58px; width: 58px; border-radius: 999px; background: var(--ink); color: var(--card); box-shadow: 0 6px 0 #000, 0 14px 24px rgba(0,0,0,0.16); display: flex; align-items: center; gap: 10px; padding: 0 16px; overflow: hidden; transition: width .25s cubic-bezier(.2,1.2,.4,1), background .2s, transform .08s, box-shadow .08s; pointer-events: auto; touch-action: manipulation; }
   #mic:active { transform: translateY(5px); box-shadow: 0 1px 0 #000, 0 6px 12px rgba(0,0,0,0.16); }
@@ -271,6 +290,10 @@
     .page.now { grid-row: span 2; }
     .sky { margin: -14px -14px 0; border-radius: 30px 30px 30px 30px; }
     #nav { display: none; }
+    #strip { left: auto; right: 24px; width: 480px; bottom: 96px; background: none; padding: 0; flex-wrap: wrap; justify-content: flex-end; }
+    #strip.show { display: flex; }
+    .rem { max-width: 100%; }
+    .has-strip .page { padding-bottom: 24px; }
     #mic { right: 24px; bottom: 24px; }
     #mic.open { width: 480px; bottom: 24px; }
     #live { left: auto; right: 24px; width: 480px; bottom: 94px; }
@@ -338,21 +361,18 @@
     <div id="board-body" class="stack"></div>
   </section>
 
-  <section class="page wrap" data-page="wrap">
-    <div class="hdr"><div><div class="lbl">Wrap · <span class="today-lbl"></span></div><div class="big">How did it go?</div></div></div>
-    <div class="in-tabs" data-for="wrap"></div>
-    <div id="wrap-body" class="stack"></div>
-  </section>
-
-  <section class="page chat" data-page="chat">
-    <div class="hdr"><div><div class="lbl">Chat</div><div class="big">Ask me anything</div></div><button class="pill" data-act="chat-clear">Clear</button></div>
-    <div id="chat-thread" class="thread"></div>
-    <div class="chat-in">
+  <section class="page talk" data-page="talk">
+    <div class="hdr"><div><div class="lbl" id="talk-lbl">Talk</div><div class="big" id="talk-title">Ask me anything</div></div><button class="pill hidden" id="talk-action"></button></div>
+    <div class="in-tabs" data-for="talk"></div>
+    <div id="talk-body" class="stack"></div>
+    <div class="chat-in hidden" id="chat-in">
       <input id="chat-text" placeholder="Type, or tap the mic" autocomplete="off">
       <button class="btn blue" id="chat-send" style="height:46px;padding:0 16px">Send</button>
     </div>
   </section>
 </div>
+
+<div id="strip"></div>
 
 <nav id="nav"></nav>
 
@@ -380,7 +400,7 @@ const SB_URL = 'https://ksgxrxqvnfpfhidxsxcs.supabase.co';
 const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzZ3hyeHF2bmZwZmhpZHhzeGNzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE0MzkxMTgsImV4cCI6MjA5NzAxNTExOH0.pUD6sbkjhhTlgl5x4KHFJsThoHVlNkNBlSFES_8HHvM';
 const BRAIN = '/.netlify/functions/day-brain';
 const STORE_KEY = 'daily-board';
-const APP_VERSION = '0.8';
+const APP_VERSION = '0.9';
 const ROW_ID = 'reggie';
 
 const $ = (s, r = document) => r.querySelector(s);
@@ -408,7 +428,7 @@ function uid(p) { return `${p}${Date.now().toString(36)}${Math.floor(Math.random
  * corrected once he sends the labels. Bump PLAN_VERSION whenever these
  * defaults change so a phone that already has the app picks the new ones up.
  */
-const PLAN_VERSION = 7;
+const PLAN_VERSION = 8;
 const PROFILE = { heightIn: 73, age: 34, sex: 'male', ethnicity: 'Caucasian' };
 const GOAL_TEXT = 'Get below 180 lb, then a very slight lean bulk for the winter.';
 /*
@@ -449,9 +469,9 @@ const PLAN_V7 = () => [
   { slot: 'Drink', name: 'Crush Zero Sugar', time: '18:00', cal: 0, protein: 0, carbs: 0, fat: 0,
     parts: 'One can (355 ml), between the two meals',
     micros: { sodium_mg: 75, potassium_mg: 50 } },
-  { slot: 'Meal 2', name: 'Chicken bowl + tomato soup', time: '21:00', cal: 625, protein: 51, carbs: 87, fat: 10,
-    parts: 'Pan: 100 g cooked chicken, 1 small yellow onion, 3/4 sweet pepper, 145 g Green Giant riced veggies, 170 g diced hashbrown potatoes, 10 g hot and spicy pepper rings, 10 g Mezzetta pickled red onion, 5 g Manuka honey, 10 g sriracha. Soup: 350 g Pacific tomato basil blended with 70 g cottage cheese, cooked',
-    micros: { fiber_g: 11, sodium_mg: 2235, potassium_mg: 2180, calcium_mg: 224, iron_mg: 4, vitamin_c_mg: 160, magnesium_mg: 155 } },
+  { slot: 'Meal 2', name: 'Chicken bowl + tomato soup', time: '21:00', cal: 600, protein: 51, carbs: 85, fat: 7,
+    parts: 'Pan: 100 g cooked chicken, 1 small yellow onion, 3/4 sweet pepper, 145 g Western Family riced cauliflower blend, 170 g diced hashbrown potatoes, 10 g hot and spicy pepper rings, 10 g Mezzetta pickled red onion, 5 g Manuka honey, 10 g sriracha. Soup: 350 g Pacific tomato basil blended with 70 g cottage cheese, cooked',
+    micros: { fiber_g: 11, sodium_mg: 1638, potassium_mg: 2180, calcium_mg: 224, iron_mg: 4.4, vitamin_c_mg: 200, magnesium_mg: 155 } },
   { ...BERRY, time: '21:15' },
   { ...BAR, time: '23:00' },
   { ...BAR, time: '23:00' },
@@ -471,7 +491,7 @@ const ROUTINE_V3 = () => ({
   Sun: [{ name: 'Weigh-in + physique photos', time: '09:00' }, ...WALKS_LONG]
 });
 /* The goals ARE the plan: hit every item and you land here. */
-const GOALS_V3 = { calGoal: 2040, proteinGoal: 180, carbGoal: 190, fatGoal: 67, stepGoal: 20000 };
+const GOALS_V3 = { calGoal: 2015, proteinGoal: 180, carbGoal: 189, fatGoal: 64, stepGoal: 20000 };
 const PLAN_CURRENT = PLAN_V7;
 const ROUTINE_CURRENT = ROUTINE_V3;
 /*
@@ -505,6 +525,10 @@ const DEFAULT = () => ({
   photos: [],
   tape: { waist: null, neck: null, updated: null },
   steps: { today: null, date: null },
+  /* Errands and one-off reminders. They sit on the strip until ticked off. */
+  reminders: [],
+  /* Thoughts worth keeping, sorted into buckets by the brain. */
+  notes: [],
   fit: FIT_SEED()
 });
 
@@ -535,6 +559,8 @@ function load() {
       S.fit = Object.assign({}, dfit, saved.fit || {});
       if (!Array.isArray(S.chat)) S.chat = [];
       if (!Array.isArray(S.library)) S.library = [];
+      if (!Array.isArray(S.reminders)) S.reminders = [];
+      if (!Array.isArray(S.notes)) S.notes = [];
       if (!S.days || typeof S.days !== 'object') S.days = {};
       // The saved copy decides its own plan version. Without this line the
       // fresh default (already current) masked an old saved plan and the
@@ -574,13 +600,25 @@ function migratePlan() {
     if (S.settings.weightGoal === 185) S.settings.weightGoal = 180;
     if (!Array.isArray(S.chat)) S.chat = [];
   }
-  if (from < 7) {
+  if (from < 8) {
     /*
-     * Version 7: the plan rebuilt from the package labels he photographed.
-     * The plan itself is replaced outright, because every number in it moved.
-     * Today's board is rebuilt too, but anything already ticked stays ticked
-     * when the same slot survives, so a rebuild mid-day costs him nothing.
+     * Version 7 rebuilt the plan from the package labels; version 8 swaps the
+     * seasoned riced veggies for the plain blend (597 mg less sodium) and adds
+     * the notes and reminders lists. The plan is replaced outright either way,
+     * because the numbers moved. Today's board is rebuilt too, but anything
+     * already ticked stays ticked when the same slot survives, so a rebuild
+     * mid-day costs him nothing.
      */
+    if (!Array.isArray(S.reminders)) S.reminders = [];
+    if (!Array.isArray(S.notes)) S.notes = [];
+    // Notes used to live on the day. Lift them out so they survive and sort.
+    for (const [date, d] of Object.entries(S.days)) {
+      for (const n of d.notes || []) {
+        if (!S.notes.some((x) => x.text === n.text && x.date === date)) {
+          S.notes.push({ id: uid('n'), text: n.text, bucket: 'Random', date, at: n.at || '12:00' });
+        }
+      }
+    }
     const t = ymd();
     const old = S.days[t];
     S.plan = PLAN_CURRENT();
@@ -773,14 +811,13 @@ const ICON_FLAME = '<svg width="20" height="20" viewBox="0 0 24 24" fill="#2b5cf
 
 const SECTIONS = {
   now: [],
-  chat: [],
   fuel: [['plan', 'Plan'], ['macros', 'Macros'], ['meals', 'Your meals']],
   body: [['weight', 'Weight'], ['trends', 'Trends'], ['photos', 'Photos'], ['tape', 'Tape']],
   board: [['today', 'Today'], ['week', 'Week'], ['done', 'Done'], ['moved', 'Moved']],
-  wrap: [['talk', 'Talk'], ['backlog', 'Backlog']]
+  talk: [['chat', 'Chat'], ['notes', 'Notes'], ['wrap', 'Wrap'], ['backlog', 'Backlog']]
 };
-const PAGES = ['now', 'fuel', 'body', 'board', 'wrap', 'chat'];
-const ui = { page: 'now', section: { fuel: 'plan', body: 'weight', board: 'today', wrap: 'talk' } };
+const PAGES = ['now', 'fuel', 'body', 'board', 'talk'];
+const ui = { page: 'now', section: { fuel: 'plan', body: 'weight', board: 'today', talk: 'chat' } };
 
 function rowHTML(x, kind, opts = {}) {
   const done = x.done ? ' done' : '';
@@ -830,7 +867,7 @@ function renderNow() {
     ? `<button class="card review" data-act="open-review" style="width:100%;text-align:left"><div style="display:flex;align-items:center;gap:12px"><div class="grade">${esc(rv.grade || '')}</div><div style="min-width:0"><div class="lbl" style="color:#2b5cff">Day review · ${t12s(rv.at)}</div><div class="t" style="margin-top:2px">${esc(rv.title || 'Reviewed')}</div><div class="s" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc((rv.lines || [])[0] || '')}</div></div></div></button>`
     : `<button class="card review" data-act="review" style="width:100%;text-align:left"><div style="display:flex;align-items:center;gap:12px"><div class="grade" style="background:#1d1d1f;box-shadow:0 4px 0 #000"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fbfaf7" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V5M4 15l4-4 4 3 5-6 3 2"></path></svg></div><div><div class="t">Review my day</div><div class="s">Meals, steps, walks, sodium and water, and where the scale should land tomorrow.</div></div></div></button>`;
 
-  $('#upcoming').innerHTML = renderUpcoming(day, nm);
+  $('#upcoming').innerHTML = renderFlow(day, nm);
 
   const left = [...day.tasks.filter((t) => !t.done && !t.moved && !t.skipped), ...day.meals.filter((m) => !m.done)];
   $('#left-count').textContent = left.length ? `· ${left.length}` : '· clear';
@@ -839,38 +876,70 @@ function renderNow() {
     : `<div class="row"><div class="txt"><div class="t">Everything is in.</div><div class="s">Streak ticks at midnight.</div></div></div>`;
 }
 /*
- * Coming up: the next few timed things, with a get-ready line for anything
- * that takes preparation (gym, basketball, a workout). Once today is spent,
- * it looks at tomorrow so the last thing he sees at night is the morning.
+ * The flow: the last couple of things you finished, then the next few coming
+ * up, with the current moment marked between them. Everything here has a live
+ * checkbox, so an item you do early gets ticked without leaving the page, and
+ * a finished one stays visible instead of vanishing. Once today is spent it
+ * looks at tomorrow, so the last thing on screen at night is the morning.
  */
 const PREP = [[/gym|basketball|workout/i, 30], [/walk/i, 10]];
 function prepFor(name) { for (const [re, m] of PREP) if (re.test(name)) return m; return 0; }
 function relTime(diff) { if (diff <= 0) return 'now'; if (diff < 60) return `in ${diff}m`; const h = Math.floor(diff / 60), m = diff % 60; return m ? `in ${h}h ${pad(m)}m` : `in ${h}h`; }
-function renderUpcoming(day, nm) {
-  const collect = (d, offsetMin) => [
-    ...d.tasks.filter((t) => !t.done && !t.moved && !t.skipped && t.time).map((t) => ({ ...t, kind: 'task', at: minutes(t.time) + offsetMin })),
-    ...d.meals.filter((m) => !m.done && m.time).map((m) => ({ ...m, kind: 'meal', at: minutes(m.time) + offsetMin }))
-  ];
-  let items = collect(day, 0).filter((x) => x.at >= nm - 20).sort((a, b) => a.at - b.at);
-  let label = 'Coming up';
-  if (items.length < 3) {
-    const tm = ensureDay(addDays(ymd(), 1));
-    const tomorrow = collect(tm, 24 * 60).sort((a, b) => a.at - b.at).slice(0, 5 - items.length);
-    if (tomorrow.length) { items = [...items, ...tomorrow]; if (!items.some((x) => x.at < 24 * 60)) label = 'Tomorrow'; }
+function hhmmOf(min) { const m = ((min % (24 * 60)) + 24 * 60) % (24 * 60); return `${pad(Math.floor(m / 60))}:${pad(m % 60)}`; }
+function flowRow(x, nm) {
+  const slot = x.kind === 'meal' && x.slot ? ` <span style="color:#6d6a63;font-weight:600">· ${esc(x.slot)}</span>` : '';
+  const chk = `<button class="chk" data-act="toggle" data-kind="${x.kind}" data-id="${x.id}">${ICON_CHECK}</button>`;
+  const txt = `<div class="txt" data-act="open-item" data-kind="${x.kind}" data-id="${x.id}" style="cursor:pointer">`;
+  if (x.done) {
+    return `<div class="row done" data-id="${x.id}">${chk}${txt}<div class="t">${esc(x.name)}${slot}</div><div class="s">Done ${x.doneAt ? t12s(x.doneAt) : ''}</div></div><div class="stamp">DONE</div></div>`;
   }
-  items = items.slice(0, 5);
-  if (!items.length) return '';
-  const rows = items.map((x) => {
-    const diff = x.at - nm;
-    const isTomorrow = x.at >= 24 * 60;
-    const prep = prepFor(x.name);
-    const prepAt = prep ? x.at - prep : null;
-    const when = isTomorrow ? `Tomorrow ${t12(x.time)}` : `${t12(x.time)}${x.end ? ' to ' + t12s(x.end) : ''}`;
-    const prepTxt = prep ? ` · get ready ${isTomorrow ? 'at' : prepAt - nm > 0 ? 'in ' + relTime(prepAt - nm).replace('in ', '') + ', at' : 'at'} ${t12s(`${pad(Math.floor((prepAt % (24 * 60)) / 60))}:${pad(prepAt % 60)}`)}` : '';
-    const rel = isTomorrow ? relTime(diff) : diff < -5 ? 'open' : relTime(diff);
-    return `<div class="row" data-id="${x.id}"><div class="txt" data-act="${isTomorrow ? '' : 'open-item'}" data-kind="${x.kind}" data-id="${x.id}"><div class="t">${esc(x.name)}${x.kind === 'meal' && x.slot ? ` <span style="color:#6d6a63;font-weight:600">· ${esc(x.slot)}</span>` : ''}</div><div class="s">${when}${prepTxt}</div></div><div class="time" style="${diff <= 0 && !isTomorrow ? '' : 'color:#1d1d1f'}${Math.abs(diff) <= 15 ? ';color:#2b5cff' : ''}">${rel}</div></div>`;
-  }).join('');
-  return `<div class="lbl grp-lbl" style="margin-bottom:8px">${label}</div><div class="card list">${rows}</div>`;
+  const diff = x.at - nm;
+  const isTomorrow = x.at >= 24 * 60;
+  const prep = prepFor(x.name);
+  const prepAt = prep ? x.at - prep : null;
+  const when = isTomorrow ? `Tomorrow ${t12(x.time)}` : `${t12(x.time)}${x.end ? ' to ' + t12s(x.end) : ''}`;
+  const prepTxt = prep ? ` · get ready ${prepAt - nm > 0 && !isTomorrow ? 'in ' + relTime(prepAt - nm).replace('in ', '') + ', at' : 'at'} ${t12s(hhmmOf(prepAt))}` : '';
+  const rel = isTomorrow ? relTime(diff) : diff < -5 ? 'open' : relTime(diff);
+  const col = isTomorrow ? '#6d6a63' : Math.abs(diff) <= 15 ? '#2b5cff' : '#1d1d1f';
+  return `<div class="row" data-id="${x.id}">${chk}${txt}<div class="t">${esc(x.name)}${slot}</div><div class="s">${when}${prepTxt}</div></div><div class="time" style="color:${col}">${rel}</div></div>`;
+}
+function renderFlow(day, nm) {
+  const tag = (d, kind, off) => d[kind === 'meal' ? 'meals' : 'tasks'].map((x) => ({ ...x, kind, at: x.time ? minutes(x.time) + off : null }));
+  const all = [...tag(day, 'task', 0), ...tag(day, 'meal', 0)];
+
+  const done = all.filter((x) => x.done && x.doneAt).sort((a, b) => a.doneAt.localeCompare(b.doneAt)).slice(-2);
+  let next = all.filter((x) => !x.done && !x.moved && !x.skipped && x.at != null && x.at >= nm - 20).sort((a, b) => a.at - b.at);
+  let label = 'Coming up';
+  if (next.length < 3) {
+    const tm = ensureDay(addDays(ymd(), 1));
+    const tomorrow = [...tag(tm, 'task', 24 * 60), ...tag(tm, 'meal', 24 * 60)]
+      .filter((x) => !x.done && !x.moved && !x.skipped && x.at != null).sort((a, b) => a.at - b.at).slice(0, 3 - next.length);
+    if (tomorrow.length) { next = [...next, ...tomorrow]; if (!next.some((x) => x.at < 24 * 60)) label = 'Tomorrow'; }
+  }
+  next = next.slice(0, 3);
+  if (!done.length && !next.length) return '';
+
+  const nowLine = done.length && next.length
+    ? `<div class="nowline"><span></span><div class="lbl" style="color:#2b5cff">${label}</div><span></span></div>`
+    : '';
+  const head = done.length ? 'Just done' : label;
+  return `<div class="lbl grp-lbl" style="margin-bottom:8px">${head}</div><div class="card list">${done.map((x) => flowRow(x, nm)).join('')}${nowLine}${next.map((x) => flowRow(x, nm)).join('')}</div>`;
+}
+
+/*
+ * The strip: errands and one-off reminders, parked above the nav so they are
+ * in front of him wherever he is. Tap one to knock it off.
+ */
+function renderStrip() {
+  const open = (S.reminders || []).filter((r) => !r.done);
+  const el = $('#strip');
+  el.classList.toggle('show', open.length > 0);
+  document.body.classList.toggle('has-strip', open.length > 0);
+  if (!open.length) { el.innerHTML = ''; return; }
+  el.innerHTML = open.map((r) => {
+    const old = r.date !== ymd();
+    return `<button class="rem" data-act="rem-done" data-id="${r.id}"><span class="tick">${ICON_CHECK}</span><span class="rt">${esc(r.text)}</span>${old ? `<span class="rd">${niceDate(r.date)}</span>` : ''}</button>`;
+  }).join('') + `<button class="rem add" data-act="rem-add"><span class="rt">+ Add</span></button>`;
 }
 function waterRow(day) {
   const g = S.settings.waterGoal;
@@ -1059,23 +1128,53 @@ function renderWeek() {
   html += `<div class="chips"><button class="pill" data-act="edit-routine">Edit the routine</button></div>`;
   return html;
 }
-function renderWrap() {
+/*
+ * Talk holds everything you say to it: the running conversation, the notes it
+ * sorted for you, the end of day wrap, and the days behind you.
+ */
+const TALK_TITLES = { chat: ['Talk', 'Ask me anything'], notes: ['Notes', 'What you kept'], wrap: ['Wrap', 'How did it go?'], backlog: ['Backlog', 'The days behind you'] };
+function renderTalk() {
   const day = today();
-  const sec = ui.section.wrap;
+  const sec = ui.section.talk;
+  const [lbl, title] = TALK_TITLES[sec] || TALK_TITLES.chat;
+  $('#talk-lbl').textContent = sec === 'wrap' ? `Wrap · ${WDL[new Date().getDay()]}` : lbl;
+  $('#talk-title').textContent = title;
+  const act = $('#talk-action');
+  act.classList.toggle('hidden', sec !== 'chat');
+  if (sec === 'chat') { act.textContent = 'Clear'; act.dataset.act = 'chat-clear'; }
+  $('#chat-in').classList.toggle('hidden', sec !== 'chat' && sec !== 'notes');
+  $('#chat-text').placeholder = sec === 'notes' ? 'Type a note, it gets sorted' : 'Type, or tap the mic';
+
   let html = '';
-  if (sec === 'talk') {
+  if (sec === 'chat') {
+    const msgs = (S.chat || []).slice(-80);
+    html += msgs.length
+      ? `<div class="thread">${msgs.map((m) => `<div class="msg ${m.role === 'user' ? 'me' : 'ai'}">${esc(m.text)}${m.ops && m.ops.length ? `<div class="ops">${esc(m.ops.join(' · '))}</div>` : ''}<span class="when">${m.date === ymd() ? '' : niceDate(m.date) + ' · '}${t12s(m.at)}</span></div>`).join('')}</div>`
+      : `<div class="card" style="padding:18px"><div class="t">This is where the conversation lives.</div><div class="s" style="margin-top:6px;line-height:1.4">Everything you say to the mic and everything it does lands here, so you can scroll back and ask it to explain itself. Try "how is my protein looking today" or "what should I eat if I skip the bars".</div></div>`;
+  } else if (sec === 'notes') {
+    const notes = [...(S.notes || [])].sort((a, b) => (b.date + b.at).localeCompare(a.date + a.at));
+    if (!notes.length) {
+      html += `<div class="card" style="padding:18px"><div class="t">Nothing kept yet.</div><div class="s" style="margin-top:6px;line-height:1.4">Say anything worth remembering and it lands here, filed under a heading. "Idea for a video breaking down the Bears run game" goes to Content. "Need to book the dentist" becomes a reminder instead.</div></div>`;
+    } else {
+      const buckets = {};
+      for (const n of notes) (buckets[n.bucket || 'Random'] = buckets[n.bucket || 'Random'] || []).push(n);
+      for (const b of Object.keys(buckets).sort()) {
+        html += `<div class="lbl grp-lbl">${esc(b)} · ${buckets[b].length}</div><div class="card list">${buckets[b].map((n) => `<div class="row"><div class="txt"><div class="t" style="white-space:normal">${esc(n.text)}</div><div class="s">${n.date === ymd() ? 'Today' : niceDate(n.date)} · ${t12s(n.at)}</div></div><button class="pill" data-act="drop-note" data-id="${n.id}" style="color:#b8321f">x</button></div>`).join('')}</div>`;
+      }
+    }
+  } else if (sec === 'wrap') {
     html += `<div class="prompt"><p>${day.wrap ? 'Filed. Talk again to add to it, or read it below.' : 'Talk it out for a minute. What went right, what got skipped, how you feel. It gets filed under today with your score.'}</p><div class="go"><button class="mic-btn" data-act="wrap-talk"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round"><rect x="9" y="3" width="6" height="11" rx="3"></rect><path d="M6 11a6 6 0 0 0 12 0M12 17v4"></path></svg></button><div><div class="big" style="font-size:20px">${day.wrap ? 'Add to today' : 'Wrap up today'}</div><div class="s" style="color:#a8a49c">Score so far ${dayScore(day)} · ${dayItems(day).filter((x) => x.done).length} of ${dayItems(day).filter((x) => !x.skipped).length} hit</div></div></div></div>`;
     html += day.review
       ? `<button class="card review" data-act="open-review" style="width:100%;text-align:left"><div style="display:flex;align-items:center;gap:12px"><div class="grade">${esc(day.review.grade || '')}</div><div><div class="lbl" style="color:#2b5cff">Day review</div><div class="t" style="margin-top:2px">${esc(day.review.title || '')}</div></div></div></button>`
       : `<button class="btn ghost wide" data-act="review">Review my day</button>`;
     if (day.wrap) html += dayCard(ymd(), day);
-    if (day.notes.length) html += `<div class="lbl grp-lbl">Notes today</div><div class="card list">${day.notes.map((n) => `<div class="row"><div class="txt"><div class="t">${esc(n.text)}</div><div class="s">${t12s(n.at)}</div></div></div>`).join('')}</div>`;
   } else {
     const dates = Object.keys(S.days).filter((d) => d < ymd()).sort().reverse().slice(0, 30);
     html += dates.length ? dates.map((d) => dayCard(d, S.days[d])).join('') : `<div class="card" style="padding:18px"><div class="t">No days behind you yet.</div><div class="s" style="margin-top:4px">Tomorrow this fills in.</div></div>`;
   }
   html += `<div class="s" style="text-align:center;padding:8px 0 0;color:#a8a49c">Daily Board ${APP_VERSION} · plan v${S.planVersion} · sync ${sync.status}</div>`;
-  $('#wrap-body').innerHTML = html;
+  $('#talk-body').innerHTML = html;
+  if (sec === 'chat') { const th = $('#talk-body .thread'); if (th) th.scrollTop = th.scrollHeight; }
 }
 function dayCard(date, day) {
   const sc = dayScore(day);
@@ -1090,26 +1189,15 @@ const NAV_ICONS = {
   fuel: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M5 3v18M5 3c3 0 4 2 4 5s-1 5-4 5"></path><path d="M15 3v18M20 3v8a2.5 2.5 0 0 1-5 0V3"></path></svg>',
   body: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5.5" r="2.8"></circle><path d="M6 12.5c2-2 10-2 12 0"></path><path d="M9 11.5V21M15 11.5V21"></path><path d="M9 15.5h6"></path></svg>',
   board: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="4"></rect><path d="M8 12.5l2.5 2.5L16 9.5"></path></svg>',
-  wrap: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a7 7 0 1 0 10.5 10.5z"></path></svg>',
-  chat: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6.5A2.5 2.5 0 0 1 6.5 4h11A2.5 2.5 0 0 1 20 6.5v7a2.5 2.5 0 0 1-2.5 2.5H10l-4.5 4v-4A2.5 2.5 0 0 1 4 13.5z"></path><path d="M8.5 9h7M8.5 12.5h4"></path></svg>'
+  talk: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6.5A2.5 2.5 0 0 1 6.5 4h11A2.5 2.5 0 0 1 20 6.5v7a2.5 2.5 0 0 1-2.5 2.5H10l-4.5 4v-4A2.5 2.5 0 0 1 4 13.5z"></path><path d="M8.5 9h7M8.5 12.5h4"></path></svg>'
 };
-const NAV_LABELS = { now: 'Now', fuel: 'Fuel', body: 'Body', board: 'Board', wrap: 'Wrap', chat: 'Chat' };
+const NAV_LABELS = { now: 'Now', fuel: 'Fuel', body: 'Body', board: 'Board', talk: 'Talk' };
 function renderTabs() {
   $$('.in-tabs').forEach((el) => {
     const pg = el.dataset.for;
     el.innerHTML = SECTIONS[pg].map(([k, n]) => `<button class="tab${ui.section[pg] === k ? ' on' : ''}" data-tab="${k}" data-page="${pg}">${n}</button>`).join('');
   });
   $('#nav').innerHTML = PAGES.map((p) => `<button class="nb${p === ui.page ? ' on' : ''}" data-go="${p}" aria-label="${NAV_LABELS[p]}">${NAV_ICONS[p]}<span>${NAV_LABELS[p]}</span></button>`).join('');
-}
-function renderChat() {
-  const th = $('#chat-thread');
-  const msgs = (S.chat || []).slice(-80);
-  th.innerHTML = msgs.length
-    ? msgs.map((m) => `<div class="msg ${m.role === 'user' ? 'me' : 'ai'}">${esc(m.text)}${m.ops && m.ops.length ? `<div class="ops">${esc(m.ops.join(' · '))}</div>` : ''}<span class="when">${m.date === ymd() ? '' : niceDate(m.date) + ' · '}${t12s(m.at)}</span></div>`).join('')
-    : `<div class="card" style="padding:18px"><div class="t">This is where the conversation lives.</div><div class="s" style="margin-top:6px;line-height:1.4">Everything you say to the mic and everything it does lands here, so you can scroll back and ask it to explain itself. Try "how is my protein looking today" or "what should I eat if I skip the bars".</div></div>`;
-  th.scrollTop = th.scrollHeight;
-  const pg = $('.page.chat');
-  if (ui.page === 'chat') pg.scrollTop = pg.scrollHeight;
 }
 function addChat(role, text, ops) {
   if (!Array.isArray(S.chat)) S.chat = [];
@@ -1118,7 +1206,7 @@ function addChat(role, text, ops) {
 }
 function render() {
   ensureDay(ymd());
-  renderNow(); renderFuel(); renderBody(); renderBoard(); renderWrap(); renderChat(); renderTabs();
+  renderNow(); renderFuel(); renderBody(); renderBoard(); renderTalk(); renderStrip(); renderTabs();
 }
 
 /* ---------- interactions ---------- */
@@ -1157,6 +1245,16 @@ document.addEventListener('click', (e) => {
   else if (act === 'phys') $('#file-phys').click();
   else if (act === 'fit-shot') $('#file-fit').click();
   else if (act === 'chat-clear') { snapshot('Cleared chat'); S.chat = []; save(); }
+  else if (act === 'rem-done') {
+    const r = (S.reminders || []).find((x) => x.id === b.dataset.id);
+    if (!r) return;
+    snapshot(`Reminder: ${r.text}`);
+    b.classList.add('going');
+    buzz([12]);
+    setTimeout(() => { r.done = true; r.doneAt = nowHM(); save(); toast({ t: 'Knocked off', s: r.text, cls: 'blue', undo: true, ms: 4000 }); }, 200);
+  }
+  else if (act === 'rem-add') openReminder();
+  else if (act === 'drop-note') { snapshot('Removed note'); S.notes = (S.notes || []).filter((n) => n.id !== b.dataset.id); save(); }
   else if (act === 'score-sheet') openScore();
   else if (act === 'streak-sheet') openStreak();
   else if (act === 'steps-sheet') { ui.section.body = 'trends'; goPage('body'); }
@@ -1239,7 +1337,10 @@ function stateForBrain() {
     steps_today: S.steps.date === t ? S.steps.today : null,
     resting_hr: lastOf(fit.rhr), energy_burned_avg: lastOf(fit.energy), steps_weekly_avg: lastOf(fit.steps),
     tape: S.tape, body_fat_photo: lastOf(S.photos) ? lastOf(S.photos).est : null,
-    library: S.library.map((f) => f.name)
+    library: S.library.map((f) => f.name),
+    reminders_open: (S.reminders || []).filter((r) => !r.done).map((r) => ({ id: r.id, text: r.text, since: r.date })),
+    note_buckets: [...new Set((S.notes || []).map((n) => n.bucket))],
+    notes_recent: (S.notes || []).slice(-6).map((n) => `${n.bucket}: ${n.text}`)
   };
 }
 function profileForBrain() { const p = S.settings.profile || {}; return { height_in: S.settings.heightIn, weight_lb: (S.weights.slice().sort((a, b) => a.date.localeCompare(b.date)).pop() || {}).lb, age: p.age, sex: p.sex, ethnicity: p.ethnicity, lives_in: S.settings.place.name }; }
@@ -1330,7 +1431,23 @@ function applyOp(op) {
       ensureDay(d).weight = Number(op.lb);
       return `Weight ${op.lb} lb`;
     }
-    case 'note': { today().notes.push({ text: op.text, at: nowHM() }); return `Noted`; }
+    case 'note': {
+      S.notes = S.notes || [];
+      S.notes.push({ id: uid('n'), text: op.text, bucket: (op.bucket || 'Random').trim().slice(0, 20), date: t, at: nowHM() });
+      if (S.notes.length > 500) S.notes = S.notes.slice(-500);
+      return `Noted under ${op.bucket || 'Random'}`;
+    }
+    case 'add_reminder': {
+      S.reminders = S.reminders || [];
+      S.reminders.push({ id: uid('r'), text: op.text, date: t, at: nowHM(), done: false });
+      return `Reminder: ${op.text}`;
+    }
+    case 'done_reminder': {
+      const r = (S.reminders || []).find((x) => !x.done && (x.id === op.id || (op.text && x.text.toLowerCase().includes(String(op.text).toLowerCase()))));
+      if (!r) throw new Error('no such reminder');
+      r.done = true; r.doneAt = nowHM();
+      return `Off the list: ${r.text}`;
+    }
     case 'log_steps': { S.steps = { today: Math.max(0, Math.round(op.steps)), date: t }; return `Steps ${S.steps.today.toLocaleString()}`; }
     case 'answer': { return null; }
     default: throw new Error(`unknown op ${op.op}`);
@@ -1401,7 +1518,13 @@ async function handleSpeech(mode, text, onDone) {
     if (mode !== 'wrap') { addChat('user', text); addChat('assistant', `Could not answer: ${err.message}`); save(); }
   } finally { voice.busy = false; setMic('idle'); }
 }
-$('#chat-send').addEventListener('click', () => { const t = $('#chat-text').value.trim(); if (!t) return; $('#chat-text').value = ''; handleSpeech('command', t, null); });
+$('#chat-send').addEventListener('click', () => {
+  const t = $('#chat-text').value.trim();
+  if (!t) return;
+  $('#chat-text').value = '';
+  // Typed on the Notes tab, he means a note, so say so rather than guessing.
+  handleSpeech('command', ui.section.talk === 'notes' ? `Note this down: ${t}` : t, null);
+});
 $('#chat-text').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); $('#chat-send').click(); } });
 async function brain(body) {
   const r = await fetch(BRAIN, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
@@ -1412,7 +1535,7 @@ async function brain(body) {
 mic.addEventListener('click', () => {
   if (voice.busy) return;
   if (voice.on) { stopListening(); return; }
-  startListening(ui.page === 'wrap' && ui.section.wrap === 'talk' ? 'wrap' : 'command');
+  startListening(ui.page === 'talk' && ui.section.talk === 'wrap' ? 'wrap' : 'command');
 });
 document.addEventListener('contextmenu', (e) => { if (e.target.closest('#mic, .chk, .btn')) e.preventDefault(); });
 
@@ -1436,6 +1559,13 @@ function openWeigh() {
   openSheet('Body', 'Log weigh-in', `<div class="field"><div class="lbl">Weight (lb)</div><input id="w-lb" type="number" step="0.1" inputmode="decimal" value="${last ? last.lb : ''}" placeholder="192.4"></div><div class="field"><div class="lbl">Date</div><input id="w-date" type="date" value="${ymd()}"></div><button class="btn blue wide" id="w-go">Save</button>`);
   $('#w-go').addEventListener('click', () => { const lb = Number($('#w-lb').value); const d = $('#w-date').value || ymd(); if (!lb) return; snapshot('Weigh-in'); S.weights = S.weights.filter((w) => w.date !== d); S.weights.push({ date: d, lb }); ensureDay(d).weight = lb; save(); closeSheet(); toast({ t: `${lb} lb logged`, s: niceDate(d), cls: 'blue', undo: true }); });
   setTimeout(() => $('#w-lb').focus(), 300);
+}
+function openReminder() {
+  openSheet('Reminder', 'What do you need to do?', `<div class="field"><input id="rm-text" placeholder="Grab eggs and coffee on the walk"></div><button class="btn blue wide" id="rm-go">Add</button><div class="s" style="padding:0 6px">It sits on the strip above the buttons until you tap it off. Saying it works too: "remind me to grab eggs".</div>`);
+  const add = () => { const t = $('#rm-text').value.trim(); if (!t) return; snapshot('Add reminder'); applyOp({ op: 'add_reminder', text: t }); save(); closeSheet(); toast({ t: 'On the strip', s: t, cls: 'blue', undo: true }); };
+  $('#rm-go').addEventListener('click', add);
+  $('#rm-text').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); add(); } });
+  setTimeout(() => $('#rm-text').focus(), 300);
 }
 function openAddTask() {
   openSheet('Board', 'Add a task', `<div class="field"><div class="lbl">What</div><input id="at-name" placeholder="Cut the Bears intro"></div><div class="field"><div class="lbl">Time (optional)</div><input id="at-time" type="time"></div><div class="field"><div class="lbl">Day</div><input id="at-date" type="date" value="${ymd()}"></div><button class="btn blue wide" id="at-go">Add</button>`);
@@ -1537,7 +1667,10 @@ function dayForReview() {
     tasks: day.tasks.map((x) => ({ name: x.name, time: x.time, end: x.end, done: x.done, moved: x.moved, skipped: !!x.skipped })),
     steps_today: S.steps.date === ymd() ? S.steps.today : null,
     weights_recent: ws.slice(-6), resting_hr: lastOf(fit.rhr), energy_burned_avg: lastOf(fit.energy), steps_weekly_avg: lastOf(fit.steps),
-    notes: day.notes, wrap: day.wrap
+    notes: (S.notes || []).filter((n) => n.date === ymd()).map((n) => `${n.bucket}: ${n.text}`),
+    reminders_open: (S.reminders || []).filter((r) => !r.done).map((r) => r.text),
+    reminders_done_today: (S.reminders || []).filter((r) => r.done && r.date === ymd()).map((r) => r.text),
+    wrap: day.wrap
   };
 }
 async function runReview() {
