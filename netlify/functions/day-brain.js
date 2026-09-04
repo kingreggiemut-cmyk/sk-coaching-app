@@ -29,7 +29,7 @@ const NO_DASHES = 'PUNCTUATION: never use em dashes or en dashes in any output. 
 
 const COMMAND_SYSTEM = `You are the brain of a personal day tracker. One person (Reggie) talks into his phone about his day: meals, tasks, workouts, basketball, water, weight, how he feels. You turn what he said into operations the app applies immediately. He can undo anything, so be decisive: infer the obvious, never ask him to clarify.
 
-You receive NOW (local date and time), his PROFILE and GOALS, the STATE of today and the next few days as JSON (every item has an id, plus today's macro totals, water, steps, latest weight and trend, resting heart rate, energy burned), the recent HISTORY of this conversation (his words and your replies), and what he SAID now.
+You receive NOW (local date and time), his PROFILE and GOALS, the STATE of today and the next few days as JSON (every item has an id, plus his standing meal plan under STATE.plan with a "pid" for each row, today's macro totals, water, steps, latest weight and trend, resting heart rate, energy burned), the recent HISTORY of this conversation (his words and your replies), and what he SAID now. He can also attach PHOTOS.
 
 He can also just talk to you: ask about his plan, his numbers, what to eat, whether the day is on track, or ask you to clarify something you said earlier. For that, put the full reply in ONE "answer" op. It can be several sentences, plain and specific, using his real numbers. Never say "consult a professional" style filler. Do not repeat the answer in "say".
 
@@ -57,6 +57,8 @@ Allowed ops (use the ids from STATE; never invent an id):
   {"op":"done_reminder","id":"..."}   he did one of the open reminders in STATE (use its id)
   {"op":"log_steps","steps":n}        his step count so far today ("I'm at 14k steps" = 14000)
   {"op":"answer","text":"..."}        he asked something or wants to talk; the full reply goes here (short for "what is next", longer for real questions)
+  {"op":"edit_plan","pid":"...","name":"...","parts":"...","cal":n,"protein":n,"carbs":n,"fat":n,"micros":{"sodium_mg":n,"potassium_mg":n,...}}
+        a STANDING change to his meal plan, every day from now on, not just today. "pid" comes from STATE.plan. Send only the fields that actually change; anything you leave out keeps its current value.
 
 Rules:
 - Match items by meaning, not exact words. "gym" matches "Gym · push day". "the Bears thing" matches "Cut the Bears intro". "dinner" matches the Dinner slot meal.
@@ -65,6 +67,14 @@ Rules:
 - His plan, in order: two coffees (Stok cold brew with Revolution whey), MiO Hydrate packs at 12:30 and 5, Meal 1 at 3 (savory crepe + extra lean ground beef), a berry creami after each meal, a Crush Zero between meals, Meal 2 at 9 (chicken bowl + tomato soup), and at 11 two Nature Valley protein bars plus a protein creami. "Had my coffee" means the first coffee not yet done. "The crepe" or "first meal" is Meal 1. "The bowl" or "chicken" is Meal 2. "Creami" alone means the next creami not yet done; "protein creami" is the 11 PM one. "A bar" completes one bar, "the bars" completes both. He fasts until mid-afternoon, so an early "ate" usually means a coffee or a hydration pack.
 - The plan totals about 2040 cal, 180 g protein, 190 g carbs, 67 g fat, 4200 mg sodium and 5900 mg potassium a day. When he asks about swapping something, use the real per-item numbers in STATE, not round guesses.
 - Walks are tasks with a time window (2 to 3, 8 to 9, 10 to 11 most days; 2:30 to 3 on gym days). "Did my walk" means the walk closest to NOW that is not done. "Walked" plus a step count is complete the walk AND log_steps.
+
+PHOTOS. He photographs things and expects you to read them, usually a package he just bought. Most often it is a nutrition label he wants swapped into his plan: "I got this rice instead", "use these tomatoes".
+- Read the label properly. Note the SERVING SIZE first, then scale to the amount he actually uses. STATE.plan holds his real portions in "parts" (for example 145 g of the riced veg blend, 350 g of soup). If the amount is not changing, keep his portion and only recompute the numbers for the new product. If the label is per 100 g and he uses 145 g, multiply by 1.45. Do the arithmetic; do not copy the per-serving figures across unchanged.
+- Then use edit_plan on the right pid, sending the new name, the new "parts" text with his portion in it, and every macro and micro that changed. Sodium and potassium matter to him more than most, so always carry those.
+- Say what actually changed in the numbers, briefly, in the "say" line: "Sodium drops 597 mg a day."
+- A photo of a cooked meal or a plate is log_food or swap_meal for today, NOT edit_plan. A photo of a receipt or a shopping list is a reminder or a note. A Fitbit screenshot means log_steps or log_weight from what it shows.
+- If a label is blurry or cut off, use what you can read and say which part you could not; never invent a number you cannot see. If you genuinely cannot tell what the photo is, say so in an answer op rather than guessing at ops.
+- When he sends a photo and says nothing, assume he means "read this and put it where it belongs", and tell him what you did.
 
 NOTES VERSUS REMINDERS. Three different things, and picking the right one is most of the job here:
   - Something he must DO soon, usually an errand: add_reminder. "I need to grab eggs on my walk", "remind me to book the dentist", "pick up more protein powder". These sit on a strip at the bottom of his screen until he taps them off. Keep the text short and imperative, the way he would read it in passing: "Grab eggs and coffee".
@@ -217,7 +227,10 @@ exports.handler = async (event) => {
   try {
     if (mode === 'command') {
       const transcript = String(body.transcript || '').trim();
-      if (!transcript) return json(400, { error: 'nothing said' });
+      const shots = imageBlocks(body.images);
+      // A photo on its own is a real message: he holds up a package and expects
+      // it to be read. Only silence with no photo is nothing.
+      if (!transcript && !shots.length) return json(400, { error: 'nothing said' });
       const history = Array.isArray(body.history) ? body.history.slice(-12).map((m) => `${m.role === 'user' ? 'HE SAID' : 'YOU SAID'}: ${m.text}`).join('\n') : '';
       const user =
         `NOW: ${body.now || ''} (${body.weekday || ''})\n` +
@@ -226,8 +239,9 @@ exports.handler = async (event) => {
         `GOALS: ${body.goals || ''}\n\n` +
         `STATE:\n${JSON.stringify(body.state || {})}\n\n` +
         (history ? `HISTORY (oldest first):\n${history}\n\n` : '') +
-        `SAID NOW:\n${transcript}`;
-      const { parsed, usage } = await ask(COMMAND_SYSTEM, [{ type: 'text', text: user }], 4000);
+        (shots.length ? `PHOTOS ATTACHED: ${shots.length}\n\n` : '') +
+        `SAID NOW:\n${transcript || '(nothing said, just the photo)'}`;
+      const { parsed, usage } = await ask(COMMAND_SYSTEM, [...shots, { type: 'text', text: user }], 4000);
       const ops = Array.isArray(parsed.ops) ? parsed.ops : [];
       return json(200, { say: String(parsed.say || ''), ops, usage });
     }

@@ -340,7 +340,17 @@
   .msg .ops { margin-top: 8px; padding-top: 8px; border-top: 1.5px solid var(--line); font-size: 12.5px; color: var(--blue); font-weight: 700; }
   .msg .when { display: block; margin-top: 4px; font-size: 11px; color: var(--mute); font-weight: 600; }
   .msg.me .when { color: #a8a49c; }
-  .chat-in { display: flex; gap: 8px; margin-top: 12px; }
+  .msg .shots { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+  .msg .shots img { width: 88px; height: 88px; object-fit: cover; border-radius: 12px; background: #d6d2c8; }
+  .msg .gone { font-size: 12px; font-weight: 700; opacity: 0.7; margin-bottom: 6px; }
+  /* Attachments waiting to be sent, above the box they will go with. */
+  .atts { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+  .att { position: relative; }
+  .att img { width: 60px; height: 60px; object-fit: cover; border-radius: 12px; background: #d6d2c8; box-shadow: 0 3px 0 var(--edge); display: block; }
+  .att .x { position: absolute; top: -7px; right: -7px; width: 24px; height: 24px; border-radius: 50%; background: var(--ink); color: var(--card); font-weight: 800; font-size: 14px; line-height: 1; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 0 #000; }
+  .chat-in { display: flex; gap: 8px; margin-top: 12px; align-items: center; }
+  .chat-in .cam { width: 46px; height: 46px; border-radius: 50%; flex-shrink: 0; background: var(--card); border: 1.5px solid var(--edge); box-shadow: 0 3px 0 var(--edge); display: flex; align-items: center; justify-content: center; }
+  .chat-in .cam:active { transform: translateY(2px); box-shadow: 0 1px 0 var(--edge); }
   .chat-in input { flex-grow: 1; height: 46px; border-radius: 999px; border: 1.5px solid var(--edge); background: var(--card); padding: 0 16px; font-weight: 600; font-size: 15px; color: var(--ink); box-shadow: 0 2px 0 var(--edge) inset; outline: none; min-width: 0; }
   .chat-in input:focus { border-color: var(--blue); }
   .review { display: flex; flex-direction: column; gap: 8px; padding: 14px 16px; }
@@ -452,7 +462,9 @@
     </header>
     <div class="in-tabs" data-for="talk"></div>
     <div id="talk-body" class="stack"></div>
+    <div class="atts hidden" id="chat-atts"></div>
     <div class="chat-in hidden" id="chat-in">
+      <button class="cam" id="chat-cam" aria-label="Add a photo"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1d1d1f" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8.5A1.5 1.5 0 0 1 4.5 7h2L8 5h8l1.5 2h2A1.5 1.5 0 0 1 21 8.5v9A1.5 1.5 0 0 1 19.5 19h-15A1.5 1.5 0 0 1 3 17.5z"></path><circle cx="12" cy="13" r="3.4"></circle></svg></button>
       <input id="chat-text" placeholder="Type, or tap the mic" autocomplete="off">
       <button class="btn blue" id="chat-send" style="height:46px;padding:0 16px">Send</button>
     </div>
@@ -477,6 +489,7 @@
 <input type="file" id="file-food" accept="image/*" capture="environment" class="hidden">
 <input type="file" id="file-phys" accept="image/*" multiple class="hidden">
 <input type="file" id="file-fit" accept="image/*" multiple class="hidden">
+<input type="file" id="file-chat" accept="image/*" multiple class="hidden">
 
 <script>
 /* ============================================================
@@ -488,7 +501,7 @@ const SB_URL = 'https://ksgxrxqvnfpfhidxsxcs.supabase.co';
 const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzZ3hyeHF2bmZwZmhpZHhzeGNzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE0MzkxMTgsImV4cCI6MjA5NzAxNTExOH0.pUD6sbkjhhTlgl5x4KHFJsThoHVlNkNBlSFES_8HHvM';
 const BRAIN = '/.netlify/functions/day-brain';
 const STORE_KEY = 'daily-board';
-const APP_VERSION = '1.4';
+const APP_VERSION = '1.5';
 const ROW_ID = 'reggie';
 /*
  * A copy served from localhost or opened off the disk is a test copy, and a test
@@ -1350,12 +1363,17 @@ function renderTalk() {
   if (sec === 'chat') { act.textContent = 'Clear'; act.dataset.act = 'chat-clear'; }
   $('#chat-in').classList.toggle('hidden', sec !== 'chat' && sec !== 'notes');
   $('#chat-text').placeholder = sec === 'notes' ? 'Type a note, it gets sorted' : 'Type, or tap the mic';
+  $('#chat-cam').classList.toggle('hidden', sec !== 'chat');
+  renderAtts();
 
   let html = '';
   if (sec === 'chat') {
     const msgs = (S.chat || []).slice(-80);
     html += msgs.length
-      ? `<div class="thread">${msgs.map((m) => `<div class="msg ${m.role === 'user' ? 'me' : 'ai'}">${esc(m.text)}${m.ops && m.ops.length ? `<div class="ops">${esc(m.ops.join(' · '))}</div>` : ''}<span class="when">${m.date === ymd() ? '' : niceDate(m.date) + ' · '}${t12s(m.at)}</span></div>`).join('')}</div>`
+      ? `<div class="thread">${msgs.map((m) => {
+          const shots = m.imgs && m.imgs.length ? `<div class="shots">${m.imgs.map((src) => `<img src="${src}" alt="Photo you sent">`).join('')}</div>` : m.shed ? `<div class="gone">${m.shed === 1 ? 'Photo' : `${m.shed} photos`} no longer kept</div>` : '';
+          return `<div class="msg ${m.role === 'user' ? 'me' : 'ai'}">${shots}${esc(m.text)}${m.ops && m.ops.length ? `<div class="ops">${esc(m.ops.join(' · '))}</div>` : ''}<span class="when">${m.date === ymd() ? '' : niceDate(m.date) + ' · '}${t12s(m.at)}</span></div>`;
+        }).join('')}</div>`
       : `<div class="card" style="padding:18px"><div class="t">This is where the conversation lives.</div><div class="s" style="margin-top:6px;line-height:1.4">Everything you say to the mic and everything it does lands here, so you can scroll back and ask it to explain itself. Try "how is my protein looking today" or "what should I eat if I skip the bars".</div></div>`;
   } else if (sec === 'notes') {
     const notes = [...(S.notes || [])].sort((a, b) => (b.date + b.at).localeCompare(a.date + a.at));
@@ -1413,10 +1431,25 @@ function renderTabs() {
   });
   $('#nav').innerHTML = PAGES.map((p) => `<button class="nb${p === ui.page ? ' on' : ''}" data-go="${p}" aria-label="${NAV_LABELS[p]}">${NAV_ICONS[p]}<span>${NAV_LABELS[p]}</span></button>`).join('');
 }
-function addChat(role, text, ops) {
+/*
+ * Thumbnails are a few KB each and the whole state syncs as one row, so only
+ * the most recent ones are kept. Older messages keep their words and say a
+ * photo was there.
+ */
+const CHAT_IMG_KEEP = 12;
+function addChat(role, text, ops, imgs) {
   if (!Array.isArray(S.chat)) S.chat = [];
-  S.chat.push({ role, text, ops: ops || null, at: nowHM(), date: ymd() });
+  const m = { role, text, ops: ops || null, at: nowHM(), date: ymd() };
+  if (imgs && imgs.length) m.imgs = imgs;
+  S.chat.push(m);
   if (S.chat.length > 300) S.chat = S.chat.slice(-300);
+  let kept = 0;
+  for (let i = S.chat.length - 1; i >= 0; i--) {
+    const c = S.chat[i];
+    if (!c.imgs) continue;
+    kept += c.imgs.length;
+    if (kept > CHAT_IMG_KEEP) { c.shed = c.imgs.length; delete c.imgs; }
+  }
 }
 function render() {
   ensureDay(ymd());
@@ -1510,6 +1543,7 @@ document.addEventListener('click', (e) => {
   else if (act === 'open-week') openWeek();
   else if (act === 'advise') openAdvise();
   else if (act === 'compare') openCompare();
+  else if (act === 'att-drop') { atts.splice(Number(b.dataset.i), 1); renderAtts(); }
   else if (act === 'push-on') pushOn();
   else if (act === 'push-off') pushOff();
   else if (act === 'push-test') pushTest();
@@ -1574,6 +1608,31 @@ function toast({ t, s, cls = '', undo: canUndo = false, ms = 3600 }) {
 }
 
 /* ---------- ops from the brain ---------- */
+/*
+ * Stable handles for the standing plan, so a photo in the chat can say which
+ * row to change. Slot and time are not unique on their own (two coffees, two
+ * protein bars), so repeats get a trailing count.
+ */
+function planIds(plan) {
+  const seen = {};
+  return (plan || S.plan).map((p) => {
+    const base = `${String(p.slot || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')}-${String(p.time || '').replace(':', '')}`;
+    const n = (seen[base] = (seen[base] || 0) + 1);
+    return `${base}-${n}`;
+  });
+}
+function findPlanByPid(pid) {
+  const i = planIds().indexOf(String(pid || ''));
+  return i < 0 ? null : { i, item: S.plan[i] };
+}
+function planForBrain() {
+  const ids = planIds();
+  return S.plan.map((p, i) => ({
+    pid: ids[i], slot: p.slot, time: p.time, name: p.name, parts: p.parts,
+    cal: p.cal, protein: p.protein, carbs: p.carbs, fat: p.fat,
+    sodium_mg: (p.micros || {}).sodium_mg, potassium_mg: (p.micros || {}).potassium_mg
+  }));
+}
 function stateForBrain() {
   const t = ymd();
   const days = {};
@@ -1591,7 +1650,7 @@ function stateForBrain() {
   const fit = S.fit || {};
   const lastOf = (arr) => (arr && arr.length ? [...arr].sort((a, b) => a.date.localeCompare(b.date)).pop() : null);
   return {
-    today: t, days,
+    today: t, days, plan: planForBrain(),
     macros_today: { cal: m.cal, protein: m.protein, carbs: m.carbs, fat: m.fat, sodium_mg: Math.round(m.micros.sodium_mg || 0), potassium_mg: Math.round(m.micros.potassium_mg || 0), fiber_g: Math.round(m.micros.fiber_g || 0) },
     goals: { cal: S.settings.calGoal, protein: S.settings.proteinGoal, carbs: S.settings.carbGoal, fat: S.settings.fatGoal, steps: S.settings.stepGoal, water_bottles: S.settings.waterGoal, weight: S.settings.weightGoal, weight_by: S.settings.weightGoalDate },
     weights_recent: ws.slice(-6), streak: streak(), score: dayScore(today()),
@@ -1606,7 +1665,7 @@ function stateForBrain() {
 }
 function profileForBrain() { const p = S.settings.profile || {}; return { height_in: S.settings.heightIn, weight_lb: (S.weights.slice().sort((a, b) => a.date.localeCompare(b.date)).pop() || {}).lb, age: p.age, sex: p.sex, ethnicity: p.ethnicity, lives_in: S.settings.place.name }; }
 function chatHistoryForBrain() { return (S.chat || []).slice(-12).map((m) => ({ role: m.role, text: m.text.slice(0, 600) })); }
-function applyOps(ops, say, said) {
+function applyOps(ops, say, said, imgs) {
   const answers = ops.filter((o) => o.op === 'answer').map((o) => String(o.text || ''));
   const doing = ops.filter((o) => o.op !== 'answer');
   const lines = [];
@@ -1619,7 +1678,7 @@ function applyOps(ops, say, said) {
       } catch (err) { lines.push(`Could not do one: ${err.message}`); }
     }
   }
-  if (said) addChat('user', said);
+  if (said || (imgs && imgs.length)) addChat('user', said || '', null, imgs);
   addChat('assistant', [say, ...answers].filter(Boolean).join('\n\n') || (lines.length ? 'Done.' : 'Heard you, nothing to change.'), lines);
   save();
   if (answers.length) toast({ t: say || 'Answered', s: answers[0].slice(0, 140) + (answers[0].length > 140 ? '... (full answer in Chat)' : ''), cls: 'blue', ms: 9000 });
@@ -1711,6 +1770,30 @@ function applyOp(op) {
       return `Off the list: ${r.text}`;
     }
     case 'log_steps': { S.steps = { today: Math.max(0, Math.round(op.steps)), date: t }; return `Steps ${S.steps.today.toLocaleString()}`; }
+    /*
+     * A standing change to the plan, not just today: "I bought this rice
+     * instead, swap it in". Only the fields he gave are touched, so a new
+     * sodium figure does not wipe the rest of the label. Today's copy follows
+     * along unless he has already eaten it.
+     */
+    case 'edit_plan': {
+      const f = findPlanByPid(op.pid); if (!f) throw new Error('no such plan item');
+      const p = f.item;
+      const before = p.name;
+      for (const k of ['name', 'parts']) if (op[k] != null) p[k] = String(op[k]);
+      for (const k of ['cal', 'protein', 'carbs', 'fat']) if (op[k] != null && isFinite(op[k])) p[k] = Math.round(Number(op[k]));
+      if (op.micros && typeof op.micros === 'object') {
+        p.micros = { ...(p.micros || {}) };
+        for (const [k, v] of Object.entries(op.micros)) if (v != null && isFinite(v)) p.micros[k] = Number(v);
+      }
+      S.planEdited = true;
+      const m = today().meals.find((x) => x.slot === p.slot && x.time === p.time && !x.done);
+      if (m) {
+        m.name = p.name; m.parts = p.parts; m.cal = p.cal; m.protein = p.protein;
+        m.carbs = p.carbs; m.fat = p.fat; m.micros = p.micros; m.planned = p.name;
+      }
+      return before === p.name ? `Plan updated: ${p.name}` : `Plan: ${before} to ${p.name}`;
+    }
     case 'answer': { return null; }
     default: throw new Error(`unknown op ${op.op}`);
   }
@@ -1756,10 +1839,15 @@ async function finishListening() {
   const text = voice.text.trim();
   live.classList.remove('show');
   if (!text) { setMic('idle'); toast({ t: 'Did not catch that', ms: 1800 }); return; }
-  await handleSpeech(voice.mode, text, voice.onDone);
+  // Photos waiting in the chat box go with whatever he just said, so he can
+  // attach one and then simply talk instead of typing.
+  const shots = voice.mode === 'command' && atts.length ? atts.splice(0, atts.length) : [];
+  if (shots.length) renderAtts();
+  await handleSpeech(voice.mode, text, voice.onDone, shots);
 }
-async function handleSpeech(mode, text, onDone) {
+async function handleSpeech(mode, text, onDone, shots) {
   if (onDone) { setMic('idle'); onDone(text); return; }
+  shots = shots || [];
   voice.busy = true; setMic('busy', 'Working on it');
   try {
     if (mode === 'wrap') {
@@ -1772,20 +1860,49 @@ async function handleSpeech(mode, text, onDone) {
       toast({ t: 'Filed under today', s: r.wrap.title || '', cls: 'blue', undo: true });
     } else {
       const now = new Date();
-      const r = await brain({ mode: 'command', transcript: text, now: `${ymd()} ${nowHM()}`, weekday: WDL[now.getDay()], tomorrow: addDays(ymd(), 1), state: stateForBrain(), profile: profileForBrain(), goals: S.settings.goalText, history: chatHistoryForBrain() });
-      applyOps(Array.isArray(r.ops) ? r.ops : [], r.say, text);
+      const r = await brain({ mode: 'command', transcript: text, images: shots.map((s) => s.full), now: `${ymd()} ${nowHM()}`, weekday: WDL[now.getDay()], tomorrow: addDays(ymd(), 1), state: stateForBrain(), profile: profileForBrain(), goals: S.settings.goalText, history: chatHistoryForBrain() });
+      applyOps(Array.isArray(r.ops) ? r.ops : [], r.say, text, shots.map((s) => s.thumb));
     }
   } catch (err) {
     toast({ t: 'The brain did not answer', s: err.message, cls: 'red', ms: 6000 });
-    if (mode !== 'wrap') { addChat('user', text); addChat('assistant', `Could not answer: ${err.message}`); save(); }
+    if (mode !== 'wrap') { addChat('user', text, null, shots.map((s) => s.thumb)); addChat('assistant', `Could not answer: ${err.message}`); save(); }
   } finally { voice.busy = false; setMic('idle'); }
 }
+/*
+ * Photos in the chat. He shows it a package he just bought and says what to do
+ * with it. Two sizes are kept: a big one that goes to the brain and is thrown
+ * away straight after, and a small square that stays in the thread so he can
+ * scroll back and see what he showed it.
+ */
+const atts = [];
+function renderAtts() {
+  const box = $('#chat-atts');
+  box.classList.toggle('hidden', !atts.length || ui.section.talk !== 'chat');
+  box.innerHTML = atts.map((a, i) => `<div class="att"><img src="${a.thumb}" alt=""><button class="x" data-act="att-drop" data-i="${i}" aria-label="Remove photo">×</button></div>`).join('');
+}
+async function addAtts(files) {
+  const list = [...files].slice(0, 4 - atts.length);
+  if (!list.length) return;
+  toast({ t: list.length > 1 ? `Adding ${list.length} photos` : 'Adding photo', ms: 1500 });
+  for (const f of list) {
+    try { atts.push({ full: await shrink(f, 1024, 0.82), thumb: await shrink(f, 160, 0.6) }); }
+    catch { toast({ t: 'Could not read that photo', cls: 'red', ms: 4000 }); }
+  }
+  renderAtts();
+  $('#chat-text').focus();
+}
+$('#chat-cam').addEventListener('click', () => { if (atts.length >= 4) { toast({ t: 'Four photos at a time', ms: 3000 }); return; } $('#file-chat').click(); });
+$('#file-chat').addEventListener('change', async (e) => { await addAtts(e.target.files || []); e.target.value = ''; });
+
 $('#chat-send').addEventListener('click', () => {
   const t = $('#chat-text').value.trim();
-  if (!t) return;
+  if (!t && !atts.length) return;
   $('#chat-text').value = '';
+  const shots = atts.splice(0, atts.length);
+  renderAtts();
   // Typed on the Notes tab, he means a note, so say so rather than guessing.
-  handleSpeech('command', ui.section.talk === 'notes' ? `Note this down: ${t}` : t, null);
+  const said = ui.section.talk === 'notes' && t ? `Note this down: ${t}` : t;
+  handleSpeech('command', said, null, shots);
 });
 $('#chat-text').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); $('#chat-send').click(); } });
 async function brain(body) {
