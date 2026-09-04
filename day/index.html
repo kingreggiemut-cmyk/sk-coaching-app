@@ -358,7 +358,7 @@ const SB_URL = 'https://ksgxrxqvnfpfhidxsxcs.supabase.co';
 const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzZ3hyeHF2bmZwZmhpZHhzeGNzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE0MzkxMTgsImV4cCI6MjA5NzAxNTExOH0.pUD6sbkjhhTlgl5x4KHFJsThoHVlNkNBlSFES_8HHvM';
 const BRAIN = '/.netlify/functions/day-brain';
 const STORE_KEY = 'daily-board';
-const APP_VERSION = '0.3';
+const APP_VERSION = '0.4';
 const ROW_ID = 'reggie';
 
 const $ = (s, r = document) => r.querySelector(s);
@@ -386,33 +386,48 @@ function uid(p) { return `${p}${Date.now().toString(36)}${Math.floor(Math.random
  * corrected once he sends the labels. Bump PLAN_VERSION whenever these
  * defaults change so a phone that already has the app picks the new ones up.
  */
-const PLAN_VERSION = 2;
-const PLAN_V2 = () => [
-  { slot: 'Coffee', name: 'Stok cold brew + protein', time: '08:30', cal: 60, protein: 12, carbs: 1, fat: 1, parts: '300 ml Stok cold brew, 15 g Revolution protein powder' },
-  { slot: 'Coffee', name: 'Stok cold brew + protein', time: '11:30', cal: 60, protein: 12, carbs: 1, fat: 1, parts: '300 ml Stok cold brew, 15 g Revolution protein powder' },
-  { slot: 'Hydration', name: 'Neo hydration pack + 1 L water', time: '12:30', cal: 20, protein: 0, carbs: 5, fat: 0, parts: 'Neo hydration (not the energy one), about a litre of water', micros: { potassium_mg: 400 } },
-  { slot: 'Meal 1', name: 'Savory crepe, ground beef, berry creami', time: '15:00', cal: 575, protein: 78, carbs: 21, fat: 18, parts: 'Crepe: 1 large egg (55 g), 1 tsp cottage cheese, 200 g egg whites. 225 g extra lean ground beef. Creami: 200 g frozen berries + zero sugar juice', micros: { fiber_g: 5, potassium_mg: 900, iron_mg: 6, vitamin_c_mg: 30 } }
+const PLAN_VERSION = 3;
+const COFFEE = { slot: 'Coffee', name: 'Stok cold brew + protein', cal: 60, protein: 12, carbs: 1, fat: 1, parts: '300 ml Stok cold brew, 15 g Revolution protein powder', micros: { sodium_mg: 60, potassium_mg: 150, calcium_mg: 100, iron_mg: 0.5 } };
+const HYDRATION = { slot: 'Hydration', name: 'MiO hydration pack + 1 L water', cal: 10, protein: 0, carbs: 2, fat: 0, parts: 'MiO hydration (not the energy one), about a litre of water', micros: { potassium_mg: 400, sodium_mg: 100 } };
+const BERRY = { slot: 'Creami', name: 'Berry creami', cal: 90, protein: 2, carbs: 21, fat: 1, parts: '200 g frozen berries, zero sugar juice (5 cal)', micros: { fiber_g: 5, potassium_mg: 200, vitamin_c_mg: 40, iron_mg: 1, calcium_mg: 30, magnesium_mg: 20 } };
+const PLAN_V3 = () => [
+  { ...COFFEE, time: '08:30' },
+  { ...COFFEE, time: '11:30' },
+  { ...HYDRATION, time: '12:30' },
+  { slot: 'Meal 1', name: 'Savory crepe + ground beef', time: '15:00', cal: 490, protein: 76, carbs: 2, fat: 17, parts: 'Crepe: 1 large egg (55 g), 1 tsp cottage cheese, 200 g egg whites, blended and cooked. 225 g extra lean ground beef', micros: { sodium_mg: 500, potassium_mg: 900, iron_mg: 6, calcium_mg: 80, vitamin_d_mcg: 2, magnesium_mg: 60 } },
+  { ...BERRY, time: '15:15' },
+  { ...HYDRATION, time: '17:00' },
+  { slot: 'Drink', name: 'Diet soda', time: '18:00', cal: 0, protein: 0, carbs: 0, fat: 0, parts: 'One can, between the two meals', micros: { sodium_mg: 40 } },
+  { slot: 'Meal 2', name: 'Chicken bowl + tomato soup', time: '21:00', cal: 615, protein: 50, carbs: 84, fat: 8, parts: 'Pan: 100 g cooked chicken, 1 small yellow onion, about 3/4 sweet pepper, 145 g diced cauliflower/peas/corn mix, 170 g frozen diced potatoes, 10 g pickled jalapenos, 10 g pickled red onion, 5 g honey, 10 g sriracha. Soup: 350 g low-cal tomato soup blended with 70 g cottage cheese, cooked', micros: { fiber_g: 12, sodium_mg: 1500, potassium_mg: 1600, iron_mg: 4, vitamin_c_mg: 120, calcium_mg: 120, magnesium_mg: 90 } },
+  { ...BERRY, time: '21:15' },
+  { slot: 'Snack', name: 'Two Nature Valley protein bars', time: '23:00', cal: 300, protein: 20, carbs: 28, fat: 12, parts: '2 bars, about 150 cal each', micros: { fiber_g: 10, sodium_mg: 350, potassium_mg: 200, iron_mg: 2, calcium_mg: 100, magnesium_mg: 60 } },
+  { slot: 'Creami', name: 'Protein creami', time: '23:00', cal: 115, protein: 17, carbs: 3, fat: 4, parts: '200 ml almond milk, 20 g Revolution protein powder, 5 g Jell-O mix, topped up with water', micros: { sodium_mg: 250, potassium_mg: 250, calcium_mg: 400, vitamin_d_mcg: 2.5, iron_mg: 0.5 } }
 ];
-const ROUTINE_V2 = () => ({
-  Mon: [{ name: 'Gym', time: '10:00' }],
-  Tue: [{ name: 'Basketball', time: '18:30' }],
-  Wed: [],
-  Thu: [{ name: 'Gym', time: '10:00' }],
-  Fri: [],
-  Sat: [{ name: 'At-home workout', time: '10:00' }],
-  Sun: [{ name: 'Weigh-in + physique photos', time: '09:00' }]
+const WALKS_LONG = [{ name: 'Walk', time: '14:00', end: '15:00' }, { name: 'Walk', time: '20:00', end: '21:00' }, { name: 'Walk', time: '22:00', end: '23:00' }];
+const WALKS_GYM = [{ name: 'Walk', time: '14:30', end: '15:00' }, { name: 'Walk', time: '20:00', end: '21:00' }, { name: 'Walk', time: '22:00', end: '23:00' }];
+const ROUTINE_V3 = () => ({
+  Mon: [{ name: 'Gym', time: '10:00' }, ...WALKS_GYM],
+  Tue: [{ name: 'Basketball', time: '18:30' }, ...WALKS_LONG],
+  Wed: [...WALKS_LONG],
+  Thu: [{ name: 'Gym', time: '10:00' }, ...WALKS_GYM],
+  Fri: [...WALKS_LONG],
+  Sat: [{ name: 'At-home workout', time: '10:00' }, ...WALKS_LONG],
+  Sun: [{ name: 'Weigh-in + physique photos', time: '09:00' }, ...WALKS_LONG]
 });
+const GOALS_V3 = { calGoal: 1850, proteinGoal: 190, carbGoal: 170, fatGoal: 45, stepGoal: 20000 };
+const PLAN_CURRENT = PLAN_V3;
+const ROUTINE_CURRENT = ROUTINE_V3;
 const DEFAULT = () => ({
   v: 1,
   updatedAt: 0,
   settings: {
     place: { name: 'Sherwood Park', lat: 53.5417, lon: -113.2963, auto: true },
-    waterGoal: 4, calGoal: 1860, proteinGoal: 142, carbGoal: 190, fatGoal: 60,
-    weightGoal: 185, weightGoalDate: '2026-11-01', heightIn: 70, stepGoal: 10000
+    waterGoal: 4, ...GOALS_V3,
+    weightGoal: 185, weightGoalDate: '2026-11-01', heightIn: 70
   },
   planVersion: PLAN_VERSION,
-  plan: PLAN_V2(),
-  routine: ROUTINE_V2(),
+  plan: PLAN_CURRENT(),
+  routine: ROUTINE_CURRENT(),
   library: [],
   days: {},
   weights: [],
@@ -451,8 +466,9 @@ function load() {
  */
 function migratePlan() {
   if ((S.planVersion || 1) >= PLAN_VERSION) return;
-  S.plan = PLAN_V2();
-  S.routine = ROUTINE_V2();
+  S.plan = PLAN_CURRENT();
+  S.routine = ROUTINE_CURRENT();
+  Object.assign(S.settings, GOALS_V3);
   S.planVersion = PLAN_VERSION;
   const t = ymd();
   const old = S.days[t];
@@ -480,7 +496,7 @@ function ensureDay(date) {
   const wd = WD[fromYmd(date).getDay()];
   const day = {
     meals: S.plan.map((m, i) => ({ id: `${date}-m${i}`, slot: m.slot, name: m.name, time: m.time, cal: m.cal, protein: m.protein, carbs: m.carbs, fat: m.fat, parts: m.parts || '', micros: m.micros || null, done: false, doneAt: null, swapped: false, planned: m.name })),
-    tasks: (S.routine[wd] || []).map((t, i) => ({ id: `${date}-t${i}`, name: t.name, time: t.time || null, done: false, doneAt: null, moved: null, skipped: null })),
+    tasks: (S.routine[wd] || []).map((t, i) => ({ id: `${date}-t${i}`, name: t.name, time: t.time || null, end: t.end || null, done: false, doneAt: null, moved: null, skipped: null })),
     extras: [],
     water: 0,
     notes: [],
@@ -573,7 +589,7 @@ function showWx(d) {
     const hi = Math.round(d.daily.temperature_2m_max[0]);
     const rain = d.daily.precipitation_probability_max?.[0];
     const cond = WX_TEXT(d.current.weather_code);
-    $('#wx').textContent = rain >= 50 ? `${t}° · ${cond} · ${rain}% rain` : `${t}° · ${cond} · high ${hi}`;
+    $('#wx').textContent = rain >= 50 ? `${t}° · ${rain}% rain · ${cond}` : `${t}° · ${cond} · high ${hi}`;
   } catch { $('#wx').textContent = 'no weather'; }
 }
 function locate() {
@@ -618,12 +634,13 @@ function rowHTML(x, kind, opts = {}) {
   const skipped = x.skipped ? ' moved' : '';
   let sub = '';
   if (kind === 'meal') sub = `${x.slot}${x.time ? ' · ' + t12s(x.time) : ''}${x.swapped ? ' · swapped in for ' + esc(x.planned) : x.cal ? ` · ${x.cal} cal · ${x.protein}g protein` : ''}`;
-  else sub = x.moved ? `Pushed to ${niceDate(x.moved)}` : x.skipped ? `Skipped${x.skipped.reason ? ' · ' + esc(x.skipped.reason) : ''}` : x.done && x.doneAt ? `Done ${t12s(x.doneAt)}` : x.time ? t12(x.time) : 'No time set';
+  else sub = x.moved ? `Pushed to ${niceDate(x.moved)}` : x.skipped ? `Skipped${x.skipped.reason ? ' · ' + esc(x.skipped.reason) : ''}` : x.done && x.doneAt ? `Done ${t12s(x.doneAt)}` : x.time ? spanTxt(x) : 'No time set';
   const right = x.done ? `<div class="stamp">${x.swapped ? 'SWAP' : 'DONE'}</div>` : x.moved ? `<div class="stamp" style="border-color:#6d6a63;color:#6d6a63;box-shadow:0 2px 0 #cfccc4">${WD[fromYmd(x.moved).getDay()].toUpperCase()}</div>` : (kind === 'task' && x.time && !x.skipped) ? `<div class="time">${t12s(x.time)}</div>` : '';
   const chk = x.moved ? `<div class="chk">${ICON_MOVE}</div>` : `<button class="chk" data-act="toggle" data-kind="${kind}" data-id="${x.id}">${ICON_CHECK}</button>`;
   const parts = opts.parts && x.parts ? `<div class="s parts">${esc(x.parts)}</div>` : '';
-  return `<div class="row${done}${moved}${skipped}" data-id="${x.id}">${chk}<div class="txt"><div class="t">${esc(x.name)}</div><div class="s">${sub}</div>${parts}</div>${right}</div>`;
+  return `<div class="row${done}${moved}${skipped}" data-id="${x.id}">${chk}<div class="txt" data-act="open-item" data-kind="${kind}" data-id="${x.id}" style="cursor:pointer"><div class="t">${esc(x.name)}</div><div class="s">${sub}</div>${parts}</div>${right}</div>`;
 }
+function spanTxt(x) { return x.end ? `${t12s(x.time)} to ${t12(x.end)}` : t12(x.time); }
 
 function renderNow() {
   const day = today();
@@ -651,7 +668,7 @@ function renderNow() {
   const stepPct = steps != null ? Math.min(100, Math.round((100 * steps) / S.settings.stepGoal)) : 0;
   $('#tiles').innerHTML = `
     <div class="card tile"><div class="lbl">Day score</div><div style="display:flex;align-items:center;gap:8px"><svg class="ring" viewBox="0 0 40 40"><circle cx="20" cy="20" r="16" fill="none" stroke="#e0ddd5" stroke-width="7"></circle><circle cx="20" cy="20" r="16" fill="none" stroke="#2b5cff" stroke-width="7" stroke-linecap="round" stroke-dasharray="100.5" stroke-dashoffset="${off}" transform="rotate(-90 20 20)" style="transition:stroke-dashoffset .6s"></circle></svg><div class="big">${score}</div></div></div>
-    <div class="card tile"><div class="lbl">Steps</div><div class="big">${steps != null ? steps.toLocaleString() : '<span style="font-size:16px;color:#6d6a63">Fitbit soon</span>'}</div><div class="barr"><i style="width:${stepPct}%"></i></div></div>
+    <div class="card tile"><div class="lbl">Steps</div><div class="big">${steps != null ? steps.toLocaleString() : '<span style="font-size:14px;color:#6d6a63">Say your count</span>'}</div><div class="barr"><i style="width:${stepPct}%"></i></div><div class="s" style="margin-top:-2px">of ${S.settings.stepGoal.toLocaleString()}</div></div>
     <div class="card tile slim"><div class="lbl">Streak</div><div style="display:flex;align-items:center;gap:4px">${ICON_FLAME}<div class="big">${streak()}</div></div></div>`;
 
   const left = [...day.tasks.filter((t) => !t.done && !t.moved && !t.skipped), ...day.meals.filter((m) => !m.done)];
@@ -680,8 +697,7 @@ function renderFuel() {
   } else if (sec === 'macros') {
     const bar = (n, v, g, cls) => `<div class="mac ${cls}"><div class="n">${n}</div><div class="barr"><i style="width:${Math.min(100, Math.round((100 * v) / g))}%"></i></div><div class="v">${v} / ${g}g</div></div>`;
     html += `<div class="card" style="padding:14px 16px;display:flex;flex-direction:column;gap:8px"><div style="display:flex;justify-content:space-between"><div class="lbl">Macros</div><div class="lbl" style="color:#2b5cff">Protein first</div></div>${bar('Protein', m.protein, S.settings.proteinGoal, 'p')}${bar('Carbs', m.carbs, S.settings.carbGoal, '')}${bar('Fat', m.fat, S.settings.fatGoal, '')}<div class="s">${m.cal} of ${S.settings.calGoal} cal · from ${day.meals.filter((x) => x.done).length} meals${day.extras.length ? ` + ${day.extras.length} extra` : ''}</div></div>`;
-    const MIC = [['fiber_g', 'Fiber', 30, 'g'], ['sodium_mg', 'Sodium', 2300, 'mg'], ['potassium_mg', 'Potassium', 3400, 'mg'], ['iron_mg', 'Iron', 8, 'mg'], ['vitamin_c_mg', 'Vitamin C', 90, 'mg'], ['calcium_mg', 'Calcium', 1000, 'mg'], ['vitamin_d_mcg', 'Vitamin D', 20, 'mcg'], ['magnesium_mg', 'Magnesium', 400, 'mg']];
-    html += `<div class="card"><div style="display:flex;justify-content:space-between;padding:14px 16px 4px"><div class="lbl">Micros</div><div class="lbl">${m.counted ? `from ${m.counted} logged` : 'estimates'}</div></div><div class="micro-grid">${MIC.map(([k, n, g, u]) => `<div class="micro"><div class="n">${n}</div><div class="v">${Math.round(m.micros[k] || 0)}<span>/${g}${u}</span></div></div>`).join('')}</div><div class="s" style="padding:0 16px 14px">Plan meals carry macros only. Anything you snap or talk in brings its micros along.</div></div>`;
+    html += `<div class="card"><div style="display:flex;justify-content:space-between;padding:14px 16px 4px"><div class="lbl">Micros</div><div class="lbl">from ${m.counted} eaten</div></div><div class="micro-grid">${MICRO_DEFS.map(([k, n, g, u]) => `<div class="micro"><div class="n">${n}</div><div class="v">${Math.round(m.micros[k] || 0)}<span>/${g}${u}</span></div></div>`).join('')}</div><div class="s" style="padding:0 16px 14px">Estimates from what you have checked off. Tap any meal on the Plan to see or fix its own numbers.</div></div>`;
   } else {
     html += S.library.length
       ? `<div class="card list">${S.library.map((f) => `<div class="row" data-id="${f.id}"><div class="txt"><div class="t">${esc(f.name)}</div><div class="s">${f.cal} cal · ${f.protein}g P · ${f.carbs}g C · ${f.fat}g F</div></div><button class="pill" data-act="eat-saved" data-id="${f.id}">Ate it</button><button class="pill" data-act="drop-saved" data-id="${f.id}" style="color:#b8321f">x</button></div>`).join('')}</div>`
@@ -787,14 +803,14 @@ function renderWeek() {
     const d = addDays(monday, i);
     const wd = WD[fromYmd(d).getDay()];
     const stored = S.days[d];
-    const items = stored ? stored.tasks.filter((x) => !x.moved) : (S.routine[wd] || []).map((x, k) => ({ id: `plan-${d}-${k}`, name: x.name, time: x.time, done: false, planned: true }));
+    const items = stored ? stored.tasks.filter((x) => !x.moved) : (S.routine[wd] || []).map((x, k) => ({ id: `plan-${d}-${k}`, name: x.name, time: x.time, end: x.end || null, done: false, planned: true }));
     const isToday = d === t, past = d < t;
     items.forEach((x) => { if (!x.skipped) { total++; if (x.done) hit++; } });
     const rows = items.length
       ? items.map((x) => {
           const tag = x.done ? '<div class="stamp">DONE</div>' : x.skipped ? '<div class="stamp" style="border-color:#6d6a63;color:#6d6a63;box-shadow:0 2px 0 #cfccc4">SKIP</div>' : past && !x.planned ? '<div class="stamp" style="border-color:#b8321f;color:#b8321f;box-shadow:0 2px 0 #f0c4bc">MISSED</div>' : x.time ? `<div class="time" style="${!isToday ? 'color:#6d6a63' : ''}">${t12s(x.time)}</div>` : '';
           const chk = d > t ? `<div class="chk" style="box-shadow:none;border-style:dashed"></div>` : `<button class="chk" data-act="toggle-day" data-date="${d}" data-id="${x.id}">${ICON_CHECK}</button>`;
-          return `<div class="row${x.done ? ' done' : ''}${x.skipped ? ' moved' : ''}" data-id="${x.id}">${chk}<div class="txt"><div class="t">${esc(x.name)}</div><div class="s">${x.done && x.doneAt ? 'Done ' + t12s(x.doneAt) : x.time ? t12(x.time) : 'No time set'}</div></div>${tag}</div>`;
+          return `<div class="row${x.done ? ' done' : ''}${x.skipped ? ' moved' : ''}" data-id="${x.id}">${chk}<div class="txt"><div class="t">${esc(x.name)}</div><div class="s">${x.done && x.doneAt ? 'Done ' + t12s(x.doneAt) : x.time ? spanTxt(x) : 'No time set'}</div></div>${tag}</div>`;
         }).join('')
       : `<div class="row"><div class="txt"><div class="s">Rest day</div></div></div>`;
     cards.push(`<div class="lbl grp-lbl" style="${isToday ? 'color:#2b5cff' : ''}">${WDL[fromYmd(d).getDay()]}${isToday ? ' · today' : ''} · ${MO[fromYmd(d).getMonth()]} ${fromYmd(d).getDate()}</div><div class="card list"${isToday ? ' style="box-shadow:0 0 0 2.5px #2b5cff, 0 6px 0 #cfccc4"' : ''}>${rows}</div>`);
@@ -864,6 +880,7 @@ document.addEventListener('click', (e) => {
   if (b.dataset.go) { goPage(b.dataset.go); return; }
   const act = b.dataset.act;
   if (act === 'toggle') toggleItem(b.dataset.kind, b.dataset.id);
+  else if (act === 'open-item') openItem(b.dataset.kind, b.dataset.id);
   else if (act === 'toggle-day') { const day = ensureDay(b.dataset.date); let it = day.tasks.find((x) => x.id === b.dataset.id); if (!it && b.dataset.id.startsWith('plan-')) { const k = Number(b.dataset.id.split('-').pop()); it = day.tasks[k]; } if (it) toggleItem('task', it.id); }
   else if (act === 'water') { const d = today(); snapshot('Water'); d.water = d.water >= S.settings.waterGoal ? 0 : d.water + 1; buzz([10]); save(); }
   else if (act === 'food-talk') openFood('talk');
@@ -1020,6 +1037,7 @@ function applyOp(op) {
       return `Weight ${op.lb} lb`;
     }
     case 'note': { today().notes.push({ text: op.text, at: nowHM() }); return `Noted`; }
+    case 'log_steps': { S.steps = { today: Math.max(0, Math.round(op.steps)), date: t }; return `Steps ${S.steps.today.toLocaleString()}`; }
     case 'answer': { toast({ t: op.text, ms: 8000 }); return null; }
     default: throw new Error(`unknown op ${op.op}`);
   }
@@ -1147,14 +1165,71 @@ function openPlanEditor() {
   });
 }
 function openRoutineEditor() {
-  const txt = WD.slice(1).concat(WD[0]).map((d) => `${d}: ${(S.routine[d] || []).map((t) => `${t.time || ''} ${t.name}`.trim()).join('; ')}`).join('\n');
-  openSheet('Board', 'The routine', `<div class="s">One day per line. Separate tasks with a semicolon, put a 24h time first if it has one: "Mon: 17:00 Gym push; Cut clips". New days start from this.</div><div class="field"><textarea id="rt-txt" style="min-height:200px">${esc(txt)}</textarea></div><button class="btn blue wide" id="rt-go">Save routine</button>`);
+  const txt = WD.slice(1).concat(WD[0]).map((d) => `${d}: ${(S.routine[d] || []).map((t) => `${t.time || ''}${t.end ? '-' + t.end : ''} ${t.name}`.trim()).join('; ')}`).join('\n');
+  openSheet('Board', 'The routine', `<div class="s">One day per line. Separate tasks with a semicolon, put a 24h time first if it has one, with a dash for a window: "Mon: 10:00 Gym; 14:30-15:00 Walk". New days start from this.</div><div class="field"><textarea id="rt-txt" style="min-height:220px">${esc(txt)}</textarea></div><button class="btn blue wide" id="rt-go">Save routine</button>`);
   $('#rt-go').addEventListener('click', () => {
     const r = {};
-    $('#rt-txt').value.split('\n').forEach((l) => { const m = /^(\w{3}):\s*(.*)$/.exec(l.trim()); if (!m) return; const d = m[1].slice(0, 1).toUpperCase() + m[1].slice(1, 3).toLowerCase(); if (!WD.includes(d)) return; r[d] = m[2].split(';').map((x) => x.trim()).filter(Boolean).map((x) => { const tm = /^(\d{1,2}:\d{2})\s+(.*)$/.exec(x); return tm ? { name: tm[2], time: tm[1].padStart(5, '0') } : { name: x, time: null }; }); });
+    $('#rt-txt').value.split('\n').forEach((l) => { const m = /^(\w{3}):\s*(.*)$/.exec(l.trim()); if (!m) return; const d = m[1].slice(0, 1).toUpperCase() + m[1].slice(1, 3).toLowerCase(); if (!WD.includes(d)) return; r[d] = m[2].split(';').map((x) => x.trim()).filter(Boolean).map((x) => { const tm = /^(\d{1,2}:\d{2})(?:-(\d{1,2}:\d{2}))?\s+(.*)$/.exec(x); return tm ? { name: tm[3], time: tm[1].padStart(5, '0'), end: tm[2] ? tm[2].padStart(5, '0') : null } : { name: x, time: null, end: null }; }); });
     S.routine = Object.assign({ Mon: [], Tue: [], Wed: [], Thu: [], Fri: [], Sat: [], Sun: [] }, r);
     save(); closeSheet(); toast({ t: 'Routine saved', cls: 'blue' });
   });
+}
+
+/* ---------- one item: the breakdown, editable ---------- */
+const MICRO_DEFS = [['fiber_g', 'Fiber', 30, 'g'], ['sodium_mg', 'Sodium', 2300, 'mg'], ['potassium_mg', 'Potassium', 3400, 'mg'], ['iron_mg', 'Iron', 8, 'mg'], ['vitamin_c_mg', 'Vitamin C', 90, 'mg'], ['calcium_mg', 'Calcium', 1000, 'mg'], ['vitamin_d_mcg', 'Vitamin D', 20, 'mcg'], ['magnesium_mg', 'Magnesium', 400, 'mg']];
+function openItem(kind, id) {
+  const f = findItem(kind, id);
+  if (!f) return;
+  const x = f.it;
+  if (kind === 'meal') {
+    const mi = x.micros || {};
+    const planIdx = S.plan.findIndex((p) => p.name === x.planned && p.time === x.time);
+    openSheet(`${x.slot} · ${x.time ? t12(x.time) : 'no time'}`, x.name, `
+      <div class="card macs"><div><div class="n">Calories</div><div class="v">${x.cal || 0}</div></div><div><div class="n">Protein</div><div class="v" style="color:#2b5cff">${x.protein || 0}g</div></div><div><div class="n">Carbs</div><div class="v">${x.carbs || 0}g</div></div><div><div class="n">Fat</div><div class="v">${x.fat || 0}g</div></div></div>
+      <div class="card"><div style="display:flex;justify-content:space-between;padding:12px 16px 0"><div class="lbl">Micros</div><div class="lbl">${x.micros ? 'estimates' : 'none yet'}</div></div><div class="micro-grid">${MICRO_DEFS.map(([k, n, g, u]) => `<div class="micro"><div class="n">${n}</div><div class="v">${Math.round((mi[k] || 0) * 10) / 10}<span>${u} · ${Math.round((100 * (mi[k] || 0)) / g)}%</span></div></div>`).join('')}</div></div>
+      ${x.parts ? `<div class="card" style="padding:14px 16px"><div class="lbl">What is in it</div><div class="s" style="margin-top:6px;color:#3a3a3a;line-height:1.4">${esc(x.parts)}</div></div>` : ''}
+      <button class="fold" id="edit-fold"><span class="lbl">Edit this one</span><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6d6a63" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"></path></svg></button>
+      <div class="list" id="edit-body" style="display:none;flex-direction:column;gap:10px">
+        <div class="field"><div class="lbl">Name</div><input id="e-name" value="${esc(x.name)}"></div>
+        <div style="display:flex;gap:10px"><div class="field" style="flex:1"><div class="lbl">Slot</div><input id="e-slot" value="${esc(x.slot)}"></div><div class="field" style="flex:1"><div class="lbl">Time</div><input id="e-time" type="time" value="${x.time || ''}"></div></div>
+        <div style="display:flex;gap:10px"><div class="field" style="flex:1"><div class="lbl">Cal</div><input id="e-cal" type="number" value="${x.cal || 0}"></div><div class="field" style="flex:1"><div class="lbl">Protein</div><input id="e-p" type="number" value="${x.protein || 0}"></div><div class="field" style="flex:1"><div class="lbl">Carbs</div><input id="e-c" type="number" value="${x.carbs || 0}"></div><div class="field" style="flex:1"><div class="lbl">Fat</div><input id="e-f" type="number" value="${x.fat || 0}"></div></div>
+        <div class="field"><div class="lbl">What is in it</div><textarea id="e-parts" style="min-height:80px">${esc(x.parts || '')}</textarea></div>
+        <div class="lbl">Micros</div>
+        <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px">${MICRO_DEFS.map(([k, n, g, u]) => `<div class="field"><div class="lbl" style="font-size:10px">${n} (${u})</div><input data-micro="${k}" type="number" step="0.1" value="${mi[k] ?? ''}"></div>`).join('')}</div>
+        ${planIdx >= 0 ? `<div class="card switch"><div class="txt"><div class="t">Also change the plan</div><div class="s">So every day starts with this version.</div></div><button class="tog on" id="e-plan"><i></i></button></div>` : ''}
+        <button class="btn blue wide" id="e-save">Save</button>
+        <button class="btn ghost wide" id="e-remove" style="color:#b8321f">Remove from today</button>
+      </div>`);
+    $('#edit-fold').addEventListener('click', (e) => { e.currentTarget.classList.toggle('open'); const b = $('#edit-body'); b.style.display = b.style.display === 'none' ? 'flex' : 'none'; });
+    $('#e-plan')?.addEventListener('click', (e) => e.currentTarget.classList.toggle('on'));
+    $('#e-save').addEventListener('click', () => {
+      snapshot(`Edited ${x.name}`);
+      const micros = {};
+      $$('[data-micro]').forEach((inp) => { if (inp.value !== '') micros[inp.dataset.micro] = Number(inp.value); });
+      const upd = { name: $('#e-name').value.trim() || x.name, slot: $('#e-slot').value.trim() || x.slot, time: $('#e-time').value || null, cal: Number($('#e-cal').value) || 0, protein: Number($('#e-p').value) || 0, carbs: Number($('#e-c').value) || 0, fat: Number($('#e-f').value) || 0, parts: $('#e-parts').value.trim(), micros: Object.keys(micros).length ? micros : null };
+      Object.assign(x, upd);
+      if (!x.swapped) x.planned = upd.name;
+      if (planIdx >= 0 && $('#e-plan')?.classList.contains('on')) S.plan[planIdx] = { ...S.plan[planIdx], ...upd };
+      save(); closeSheet(); toast({ t: 'Saved', s: upd.name, cls: 'blue', undo: true });
+    });
+    $('#e-remove').addEventListener('click', () => { snapshot(`Removed ${x.name}`); f.list.splice(f.list.indexOf(x), 1); save(); closeSheet(); toast({ t: `Removed ${x.name}`, s: 'Today only', undo: true }); });
+  } else {
+    openSheet(`Task · ${niceDate(f.date)}`, x.name, `
+      <div class="field"><div class="lbl">Name</div><input id="e-name" value="${esc(x.name)}"></div>
+      <div style="display:flex;gap:10px"><div class="field" style="flex:1"><div class="lbl">Start</div><input id="e-time" type="time" value="${x.time || ''}"></div><div class="field" style="flex:1"><div class="lbl">End (optional)</div><input id="e-end" type="time" value="${x.end || ''}"></div></div>
+      <div class="field"><div class="lbl">Move to</div><input id="e-date" type="date" value="${f.date}"></div>
+      <button class="btn blue wide" id="e-save">Save</button>
+      <div style="display:flex;gap:10px"><button class="btn ghost" style="flex:1" id="e-skip">${x.skipped ? 'Un-skip' : 'Skip today'}</button><button class="btn ghost" style="flex:1;color:#b8321f" id="e-remove">Remove</button></div>`);
+    $('#e-save').addEventListener('click', () => {
+      snapshot(`Edited ${x.name}`);
+      const to = $('#e-date').value;
+      x.name = $('#e-name').value.trim() || x.name; x.time = $('#e-time').value || null; x.end = $('#e-end').value || null;
+      if (to && to !== f.date) applyOp({ op: 'move', target: 'task', id: x.id, toDate: to, time: x.time });
+      save(); closeSheet(); toast({ t: 'Saved', s: x.name, cls: 'blue', undo: true });
+    });
+    $('#e-skip').addEventListener('click', () => { snapshot('Skip'); x.skipped = x.skipped ? null : { reason: '' }; if (x.skipped) x.done = false; save(); closeSheet(); });
+    $('#e-remove').addEventListener('click', () => { snapshot(`Removed ${x.name}`); f.list.splice(f.list.indexOf(x), 1); save(); closeSheet(); toast({ t: `Removed ${x.name}`, undo: true }); });
+  }
 }
 
 /* ---------- food (talk or snap) ---------- */
@@ -1297,7 +1372,28 @@ if (S.settings.place.auto) locate();
 pullSync();
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') { tickClock(); ensureDay(ymd()); render(); pullSync(); loadWeather(); } });
 window.addEventListener('resize', renderTabs);
-if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('/day/sw.js').catch(() => {});
+/*
+ * Self-update. The shell is fetched fresh on every open, but a phone can still
+ * be running an older copy it already had in memory. So the app asks the site
+ * what version is live and reloads itself when that differs. One reload, then
+ * the versions match and it stops.
+ */
+async function checkForUpdate() {
+  try {
+    const r = await fetch(`/day/index.html?u=${Date.now()}`, { cache: 'no-store' });
+    if (!r.ok) return;
+    const m = /APP_VERSION = '([^']+)'/.exec(await r.text());
+    if (m && m[1] !== APP_VERSION && !sessionStorage.getItem(`reloaded-${m[1]}`)) {
+      sessionStorage.setItem(`reloaded-${m[1]}`, '1');
+      toast({ t: 'Updating', s: `Daily Board ${m[1]}`, cls: 'blue', ms: 1500 });
+      setTimeout(() => location.reload(), 900);
+    }
+  } catch {}
+}
+if ('serviceWorker' in navigator && location.protocol === 'https:') {
+  navigator.serviceWorker.register('/day/sw.js', { updateViaCache: 'none' }).then((reg) => { try { reg.update(); } catch {} }).catch(() => {});
+}
+if (location.protocol === 'https:') { setTimeout(checkForUpdate, 2500); document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') checkForUpdate(); }); }
 </script>
 </body>
 </html>

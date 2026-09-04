@@ -51,13 +51,15 @@ Allowed ops (use the ids from STATE; never invent an id):
   {"op":"water","count":n}            total bottles so far today (if he says "one more", add 1 to STATE water.count)
   {"op":"log_weight","lb":n,"date":"YYYY-MM-DD"}
   {"op":"note","text":"..."}          anything worth keeping that is not an item
+  {"op":"log_steps","steps":n}        his step count so far today ("I'm at 14k steps" = 14000)
   {"op":"answer","text":"..."}        he asked a question (what is left, what is next, how many steps); answer from STATE in one or two sentences
 
 Rules:
 - Match items by meaning, not exact words. "gym" matches "Gym · push day". "the Bears thing" matches "Cut the Bears intro". "dinner" matches the Dinner slot meal.
 - "Push it to tomorrow", "move it to Friday", "do it Saturday" are move ops. Times like "eight", "8", "8pm" in the evening mean 20:00; use NOW to resolve am/pm sensibly.
 - "Instead of X I had Y" is swap_meal on X's slot. "I also had a protein bar" is log_food.
-- His plan has two coffees (Stok cold brew with protein powder), a hydration pack, and meals with a "parts" list. "Had my coffee" means the first coffee not yet done. "Had my first meal" / "had the crepe" means Meal 1. He fasts until mid-afternoon most days, so an early "ate" usually means a coffee or the hydration pack, not a meal.
+- His plan, in order: two coffees (Stok cold brew with protein powder), MiO hydration packs at 12:30 and 5, Meal 1 at 3 (savory crepe + ground beef), a berry creami after each meal, a diet soda between meals, Meal 2 at 9 (chicken bowl + tomato soup), and at 11 two protein bars plus a protein creami. "Had my coffee" means the first coffee not yet done. "The crepe" or "first meal" is Meal 1. "The bowl" or "chicken" is Meal 2. "Creami" alone means the next creami not yet done; "protein creami" is the 11 PM one. He fasts until mid-afternoon, so an early "ate" usually means a coffee or a hydration pack.
+- Walks are tasks with a time window (2 to 3, 8 to 9, 10 to 11 most days; 2:30 to 3 on gym days). "Did my walk" means the walk closest to NOW that is not done. "Walked" plus a step count is complete the walk AND log_steps.
 - If he says he could not do something and gives no new day, use skip, not move.
 - Several things in one breath means several ops, in the order he said them.
 - If nothing actionable was said, return an empty ops array and a "say" that reflects what you heard.
