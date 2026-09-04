@@ -90,6 +90,27 @@ Reply with ONE JSON object and nothing else:
 }
 Whole numbers. A single photo gets a range about 6 points wide; front plus side about 4. Be direct and matter-of-fact, never judgmental. ${NO_DASHES}`;
 
+const FITBIT_SYSTEM = `You read screenshots from the Fitbit app (or any health app) and pull the numbers out for one person's private tracker, so his charts fill in without a live link. Read every number you can see with its date or period. Be literal: copy the values on screen, do not estimate what is not shown.
+
+Reply with ONE JSON object and nothing else:
+{
+  "metric": "steps"|"weight"|"resting_hr"|"energy"|"sleep"|"heart_rate"|"other",
+  "unit": "steps"|"lb"|"kg"|"bpm"|"cal"|"h"|"",
+  "view": "day"|"week"|"month"|"3months"|"year"|"",
+  "headline": {"value": n, "label": "what the big number is, e.g. steps per day avg over Aug 4 to Sep 3"},
+  "today": n or null,
+  "entries": [ {"date": "YYYY-MM-DD", "period": "day"|"week"|"month", "value": n, "label": "as written on screen"} ],
+  "streak_days": n or null,
+  "goal": n or null,
+  "notes": "one short sentence on anything ambiguous, or empty"
+}
+Rules:
+- The screenshot's own date range decides the year. Assume the current date given to you when a label has no year.
+- A list of months (June 174.4, May 177.7) becomes month entries dated the 15th of that month. A list of week ranges (Aug 23 to 29) becomes week entries dated the first day of the range. A bar chart of days becomes day entries only when the bars are labeled with readable values; otherwise leave the bars out and keep the listed numbers.
+- "today" is set only when the screen clearly shows today's own value (a day view, or a today row).
+- Whole numbers for steps, calories and bpm; one decimal for weight.
+${NO_DASHES}`;
+
 const WRAP_SYSTEM = `Tidy a spoken end-of-day wrap-up into a short written entry for one person's private journal. Keep his own words and tone, trim filler and restarts, do not add anything he did not say, no advice.
 
 Reply with ONE JSON object and nothing else:
@@ -176,6 +197,14 @@ exports.handler = async (event) => {
       const text = (extra.join('\n') || 'No previous data.') + '\nReturn the JSON.';
       const { parsed, usage } = await ask(PHYSIQUE_SYSTEM, [...blocks, { type: 'text', text }], 500);
       return json(200, { physique: parsed, usage });
+    }
+
+    if (mode === 'fitbit') {
+      const blocks = imageBlocks(body.images);
+      if (!blocks.length) return json(400, { error: 'need a screenshot' });
+      const text = `TODAY IS: ${body.now || ''}\nRead the screenshot and return the JSON.`;
+      const { parsed, usage } = await ask(FITBIT_SYSTEM, [...blocks, { type: 'text', text }], 1200);
+      return json(200, { fit: parsed, usage });
     }
 
     if (mode === 'wrap') {

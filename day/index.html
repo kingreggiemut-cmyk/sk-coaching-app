@@ -20,7 +20,7 @@
     --raise: 0 1px 0 #ffffff inset, 0 6px 0 var(--edge), 0 14px 24px rgba(0,0,0,0.10);
     --press: 0 4px 0 var(--blue-deep) inset, 0 4px 8px rgba(0,0,0,0.22) inset;
     --sat: env(safe-area-inset-top, 0px); --sab: env(safe-area-inset-bottom, 0px);
-    --barh: 96px;
+    --barh: 74px;
   }
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   html, body { margin: 0; height: 100%; background: var(--ground); color: var(--ink); font-family: 'Outfit', 'Trebuchet MS', sans-serif; overscroll-behavior: none; }
@@ -58,7 +58,7 @@
   .hdr .right .big { font-size: 22px; color: var(--blue); }
   .hdr .right .big span { color: var(--mute); }
   .stack { display: flex; flex-direction: column; gap: 12px; }
-  .in-tabs { display: none; }
+  .in-tabs { display: flex; gap: 6px; margin: 0 0 12px; }
 
   /* rows */
   .list { display: flex; flex-direction: column; overflow: hidden; }
@@ -172,23 +172,25 @@
   .day .q { font-weight: 600; font-size: 13.5px; color: #3a3a3a; line-height: 1.35; }
   .day .q div + div { margin-top: 3px; }
 
-  /* bottom bar */
-  #bar { position: fixed; left: 0; right: 0; bottom: 0; height: calc(var(--barh) + var(--sab)); padding: 10px 14px calc(var(--sab) + 12px); display: flex; flex-direction: column; justify-content: flex-end; gap: 10px; pointer-events: none; background: linear-gradient(180deg, rgba(233,231,226,0) 0%, var(--ground) 45%); z-index: 20; }
-  #tabs { display: flex; gap: 6px; pointer-events: auto; padding-right: 70px; min-height: 44px; }
-  #tabs:empty { min-height: 0; }
-  .tab { flex: 1 1 0; height: 44px; border-radius: 999px; background: var(--card); color: var(--mute); box-shadow: 0 1px 0 #fff inset, 0 4px 0 var(--edge); font-weight: 700; font-size: 13px; display: flex; align-items: center; justify-content: center; transition: transform .08s, box-shadow .08s; white-space: nowrap; }
+  /* section tabs at the top of each page */
+  .tab { flex: 1 1 0; height: 40px; border-radius: 999px; background: var(--card); color: var(--mute); box-shadow: 0 1px 0 #fff inset, 0 4px 0 var(--edge); font-weight: 700; font-size: 13px; display: flex; align-items: center; justify-content: center; transition: transform .08s, box-shadow .08s; white-space: nowrap; padding: 0 6px; }
   .tab:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--edge); }
   .tab.on { background: var(--ink); color: var(--card); box-shadow: 0 4px 0 #000; }
-  #dots { display: flex; justify-content: center; gap: 8px; align-items: center; height: 14px; pointer-events: auto; }
-  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--edge); box-shadow: 0 2px 0 #b5b2aa; transition: width .2s, background .2s; }
-  .dot.on { width: 18px; border-radius: 4px; background: var(--ink); box-shadow: 0 2px 0 #000; }
+
+  /* bottom nav: one icon per area, the way Fitbit does it */
+  #nav { position: fixed; left: 0; right: 0; bottom: 0; height: calc(var(--barh) + var(--sab)); padding: 8px 10px calc(var(--sab) + 8px); display: flex; gap: 4px; align-items: stretch; background: var(--card); box-shadow: 0 -1px 0 #fff inset, 0 -6px 0 var(--edge), 0 -14px 24px rgba(0,0,0,0.08); z-index: 20; }
+  .nb { flex: 1 1 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; border-radius: 18px; color: var(--mute); font-weight: 700; font-size: 10.5px; letter-spacing: 0.04em; text-transform: uppercase; transition: transform .08s, box-shadow .08s, background .12s; min-width: 0; }
+  .nb svg { width: 24px; height: 24px; }
+  .nb:active { transform: translateY(2px); }
+  .nb.on { background: var(--ink); color: var(--card); box-shadow: 0 4px 0 #000; }
+  .nb:last-child { margin-right: 60px; }
 
   /* mic */
-  #mic { position: fixed; right: 14px; bottom: calc(var(--sab) + 14px); z-index: 30; height: 58px; width: 58px; border-radius: 999px; background: var(--ink); color: var(--card); box-shadow: 0 6px 0 #000, 0 14px 24px rgba(0,0,0,0.16); display: flex; align-items: center; gap: 10px; padding: 0 16px; overflow: hidden; transition: width .25s cubic-bezier(.2,1.2,.4,1), background .2s, transform .08s, box-shadow .08s; pointer-events: auto; touch-action: manipulation; }
+  #mic { position: fixed; right: 12px; bottom: calc(var(--sab) + 12px); z-index: 30; height: 58px; width: 58px; border-radius: 999px; background: var(--ink); color: var(--card); box-shadow: 0 6px 0 #000, 0 14px 24px rgba(0,0,0,0.16); display: flex; align-items: center; gap: 10px; padding: 0 16px; overflow: hidden; transition: width .25s cubic-bezier(.2,1.2,.4,1), background .2s, transform .08s, box-shadow .08s; pointer-events: auto; touch-action: manipulation; }
   #mic:active { transform: translateY(5px); box-shadow: 0 1px 0 #000, 0 6px 12px rgba(0,0,0,0.16); }
   #mic svg { flex-shrink: 0; }
   #mic .lab { font-weight: 700; font-size: 15px; white-space: nowrap; opacity: 0; transition: opacity .15s; }
-  #mic.open { width: calc(100vw - 28px); background: var(--blue); box-shadow: 0 6px 0 var(--blue-deep), 0 14px 24px rgba(43,92,255,0.25); }
+  #mic.open { width: calc(100vw - 24px); bottom: calc(var(--sab) + var(--barh) + 12px); background: var(--blue); box-shadow: 0 6px 0 var(--blue-deep), 0 14px 24px rgba(43,92,255,0.25); }
   #mic.open .lab { opacity: 1; }
   #mic.busy { background: var(--ink); }
   #mic .wave { display: none; gap: 3px; align-items: center; height: 20px; margin-left: auto; }
@@ -196,7 +198,7 @@
   #mic .wave i { width: 4px; height: 8px; border-radius: 2px; background: var(--card); animation: wave .9s ease-in-out infinite; }
   #mic .wave i:nth-child(2) { animation-delay: .15s; } #mic .wave i:nth-child(3) { animation-delay: .3s; } #mic .wave i:nth-child(4) { animation-delay: .45s; }
   @keyframes wave { 0%, 100% { height: 6px; } 50% { height: 20px; } }
-  #live { position: fixed; left: 14px; right: 14px; bottom: calc(var(--sab) + 84px); z-index: 29; background: var(--card); border-radius: 22px; padding: 14px 16px; box-shadow: var(--raise); font-weight: 600; font-size: 15px; line-height: 1.35; display: none; max-height: 30vh; overflow: auto; }
+  #live { position: fixed; left: 14px; right: 14px; bottom: calc(var(--sab) + var(--barh) + 82px); z-index: 29; background: var(--card); border-radius: 22px; padding: 14px 16px; box-shadow: var(--raise); font-weight: 600; font-size: 15px; line-height: 1.35; display: none; max-height: 30vh; overflow: auto; }
   #live.show { display: block; }
   #live .lbl { margin-bottom: 4px; }
 
@@ -254,16 +256,13 @@
     .page { flex: none; width: auto; height: auto; min-height: 0; border-radius: 30px; background: #efede8; box-shadow: 0 1px 0 #fff inset, 0 6px 0 var(--edge); padding: 14px 14px 24px; }
     .page.now { grid-row: span 2; }
     .sky { margin: -14px -14px 0; border-radius: 30px 30px 30px 30px; }
-    .in-tabs { display: flex; gap: 6px; margin: 0 0 12px; }
-    .in-tabs .tab { height: 40px; }
-    #bar { display: none; }
+    #nav { display: none; }
     #mic { right: 24px; bottom: 24px; }
-    #mic.open { width: 480px; }
+    #mic.open { width: 480px; bottom: 24px; }
     #live { left: auto; right: 24px; width: 480px; bottom: 94px; }
     #toasts { left: auto; right: 24px; width: 420px; }
     #sheet { left: 50%; right: auto; width: 520px; transform: translate(-50%, 105%); border-radius: 30px 30px 0 0; }
     #sheet.show { transform: translate(-50%, 0); }
-    #dots { display: none; }
   }
   @media (min-width: 1500px) {
     #track { grid-template-columns: repeat(5, minmax(0, 1fr)); grid-auto-rows: 1fr; }
@@ -330,10 +329,7 @@
   </section>
 </div>
 
-<div id="bar">
-  <div id="tabs"></div>
-  <div id="dots"></div>
-</div>
+<nav id="nav"></nav>
 
 <div id="live"><div class="lbl">You said</div><div id="live-text"></div></div>
 <button id="mic" aria-label="Talk">
@@ -347,6 +343,7 @@
 <div id="sheet"><div class="sh-head"><div><div class="lbl" id="sh-lbl"></div><div class="big" id="sh-title"></div></div><button class="x" id="sh-x"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"></path></svg></button></div><div class="sh-body" id="sh-body"></div></div>
 <input type="file" id="file-food" accept="image/*" capture="environment" class="hidden">
 <input type="file" id="file-phys" accept="image/*" multiple class="hidden">
+<input type="file" id="file-fit" accept="image/*" multiple class="hidden">
 
 <script>
 /* ============================================================
@@ -358,7 +355,7 @@ const SB_URL = 'https://ksgxrxqvnfpfhidxsxcs.supabase.co';
 const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzZ3hyeHF2bmZwZmhpZHhzeGNzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE0MzkxMTgsImV4cCI6MjA5NzAxNTExOH0.pUD6sbkjhhTlgl5x4KHFJsThoHVlNkNBlSFES_8HHvM';
 const BRAIN = '/.netlify/functions/day-brain';
 const STORE_KEY = 'daily-board';
-const APP_VERSION = '0.4';
+const APP_VERSION = '0.5';
 const ROW_ID = 'reggie';
 
 const $ = (s, r = document) => r.querySelector(s);
@@ -386,7 +383,7 @@ function uid(p) { return `${p}${Date.now().toString(36)}${Math.floor(Math.random
  * corrected once he sends the labels. Bump PLAN_VERSION whenever these
  * defaults change so a phone that already has the app picks the new ones up.
  */
-const PLAN_VERSION = 3;
+const PLAN_VERSION = 4;
 const COFFEE = { slot: 'Coffee', name: 'Stok cold brew + protein', cal: 60, protein: 12, carbs: 1, fat: 1, parts: '300 ml Stok cold brew, 15 g Revolution protein powder', micros: { sodium_mg: 60, potassium_mg: 150, calcium_mg: 100, iron_mg: 0.5 } };
 const HYDRATION = { slot: 'Hydration', name: 'MiO hydration pack + 1 L water', cal: 10, protein: 0, carbs: 2, fat: 0, parts: 'MiO hydration (not the energy one), about a litre of water', micros: { potassium_mg: 400, sodium_mg: 100 } };
 const BERRY = { slot: 'Creami', name: 'Berry creami', cal: 90, protein: 2, carbs: 21, fat: 1, parts: '200 g frozen berries, zero sugar juice (5 cal)', micros: { fiber_g: 5, potassium_mg: 200, vitamin_c_mg: 40, iron_mg: 1, calcium_mg: 30, magnesium_mg: 20 } };
@@ -417,6 +414,18 @@ const ROUTINE_V3 = () => ({
 const GOALS_V3 = { calGoal: 1850, proteinGoal: 190, carbGoal: 170, fatGoal: 45, stepGoal: 20000 };
 const PLAN_CURRENT = PLAN_V3;
 const ROUTINE_CURRENT = ROUTINE_V3;
+/*
+ * History read off his Fitbit screenshots on 2026-09-03, so the trend charts
+ * are not empty on day one. Replaced by whatever the Fitbit link or later
+ * screenshots bring in.
+ */
+const SEED_WEIGHTS = [['2026-02-15', 188.3], ['2026-03-15', 185.4], ['2026-04-15', 181.3], ['2026-05-15', 177.7], ['2026-06-15', 174.4], ['2026-09-03', 189]];
+const FIT_SEED = () => ({
+  rhr: [['2025-11-15', 63], ['2025-12-15', 65], ['2026-02-15', 56], ['2026-03-15', 56], ['2026-04-15', 55], ['2026-05-15', 58], ['2026-06-15', 58], ['2026-07-15', 66], ['2026-08-15', 63], ['2026-09-15', 67]].map(([date, value]) => ({ date, value, period: 'month' })),
+  energy: [['2026-08-16', 3778], ['2026-08-23', 3493], ['2026-08-30', 3575]].map(([date, value]) => ({ date, value, period: 'week' })),
+  steps: [21000, 22000, 24500, 19500, 14000, 15500, 14500, 18500, 17500, 20500, 23500, 19500, 22000].map((value, i) => ({ date: addDays('2026-06-01', i * 7), value, period: 'week' })),
+  notes: { steps: 'Aug 4 to Sep 3 average 21,430 a day', energy: 'Aug 4 to Sep 3 average 3,585 cal a day', rhr: 'All in personal range' }
+});
 const DEFAULT = () => ({
   v: 1,
   updatedAt: 0,
@@ -430,10 +439,11 @@ const DEFAULT = () => ({
   routine: ROUTINE_CURRENT(),
   library: [],
   days: {},
-  weights: [],
+  weights: SEED_WEIGHTS.map(([date, lb]) => ({ date, lb })),
   photos: [],
   tape: { waist: null, neck: null, updated: null },
-  steps: { today: null, date: null }
+  steps: { today: null, date: null },
+  fit: FIT_SEED()
 });
 
 let S = DEFAULT();
@@ -451,6 +461,7 @@ function load() {
       S.settings.place = Object.assign(base.settings.place, (saved.settings || {}).place || {});
       S.tape = Object.assign(base.tape, saved.tape || {});
       S.steps = Object.assign(base.steps, saved.steps || {});
+      S.fit = Object.assign(base.fit, saved.fit || {});
       // The saved copy decides its own plan version. Without this line the
       // fresh default (already current) masked an old saved plan and the
       // migration never ran.
@@ -465,10 +476,21 @@ function load() {
  * today survives if its name still exists.
  */
 function migratePlan() {
-  if ((S.planVersion || 1) >= PLAN_VERSION) return;
-  S.plan = PLAN_CURRENT();
-  S.routine = ROUTINE_CURRENT();
-  Object.assign(S.settings, GOALS_V3);
+  const from = S.planVersion || 1;
+  if (from >= PLAN_VERSION) return;
+  if (from < 3) {
+    S.plan = PLAN_CURRENT();
+    S.routine = ROUTINE_CURRENT();
+    Object.assign(S.settings, GOALS_V3);
+  }
+  if (from < 4) {
+    // version 4: the Fitbit history and the weigh-ins read off his screenshots
+    if (!S.fit || !S.fit.rhr) S.fit = FIT_SEED();
+    for (const [date, lb] of SEED_WEIGHTS) if (!S.weights.some((w) => w.date === date)) S.weights.push({ date, lb });
+    S.planVersion = PLAN_VERSION;
+    try { localStorage.setItem(STORE_KEY, JSON.stringify(S)); } catch {}
+    return;
+  }
   S.planVersion = PLAN_VERSION;
   const t = ymd();
   const old = S.days[t];
@@ -621,7 +643,7 @@ const ICON_FLAME = '<svg width="20" height="20" viewBox="0 0 24 24" fill="#2b5cf
 const SECTIONS = {
   now: [],
   fuel: [['plan', 'Plan'], ['macros', 'Macros'], ['meals', 'Your meals']],
-  body: [['weight', 'Weight'], ['photos', 'Photos'], ['tape', 'Tape']],
+  body: [['weight', 'Weight'], ['trends', 'Trends'], ['photos', 'Photos'], ['tape', 'Tape']],
   board: [['today', 'Today'], ['week', 'Week'], ['done', 'Done'], ['moved', 'Moved']],
   wrap: [['talk', 'Talk'], ['backlog', 'Backlog']]
 };
@@ -711,15 +733,17 @@ function renderBody() {
   const ws = [...S.weights].sort((a, b) => a.date.localeCompare(b.date));
   const last = ws[ws.length - 1];
   const monthAgo = addDays(ymd(), -30);
-  const base = ws.find((w) => w.date >= monthAgo) || ws[0];
+  const base = [...ws].filter((w) => w.date <= monthAgo).pop() || ws[0];
   const delta = last && base && last !== base ? (last.lb - base.lb) : null;
   $('#w-delta').innerHTML = delta != null ? `${delta > 0 ? '+' : ''}${delta.toFixed(1)}<span> lb</span>` : `<span>no trend yet</span>`;
+  $('#w-delta').nextElementSibling.textContent = base && last && base !== last ? `since ${niceDate(base.date)}` : '30 days';
   const sec = ui.section.body;
   let html = '';
   if (sec === 'weight') {
     const weekAgo = addDays(ymd(), -7);
     const wk = ws.filter((w) => w.date <= weekAgo).pop();
     const wkDelta = last && wk ? last.lb - wk.lb : null;
+    const wkTxt = wkDelta == null ? 'No week yet' : `${wkDelta > 0 ? 'Up' : 'Down'} ${Math.abs(wkDelta).toFixed(1)} ${wk.date >= addDays(ymd(), -10) ? 'this week' : 'since ' + niceDate(wk.date)}`;
     const pts = ws.slice(-30);
     let spark = '';
     if (pts.length >= 2) {
@@ -728,9 +752,11 @@ function renderBody() {
       const xs = pts.map((p, i) => [(330 * i) / (pts.length - 1), 8 + (54 * (max - p.lb)) / span]);
       spark = `<svg class="spark" viewBox="0 0 330 70" preserveAspectRatio="none"><line x1="0" y1="60" x2="330" y2="60" stroke="#e6e3dc" stroke-width="1.5"></line><line x1="0" y1="35" x2="330" y2="35" stroke="#e6e3dc" stroke-width="1.5"></line><line x1="0" y1="10" x2="330" y2="10" stroke="#e6e3dc" stroke-width="1.5"></line><polyline points="${xs.map((p) => p.join(',')).join(' ')}" fill="none" stroke="#1d1d1f" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"></polyline><circle cx="${xs[xs.length - 1][0]}" cy="${xs[xs.length - 1][1]}" r="5" fill="#2b5cff"></circle></svg><div style="display:flex;justify-content:space-between"><div class="s">${niceDate(pts[0].date)} · ${pts[0].lb}</div><div class="s">${niceDate(last.date)} · ${last.lb}</div></div>`;
     } else spark = `<div class="s">Log a couple of weigh-ins and the trend line shows up here.</div>`;
-    html += `<div class="card" style="padding:14px 16px 12px;display:flex;flex-direction:column;gap:8px"><div class="weight-hero"><div><div class="lbl">Weight${last ? ' · ' + niceDate(last.date) : ''}</div><div style="display:flex;align-items:baseline;gap:6px"><div class="big">${last ? last.lb : '--'}</div><div class="s">lb</div></div></div><div style="text-align:right"><div class="t" style="color:#2b5cff">${wkDelta != null ? `${wkDelta > 0 ? 'Up' : 'Down'} ${Math.abs(wkDelta).toFixed(1)} this week` : 'No week yet'}</div><div class="s">Goal ${S.settings.weightGoal} by ${niceDate(S.settings.weightGoalDate)}</div></div></div>${spark}</div>`;
+    html += `<div class="card" style="padding:14px 16px 12px;display:flex;flex-direction:column;gap:8px"><div class="weight-hero"><div><div class="lbl">Weight${last ? ' · ' + niceDate(last.date) : ''}</div><div style="display:flex;align-items:baseline;gap:6px"><div class="big">${last ? last.lb : '--'}</div><div class="s">lb</div></div></div><div style="text-align:right"><div class="t" style="color:#2b5cff">${wkTxt}</div><div class="s">Goal ${S.settings.weightGoal} by ${niceDate(S.settings.weightGoalDate)}</div></div></div>${spark}</div>`;
     html += `<button class="btn wide" data-act="weigh">Log weigh-in</button>`;
     if (ws.length) html += `<div class="lbl grp-lbl">Recent</div><div class="card list">${ws.slice(-7).reverse().map((w) => `<div class="row"><div class="txt"><div class="t">${w.lb} lb</div><div class="s">${niceDate(w.date)}</div></div><button class="pill" data-act="drop-weight" data-date="${w.date}">x</button></div>`).join('')}</div>`;
+  } else if (sec === 'trends') {
+    html += renderTrends();
   } else if (sec === 'photos') {
     const ps = [...S.photos].sort((a, b) => a.date.localeCompare(b.date));
     const p = ps[ps.length - 1];
@@ -745,6 +771,46 @@ function renderBody() {
     html += `<div class="card" style="padding:16px;display:flex;flex-direction:column;gap:10px"><div class="field"><div class="lbl">Waist (in)</div><input id="tape-waist" type="number" step="0.1" inputmode="decimal" value="${S.tape.waist ?? ''}"></div><div class="field"><div class="lbl">Neck (in)</div><input id="tape-neck" type="number" step="0.1" inputmode="decimal" value="${S.tape.neck ?? ''}"></div><div class="field"><div class="lbl">Height (in)</div><input id="tape-height" type="number" step="0.5" inputmode="decimal" value="${S.settings.heightIn ?? ''}"></div><button class="btn blue wide" data-act="save-tape">Save tape</button></div>`;
   }
   $('#body-body').innerHTML = html;
+}
+/*
+ * Small charts drawn in place, same hand as the weight line. Bars for
+ * counts (steps, calories), a line for a level (resting heart rate).
+ */
+function chart(points, opts = {}) {
+  const pts = [...points].sort((a, b) => a.date.localeCompare(b.date)).slice(-(opts.max || 14));
+  if (!pts.length) return `<div class="s">Nothing here yet.</div>`;
+  const W = 330, H = 90, top = 8, bottom = 70;
+  const vals = pts.map((p) => p.value);
+  const lo = opts.zero ? 0 : Math.min(...vals), hi = Math.max(...vals);
+  const span = Math.max(1, hi - lo);
+  const y = (v) => bottom - ((bottom - top) * (v - lo)) / span;
+  const lab = (p) => { const d = fromYmd(p.date); return p.period === 'month' ? MO[d.getMonth()] : `${MO[d.getMonth()]} ${d.getDate()}`; };
+  let body = '';
+  if (opts.type === 'line') {
+    const xs = pts.map((p, i) => [pts.length > 1 ? (W * i) / (pts.length - 1) : W / 2, y(p.value)]);
+    body = `<polyline points="${xs.map((q) => q.join(',')).join(' ')}" fill="none" stroke="#1d1d1f" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"></polyline>${xs.map((q, i) => `<circle cx="${q[0]}" cy="${q[1]}" r="${i === xs.length - 1 ? 5 : 3.5}" fill="${i === xs.length - 1 ? '#2b5cff' : '#1d1d1f'}"></circle>`).join('')}`;
+  } else {
+    const bw = Math.min(22, (W / pts.length) * 0.62);
+    body = pts.map((p, i) => { const x = (W * (i + 0.5)) / pts.length - bw / 2; const yy = y(p.value); return `<rect x="${x}" y="${yy}" width="${bw}" height="${bottom - yy}" rx="${bw / 2}" fill="${i === pts.length - 1 ? '#2b5cff' : '#1d1d1f'}"></rect>`; }).join('');
+    if (opts.goal != null && opts.goal >= lo && opts.goal <= hi) body += `<line x1="0" y1="${y(opts.goal)}" x2="${W}" y2="${y(opts.goal)}" stroke="#2b5cff" stroke-width="1.5" stroke-dasharray="4 4"></line>`;
+  }
+  const grid = [top, (top + bottom) / 2, bottom].map((g) => `<line x1="0" y1="${g}" x2="${W}" y2="${g}" stroke="#e6e3dc" stroke-width="1.5"></line>`).join('');
+  const first = pts[0], last = pts[pts.length - 1];
+  return `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:${H}px;display:block" preserveAspectRatio="none">${grid}${body}</svg><div style="display:flex;justify-content:space-between"><div class="s">${lab(first)} · ${opts.fmt ? opts.fmt(first.value) : first.value}</div><div class="s">${lab(last)} · ${opts.fmt ? opts.fmt(last.value) : last.value}</div></div>`;
+}
+function renderTrends() {
+  const fit = S.fit || FIT_SEED();
+  const k = (v) => v.toLocaleString();
+  const stepsAvg = fit.steps.length ? Math.round(fit.steps.slice(-4).reduce((a, p) => a + p.value, 0) / Math.min(4, fit.steps.length)) : null;
+  const rhrLast = fit.rhr.length ? [...fit.rhr].sort((a, b) => a.date.localeCompare(b.date)).pop().value : null;
+  const enLast = fit.energy.length ? [...fit.energy].sort((a, b) => a.date.localeCompare(b.date)).pop().value : null;
+  let html = '';
+  html += `<div class="card" style="padding:14px 16px 12px;display:flex;flex-direction:column;gap:8px"><div style="display:flex;justify-content:space-between;align-items:flex-end"><div><div class="lbl">Steps · weekly</div><div style="display:flex;align-items:baseline;gap:6px"><div class="big" style="font-size:32px">${stepsAvg != null ? k(stepsAvg) : '--'}</div><div class="s">a day, last 4 weeks</div></div></div><div class="s" style="text-align:right">${esc(fit.notes?.steps || '')}</div></div>${chart(fit.steps, { type: 'bar', zero: true, max: 13, goal: S.settings.stepGoal, fmt: k })}</div>`;
+  html += `<div class="card" style="padding:14px 16px 12px;display:flex;flex-direction:column;gap:8px"><div style="display:flex;justify-content:space-between;align-items:flex-end"><div><div class="lbl">Resting heart rate</div><div style="display:flex;align-items:baseline;gap:6px"><div class="big" style="font-size:32px">${rhrLast ?? '--'}</div><div class="s">bpm this month</div></div></div><div class="s" style="text-align:right">${esc(fit.notes?.rhr || '')}</div></div>${chart(fit.rhr, { type: 'line', max: 12 })}</div>`;
+  html += `<div class="card" style="padding:14px 16px 12px;display:flex;flex-direction:column;gap:8px"><div style="display:flex;justify-content:space-between;align-items:flex-end"><div><div class="lbl">Energy burned · weekly</div><div style="display:flex;align-items:baseline;gap:6px"><div class="big" style="font-size:32px">${enLast != null ? k(enLast) : '--'}</div><div class="s">cal a day</div></div></div><div class="s" style="text-align:right">${esc(fit.notes?.energy || '')}</div></div>${chart(fit.energy, { type: 'bar', zero: true, max: 12, fmt: k })}</div>`;
+  html += `<button class="btn wide" data-act="fit-shot">${ICON_CAM} Read a Fitbit screenshot</button>`;
+  html += `<div class="s" style="padding:0 6px">Screenshot any Fitbit page (steps, weight, resting heart rate, energy) and the numbers land here. The live Fitbit link comes next and replaces this.</div>`;
+  return html;
 }
 function tapeEstimate() {
   const w = Number(S.tape.waist), n = Number(S.tape.neck), h = Number(S.settings.heightIn);
@@ -843,14 +909,20 @@ function dayCard(date, day) {
   return `<div class="card day"><div class="score${cls}">${sc}</div><div style="display:flex;flex-direction:column;gap:4px;min-width:0"><div class="t" style="font-size:14px">${niceDate(date)} · ${items.filter((x) => x.done).length} of ${items.length}${w && w.title ? ' · ' + esc(w.title) : ''}</div><div class="q">${w ? w.lines.map((l) => `<div>${esc(l)}</div>`).join('') : '<div style="color:#6d6a63">No wrap that day.</div>'}</div></div></div>`;
 }
 
+const NAV_ICONS = {
+  now: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"></circle><path d="M12 7.5V12l3 2"></path></svg>',
+  fuel: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M5 3v18M5 3c3 0 4 2 4 5s-1 5-4 5"></path><path d="M15 3v18M20 3v8a2.5 2.5 0 0 1-5 0V3"></path></svg>',
+  body: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5.5" r="2.8"></circle><path d="M6 12.5c2-2 10-2 12 0"></path><path d="M9 11.5V21M15 11.5V21"></path><path d="M9 15.5h6"></path></svg>',
+  board: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="4"></rect><path d="M8 12.5l2.5 2.5L16 9.5"></path></svg>',
+  wrap: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a7 7 0 1 0 10.5 10.5z"></path></svg>'
+};
+const NAV_LABELS = { now: 'Now', fuel: 'Fuel', body: 'Body', board: 'Board', wrap: 'Wrap' };
 function renderTabs() {
-  const secs = SECTIONS[ui.page];
-  $('#tabs').innerHTML = secs.map(([k, n]) => `<button class="tab${ui.section[ui.page] === k ? ' on' : ''}" data-tab="${k}">${n}</button>`).join('');
   $$('.in-tabs').forEach((el) => {
     const pg = el.dataset.for;
     el.innerHTML = SECTIONS[pg].map(([k, n]) => `<button class="tab${ui.section[pg] === k ? ' on' : ''}" data-tab="${k}" data-page="${pg}">${n}</button>`).join('');
   });
-  $('#dots').innerHTML = PAGES.map((p) => `<button class="dot${p === ui.page ? ' on' : ''}" data-go="${p}" aria-label="${p}"></button>`).join('');
+  $('#nav').innerHTML = PAGES.map((p) => `<button class="nb${p === ui.page ? ' on' : ''}" data-go="${p}" aria-label="${NAV_LABELS[p]}">${NAV_ICONS[p]}<span>${NAV_LABELS[p]}</span></button>`).join('');
 }
 function render() {
   ensureDay(ymd());
@@ -891,6 +963,7 @@ document.addEventListener('click', (e) => {
   else if (act === 'weigh') openWeigh();
   else if (act === 'drop-weight') { snapshot('Removed weigh-in'); S.weights = S.weights.filter((w) => w.date !== b.dataset.date); save(); }
   else if (act === 'phys') $('#file-phys').click();
+  else if (act === 'fit-shot') $('#file-fit').click();
   else if (act === 'save-tape') { S.tape.waist = Number($('#tape-waist').value) || null; S.tape.neck = Number($('#tape-neck').value) || null; S.settings.heightIn = Number($('#tape-height').value) || S.settings.heightIn; S.tape.updated = ymd(); save(); toast({ t: 'Tape saved', s: tapeEstimate() != null ? `About ${tapeEstimate()}% by the Navy formula` : 'Need waist, neck and height' }); }
   else if (act === 'wrap-talk') startListening('wrap');
   else if (act === 'add-task') openAddTask();
@@ -1336,6 +1409,59 @@ $('#file-phys').addEventListener('change', async (e) => {
     toast({ t: `About ${r.physique.mid}% body fat`, s: `${r.physique.low} to ${r.physique.high}. Trend beats the number.`, cls: 'blue', ms: 6000 });
   } catch (err) { toast({ t: 'Could not read the photos', s: err.message, cls: 'red', ms: 6000 }); }
 });
+
+/* Fitbit screenshots: the brain reads the numbers, this files them. */
+$('#file-fit').addEventListener('change', async (e) => {
+  const files = Array.from(e.target.files).slice(0, 4); e.target.value = '';
+  if (!files.length) return;
+  toast({ t: `Reading ${files.length > 1 ? files.length + ' screenshots' : 'the screenshot'}`, ms: 4000 });
+  let filed = [];
+  for (const f of files) {
+    try {
+      const img = await shrink(f, 1200, 0.85);
+      const r = await brain({ mode: 'fitbit', images: [img], now: `${ymd()} ${nowHM()}` });
+      filed.push(applyFit(r.fit));
+    } catch (err) { toast({ t: 'Could not read one', s: err.message, cls: 'red', ms: 6000 }); }
+  }
+  if (filed.length) { ui.section.body = 'trends'; save(); toast({ t: 'Filed', s: filed.filter(Boolean).join(' · '), cls: 'blue', ms: 7000 }); }
+});
+function applyFit(fit) {
+  if (!fit || !fit.metric) return null;
+  snapshot('Fitbit screenshot');
+  S.fit = S.fit || FIT_SEED();
+  const entries = (fit.entries || []).filter((x) => /^\d{4}-\d{2}-\d{2}$/.test(x.date || '') && typeof x.value === 'number');
+  const merge = (list, es) => { for (const x of es) { const i = list.findIndex((y) => y.date === x.date && y.period === x.period); const row = { date: x.date, value: Math.round(x.value), period: x.period || 'day' }; if (i >= 0) list[i] = row; else list.push(row); } };
+  const t = ymd();
+  let what = '';
+  switch (fit.metric) {
+    case 'steps':
+      merge(S.fit.steps, entries.filter((x) => x.period !== 'day'));
+      if (fit.today != null) S.steps = { today: Math.round(fit.today), date: t };
+      if (fit.headline?.label) S.fit.notes.steps = `${fit.headline.label}: ${Math.round(fit.headline.value).toLocaleString()}`;
+      what = `steps${fit.today != null ? ' · today ' + Math.round(fit.today).toLocaleString() : ''} · ${entries.length} entries`;
+      break;
+    case 'weight': {
+      const lbs = entries.map((x) => ({ date: x.date, lb: fit.unit === 'kg' ? Math.round(x.value * 2.2046 * 10) / 10 : Math.round(x.value * 10) / 10 }));
+      for (const w of lbs) { S.weights = S.weights.filter((y) => y.date !== w.date); S.weights.push(w); }
+      if (fit.today != null) { S.weights = S.weights.filter((y) => y.date !== t); S.weights.push({ date: t, lb: fit.unit === 'kg' ? Math.round(fit.today * 2.2046 * 10) / 10 : fit.today }); }
+      what = `weight · ${lbs.length + (fit.today != null ? 1 : 0)} entries`;
+      break;
+    }
+    case 'resting_hr':
+      merge(S.fit.rhr, entries);
+      if (fit.headline?.label) S.fit.notes.rhr = `${fit.headline.label}: ${Math.round(fit.headline.value)} bpm`;
+      what = `resting heart rate · ${entries.length} entries`;
+      break;
+    case 'energy':
+      merge(S.fit.energy, entries);
+      if (fit.headline?.label) S.fit.notes.energy = `${fit.headline.label}: ${Math.round(fit.headline.value).toLocaleString()} cal`;
+      what = `energy · ${entries.length} entries`;
+      break;
+    default:
+      what = `${fit.metric} (not charted yet)`;
+  }
+  return what;
+}
 
 /* ---------- sync (Supabase, one row) ---------- */
 const sbHeaders = { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}`, 'Content-Type': 'application/json' };
