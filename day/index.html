@@ -200,12 +200,19 @@
    * own hue and its own motion so you know where you are at a glance.
    */
   .hero { position: relative; margin: calc(-1 * (var(--sat) + 14px)) -14px 12px; padding: calc(var(--sat) + 26px) 18px 18px; border-radius: 0 0 30px 30px; overflow: hidden; min-height: 164px; display: flex; align-items: flex-end; }
-  .hero-art { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
-  .hero-row { position: relative; display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; width: 100%; }
+  /*
+   * The art sits on its own layer and the words sit above it, both said out
+   * loud. iOS promotes an animated or will-change'd child of .hero-art to its
+   * own compositing layer, and a promoted layer was painting OVER the text:
+   * the Fuel band went completely blank on his phone while Chrome was fine.
+   * Never leave these two on z-index auto.
+   */
+  .hero-art { position: absolute; inset: 0; overflow: hidden; pointer-events: none; z-index: 0; }
+  .hero-row { position: relative; z-index: 1; display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; width: 100%; }
   /* Fuel fills the whole band instead of sitting in a line at the bottom: the
      day's number in the middle, the three macros along the foot. */
   .hero.fuel { align-items: stretch; }
-  .hero-col { position: relative; display: flex; flex-direction: column; justify-content: space-between; width: 100%; gap: 12px; }
+  .hero-col { position: relative; z-index: 1; display: flex; flex-direction: column; justify-content: space-between; width: 100%; gap: 12px; }
   .hero-top { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
   .hero-top > .lbl:first-child { flex-shrink: 0; white-space: nowrap; }
   #fuel-right { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: right; }
@@ -228,22 +235,37 @@
   .hero.fuel { background: #ffcf85; color: var(--ink); box-shadow: 0 6px 0 #d9922f, 0 14px 24px rgba(0,0,0,0.10); }
   .hero.fuel .fill { position: absolute; left: 0; right: 0; bottom: 0; height: 100%; background: #ff9d3d; transform-origin: bottom; transform: scaleY(0); transition: transform .9s cubic-bezier(.2,.9,.3,1); }
   .hero.fuel .wave { position: absolute; top: -11px; left: -50%; width: 200%; height: 24px; fill: #ff9d3d; animation: drift 11s linear infinite; }
-  .hero.fuel .fill { will-change: transform; }
+  /* A second crest behind the first, slower and softer: two speeds read as
+     liquid, one speed reads as a shape sliding sideways. */
+  .hero.fuel .wave.back { top: -16px; height: 28px; fill: #ffb877; opacity: .55; animation: drift2 17s linear infinite; }
+  .hero.fuel .bubbles { position: absolute; inset: 0; }
+  .hero.fuel .bubbles i { position: absolute; bottom: -14px; width: 9px; height: 9px; border-radius: 50%; background: rgba(255,255,255,0.42); animation: rise 9s ease-in infinite; }
   @keyframes drift { to { transform: translateX(25%); } }
+  @keyframes drift2 { to { transform: translateX(-25%); } }
+  @keyframes rise { 0% { transform: translateY(0) scale(.7); opacity: 0; } 12% { opacity: .85; } 80% { opacity: .5; } 100% { transform: translateY(-150px) scale(1.15); opacity: 0; } }
 
   .hero.body { background: #8fdcc0; color: var(--ink); box-shadow: 0 6px 0 #3f9c7a, 0 14px 24px rgba(0,0,0,0.10); }
   .hero.body .trend { position: absolute; inset: 0; width: 100%; height: 100%; }
   .hero.body .trend polyline { fill: none; stroke: #1d6b52; stroke-width: 3.5; stroke-linejoin: round; stroke-linecap: round; opacity: .55; animation: draw 2.2s ease-out both; }
   .hero.body .trend line { stroke: #6ec6a6; stroke-width: 1.5; }
   .hero.body .trend circle { fill: #1d6b52; }
+  /* The last weigh-in pulses: the one point that is actually current. */
+  .hero.body .trend circle.now { animation: ping 3.4s ease-out infinite; transform-origin: center; transform-box: fill-box; }
+  .hero.body .glow { position: absolute; left: -20%; right: -20%; top: -40%; height: 150%; border-radius: 50%; background: radial-gradient(closest-side, rgba(255,255,255,0.5), rgba(255,255,255,0)); animation: breathe 12s ease-in-out infinite; }
+  @keyframes ping { 0% { r: 4; opacity: 1; } 70% { r: 11; opacity: 0; } 100% { r: 4; opacity: 0; } }
+  @keyframes breathe { 0%, 100% { transform: translateY(0) scale(1); opacity: .55; } 50% { transform: translateY(10px) scale(1.08); opacity: .85; } }
   @keyframes draw { from { stroke-dashoffset: var(--len); } to { stroke-dashoffset: 0; } }
 
   .hero.board { background: #a3b9ff; color: var(--ink); box-shadow: 0 6px 0 #4f6fd4, 0 14px 24px rgba(0,0,0,0.10); }
   .hero.board .blocks { position: absolute; left: 18px; right: 18px; top: calc(var(--sat) + 22px); display: flex; gap: 4px; height: 30px; }
-  .hero.board .blocks i { flex: 1 1 0; border-radius: 4px; background: rgba(29,29,31,0.14); transition: background .4s; }
-  .hero.board .blocks i.on { background: var(--blue); }
-  .hero.board .sheen { position: absolute; top: 0; bottom: 0; width: 70%; left: -70%; background: linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.45) 50%, rgba(255,255,255,0) 100%); animation: sweep 7s ease-in-out infinite; }
-  @keyframes sweep { 0%, 55% { left: -70%; } 100% { left: 110%; } }
+  .hero.board .blocks i { flex: 1 1 0; border-radius: 4px; background: rgba(29,29,31,0.14); transition: background .4s, transform .4s; }
+  /* Done blocks drop in one after another rather than all at once. */
+  .hero.board .blocks i.on { background: var(--blue); animation: land .5s cubic-bezier(.2,1.3,.4,1) both; animation-delay: var(--d, 0s); }
+  .hero.board .sheen { position: absolute; top: 0; bottom: 0; width: 80%; left: -80%; background: linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.30) 50%, rgba(255,255,255,0) 100%); animation: sweep 11s ease-in-out infinite; }
+  .hero.board .grid { position: absolute; inset: 0; opacity: .3; background-image: linear-gradient(rgba(29,29,31,0.10) 1.5px, transparent 1.5px); background-size: 100% 26px; animation: creep 20s linear infinite; }
+  @keyframes sweep { 0%, 62% { left: -80%; } 100% { left: 110%; } }
+  @keyframes land { from { transform: scaleY(.25); opacity: .3; } to { transform: scaleY(1); opacity: 1; } }
+  @keyframes creep { to { background-position-y: 26px; } }
 
   .hero.talk { background: #1b2350; color: #f4f1ea; box-shadow: 0 6px 0 #0c1130, 0 14px 24px rgba(0,0,0,0.14); }
   .hero.talk .lbl { color: #93a0d8; }
@@ -251,8 +273,12 @@
   .hero.talk .o1 { width: 130px; height: 130px; right: -20px; top: -30px; background: #2b3a86; animation: float1 16s ease-in-out infinite; }
   .hero.talk .o2 { width: 76px; height: 76px; right: 96px; top: 62px; background: #26306b; animation: float2 13s ease-in-out infinite; }
   .hero.talk .o3 { width: 40px; height: 40px; right: 176px; top: 26px; background: var(--blue); opacity: .5; animation: float1 19s ease-in-out infinite reverse; }
+  /* A slow waveform along the foot: the band looks like it is listening. */
+  .hero.talk .bars { position: absolute; left: 0; right: 0; bottom: 0; height: 46px; display: flex; align-items: flex-end; gap: 5px; padding: 0 14px; opacity: .5; }
+  .hero.talk .bars i { flex: 1 1 0; border-radius: 3px 3px 0 0; background: linear-gradient(180deg, #4a5bc4 0%, #2b3a86 100%); height: 8px; animation: listen 4.2s ease-in-out infinite; animation-delay: var(--d, 0s); }
   @keyframes float1 { 0%, 100% { transform: translate(0, 0); } 50% { transform: translate(-14px, 12px); } }
   @keyframes float2 { 0%, 100% { transform: translate(0, 0); } 50% { transform: translate(10px, -14px); } }
+  @keyframes listen { 0%, 100% { height: 7px; } 50% { height: var(--h, 24px); } }
   @media (prefers-reduced-motion: reduce) { .hero * { animation: none !important; } }
 
   /* the now divider inside the flow list */
@@ -449,7 +475,7 @@
 
   <section class="page fuel" data-page="fuel">
     <header class="hero fuel">
-      <div class="hero-art"><div class="fill" id="fuel-fill"><svg class="wave" viewBox="0 0 800 24" preserveAspectRatio="none"><path d="M0 12 C50 0 150 24 200 12 S350 0 400 12 S550 24 600 12 S750 0 800 12 V24 H0 Z"></path></svg></div></div>
+      <div class="hero-art"><div class="fill" id="fuel-fill"><svg class="wave back" viewBox="0 0 800 24" preserveAspectRatio="none"><path d="M0 12 C50 0 150 24 200 12 S350 0 400 12 S550 24 600 12 S750 0 800 12 V24 H0 Z"></path></svg><svg class="wave" viewBox="0 0 800 24" preserveAspectRatio="none"><path d="M0 12 C50 0 150 24 200 12 S350 0 400 12 S550 24 600 12 S750 0 800 12 V24 H0 Z"></path></svg><div class="bubbles"><i style="left:14%;animation-delay:0s"></i><i style="left:32%;width:6px;height:6px;animation-delay:2.6s"></i><i style="left:53%;animation-delay:4.4s"></i><i style="left:71%;width:7px;height:7px;animation-delay:1.3s"></i><i style="left:88%;width:5px;height:5px;animation-delay:6.1s"></i></div></div></div>
       <div class="hero-col">
         <div class="hero-top"><div class="lbl">Fuel · <span class="today-lbl"></span></div><div class="lbl" id="fuel-right"></div></div>
         <div class="hero-mid"><div class="big" id="cal-so-far"></div><div class="lbl" id="cal-note">cal so far</div></div>
@@ -462,7 +488,7 @@
 
   <section class="page body" data-page="body">
     <header class="hero body">
-      <div class="hero-art"><svg class="trend" id="body-trend" viewBox="0 0 390 180" preserveAspectRatio="none"></svg></div>
+      <div class="hero-art"><div class="glow"></div><svg class="trend" id="body-trend" viewBox="0 0 390 180" preserveAspectRatio="none"></svg></div>
       <div class="hero-row">
         <div><div class="lbl">Body · <span class="today-lbl"></span></div><div class="big">The trend</div></div>
         <div class="hero-stat"><div class="big" id="w-delta"></div><div class="lbl">30 days</div></div>
@@ -474,7 +500,7 @@
 
   <section class="page board" data-page="board">
     <header class="hero board">
-      <div class="hero-art"><div class="sheen"></div><div class="blocks" id="board-blocks"></div></div>
+      <div class="hero-art"><div class="grid"></div><div class="sheen"></div><div class="blocks" id="board-blocks"></div></div>
       <div class="hero-row">
         <div><div class="lbl">Board · <span class="today-lbl"></span></div><div class="big">Today</div></div>
         <div class="hero-stat"><div class="big" id="hit-count"></div><div class="lbl">hit</div></div>
@@ -486,7 +512,7 @@
 
   <section class="page talk" data-page="talk">
     <header class="hero talk">
-      <div class="hero-art"><i class="orb o1"></i><i class="orb o2"></i><i class="orb o3"></i></div>
+      <div class="hero-art"><i class="orb o1"></i><i class="orb o2"></i><i class="orb o3"></i><div class="bars"><i style="--d:0s;--h:18px"></i><i style="--d:0.35s;--h:30px"></i><i style="--d:0.7s;--h:14px"></i><i style="--d:1.05s;--h:26px"></i><i style="--d:1.4s;--h:36px"></i><i style="--d:0.2s;--h:20px"></i><i style="--d:0.9s;--h:32px"></i><i style="--d:1.6s;--h:16px"></i><i style="--d:0.5s;--h:28px"></i><i style="--d:1.2s;--h:22px"></i><i style="--d:0.1s;--h:34px"></i><i style="--d:1.45s;--h:18px"></i></div></div>
       <div class="hero-row">
         <div><div class="lbl" id="talk-lbl">Talk</div><div class="big" id="talk-title">Ask me anything</div></div>
         <button class="pill hidden" id="talk-action"></button>
@@ -533,7 +559,7 @@ const SB_URL = 'https://ksgxrxqvnfpfhidxsxcs.supabase.co';
 const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzZ3hyeHF2bmZwZmhpZHhzeGNzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE0MzkxMTgsImV4cCI6MjA5NzAxNTExOH0.pUD6sbkjhhTlgl5x4KHFJsThoHVlNkNBlSFES_8HHvM';
 const BRAIN = '/.netlify/functions/day-brain';
 const STORE_KEY = 'daily-board';
-const APP_VERSION = '1.8';
+const APP_VERSION = '1.9';
 const ROW_ID = 'reggie';
 /*
  * A copy served from localhost or opened off the disk is a test copy, and a test
@@ -1272,14 +1298,14 @@ function renderFuel() {
     sec === 'meals' ? `${S.library.length} saved`
     : sec === 'macros' ? `from ${m.counted} eaten`
     : next ? `next ${t12(next.time)} · ${next.name.length > 20 ? next.name.slice(0, 19).trim() + '…' : next.name}` : `${eaten} of ${total} in`;
-  const hb = (n, v, g, cls) => {
+  const hb = (n, v, g, cls, key) => {
     const pct = g > 0 ? v / g : 0;
-    return `<div class="hb ${cls}${pct > 1.08 ? ' over' : ''}"><div class="k"><span>${n}</span><b>${Math.round(v)}<span style="font-weight:700;opacity:.7">/${g}</span></b></div><div class="t"><i style="transform:scaleX(${Math.min(1, pct).toFixed(3)})"></i></div></div>`;
+    return `<div class="hb ${cls}${pct > 1.08 ? ' over' : ''}" data-act="nutrient" data-key="${key}" style="cursor:pointer"><div class="k"><span>${n}</span><b>${Math.round(v)}<span style="font-weight:700;opacity:.7">/${g}</span></b></div><div class="t"><i style="transform:scaleX(${Math.min(1, pct).toFixed(3)})"></i></div></div>`;
   };
   $('#fuel-bars').innerHTML =
-    hb('Protein', m.protein, S.settings.proteinGoal, 'p') +
-    hb('Carbs', m.carbs, S.settings.carbGoal, '') +
-    hb('Fat', m.fat, S.settings.fatGoal, '');
+    hb('Protein', m.protein, S.settings.proteinGoal, 'p', 'protein') +
+    hb('Carbs', m.carbs, S.settings.carbGoal, '', 'carbs') +
+    hb('Fat', m.fat, S.settings.fatGoal, '', 'fat');
   let html = '';
   if (sec === 'plan') {
     html += `<div class="card list">${day.meals.map((x) => rowHTML(x, 'meal', { parts: true })).join('')}</div>`;
@@ -1289,8 +1315,8 @@ function renderFuel() {
     html += `<button class="btn ghost wide" data-act="add-meal">+ Add a meal</button>`;
     html += `<div class="chips"><button class="pill" data-act="edit-plan">Edit the plan</button><button class="pill" data-act="edit-goals">Goals</button></div>`;
   } else if (sec === 'macros') {
-    const bar = (n, v, g, cls) => `<div class="mac ${cls}"><div class="n">${n}</div><div class="barr"><i style="transform:scaleX(${Math.min(1, v / g).toFixed(3)})"></i></div><div class="v">${v} / ${g}g</div></div>`;
-    html += `<div class="card" style="padding:14px 16px;display:flex;flex-direction:column;gap:8px"><div style="display:flex;justify-content:space-between"><div class="lbl">Macros</div><div class="lbl" style="color:#2b5cff">Protein first</div></div>${bar('Protein', m.protein, S.settings.proteinGoal, 'p')}${bar('Carbs', m.carbs, S.settings.carbGoal, '')}${bar('Fat', m.fat, S.settings.fatGoal, '')}<div class="s">${m.cal} of ${S.settings.calGoal} cal · from ${day.meals.filter((x) => x.done).length} meals${day.extras.length ? ` + ${day.extras.length} extra` : ''}</div></div>`;
+    const bar = (n, v, g, cls, key) => `<div class="mac ${cls}" data-act="nutrient" data-key="${key}" style="cursor:pointer"><div class="n">${n}</div><div class="barr"><i style="transform:scaleX(${Math.min(1, v / g).toFixed(3)})"></i></div><div class="v">${v} / ${g}g</div></div>`;
+    html += `<div class="card" style="padding:14px 16px;display:flex;flex-direction:column;gap:8px"><div style="display:flex;justify-content:space-between"><div class="lbl">Macros</div><div class="lbl" style="color:#2b5cff">Protein first</div></div>${bar('Protein', m.protein, S.settings.proteinGoal, 'p', 'protein')}${bar('Carbs', m.carbs, S.settings.carbGoal, '', 'carbs')}${bar('Fat', m.fat, S.settings.fatGoal, '', 'fat')}<div class="s">${m.cal} of ${S.settings.calGoal} cal · from ${day.meals.filter((x) => x.done).length} meals${day.extras.length ? ` + ${day.extras.length} extra` : ''}</div></div>`;
     html += `<div class="card"><div style="display:flex;justify-content:space-between;padding:14px 16px 4px"><div class="lbl">Micros</div><div class="lbl">from ${m.counted} eaten</div></div>${microGrid(m.micros)}<div class="s" style="padding:0 16px 14px">Estimates from what you have checked off. Tap any meal on the Plan to see or fix its own numbers.</div></div>`;
   } else {
     html += S.library.length
@@ -1471,7 +1497,8 @@ function paintTrendHero(ws) {
   const last = xy[xy.length - 1];
   el.innerHTML = `<line x1="0" y1="${top}" x2="${W}" y2="${top}"></line><line x1="0" y1="${(top + bottom) / 2}" x2="${W}" y2="${(top + bottom) / 2}"></line><line x1="0" y1="${bottom}" x2="${W}" y2="${bottom}"></line>`
     + `<polyline points="${d}" style="--len:${Math.ceil(len)};stroke-dasharray:${Math.ceil(len)}"></polyline>`
-    + `<circle cx="${last[0].toFixed(1)}" cy="${last[1].toFixed(1)}" r="5" style="transform-origin:${last[0].toFixed(1)}px ${last[1].toFixed(1)}px"></circle>`;
+    + `<circle cx="${last[0].toFixed(1)}" cy="${last[1].toFixed(1)}" r="5" style="transform-origin:${last[0].toFixed(1)}px ${last[1].toFixed(1)}px"></circle>`
+    + `<circle class="now" cx="${last[0].toFixed(1)}" cy="${last[1].toFixed(1)}" r="4"></circle>`;
 }
 
 function renderBoard() {
@@ -1480,7 +1507,8 @@ function renderBoard() {
   const done = items.filter((x) => x.done).length;
   $('#hit-count').innerHTML = `${done}<span>/${items.length}</span>`;
   // One block per thing on today's board, lighting up as they land.
-  $('#board-blocks').innerHTML = [...items.map((x) => x.done), day.water >= S.settings.waterGoal].map((on) => `<i class="${on ? 'on' : ''}"></i>`).join('');
+  // Staggered so the row lands left to right rather than all in one frame.
+  $('#board-blocks').innerHTML = [...items.map((x) => x.done), day.water >= S.settings.waterGoal].map((on, i) => `<i class="${on ? 'on' : ''}" style="--d:${(i * 0.045).toFixed(3)}s"></i>`).join('');
   const sec = ui.section.board;
   let html = '';
   const all = [...day.meals.map((m) => ({ ...m, kind: 'meal' })), ...day.tasks.map((t) => ({ ...t, kind: 'task' }))];
@@ -1739,6 +1767,7 @@ document.addEventListener('click', (e) => {
   else if (act === 'open-week') openWeek();
   else if (act === 'advise') openAdvise();
   else if (act === 'compare') openCompare();
+  else if (act === 'nutrient') openNutrient(b.dataset.key);
   else if (act === 'trend') openTrend(b.dataset.kind);
   else if (act === 'missed') openMissed(b.dataset.kind, b.dataset.id);
   else if (act === 'miss-did') { closeSheet(); toggleItem(b.dataset.kind, b.dataset.id); }
@@ -2598,8 +2627,60 @@ function microCell(def, val, opts = {}) {
   const cap = kind === 'cap';
   const cls = cap ? (pct > 1 ? ' bad' : '') : (pct >= 1 ? ' good' : '');
   const right = opts.pct ? `${Math.round(pct * 100)}%` : `/${goal.toLocaleString()}${unit}`;
-  return `<div class="micro${cls}"><div class="n">${name}</div><div class="v">${microRound(v).toLocaleString()}<span>${right}</span></div><div class="mbar"><i style="transform:scaleX(${Math.min(1, pct).toFixed(3)})"></i></div></div>`;
+  return `<div class="micro${cls}" data-act="nutrient" data-key="${k}" style="cursor:pointer"><div class="n">${name}</div><div class="v">${microRound(v).toLocaleString()}<span>${right}</span></div><div class="mbar"><i style="transform:scaleX(${Math.min(1, pct).toFixed(3)})"></i></div></div>`;
 }
+/*
+ * Where a number comes from. Tapping protein, or sodium, or folate should
+ * answer "what is feeding this", so the list is the whole day's plan, not only
+ * what he has ticked: the ones already eaten are marked, and the header gives
+ * both totals so the day's figure and the plan's figure never look at odds.
+ */
+const MACRO_DEFS = {
+  cal: ['Calories', '', () => S.settings.calGoal],
+  protein: ['Protein', 'g', () => S.settings.proteinGoal],
+  carbs: ['Carbs', 'g', () => S.settings.carbGoal],
+  fat: ['Fat', 'g', () => S.settings.fatGoal]
+};
+const nutrientOf = (item, key) => (MACRO_DEFS[key] ? item[key] : (item.micros || {})[key]) || 0;
+function openNutrient(key) {
+  const macro = MACRO_DEFS[key];
+  const def = macro ? null : MICRO_BY_KEY[key];
+  if (!macro && !def) return;
+  const name = macro ? macro[0] : def[1];
+  const unit = macro ? macro[1] : def[3];
+  const goal = macro ? macro[2]() : def[2];
+  const cap = !macro && def[4] === 'cap';
+  const day = today();
+  const rows = [...day.meals.filter((x) => !x.skipped), ...day.extras]
+    .map((x) => ({ name: x.name, slot: x.slot || 'Extra', time: x.time, done: !!x.done, v: nutrientOf(x, key) }))
+    .filter((r) => r.v > 0)
+    .sort((a, b) => b.v - a.v);
+  const all = rows.reduce((s, r) => s + r.v, 0);
+  const got = rows.filter((r) => r.done).reduce((s, r) => s + r.v, 0);
+  const fmt = (v) => `${microRound(v).toLocaleString()}${unit}`;
+  if (!rows.length) {
+    openSheet(name, fmt(0), `<div class="card" style="padding:18px"><div class="t">Nothing in today's plan carries ${name.toLowerCase()}.</div><div class="s" style="margin-top:6px;line-height:1.4">Either nothing you eat has it, or the items it is in have no numbers yet. Tap a meal on the Plan to fill them in.</div></div>`);
+    return;
+  }
+  const top = rows[0];
+  const share = Math.round((100 * top.v) / all);
+  openSheet(name, `${fmt(got)} today`, `
+    <div class="card macs">
+      <div><div class="n">Eaten</div><div class="v">${fmt(got)}</div></div>
+      <div><div class="n">Full plan</div><div class="v">${fmt(all)}</div></div>
+      <div><div class="n">${cap ? 'Ceiling' : 'Target'}</div><div class="v">${fmt(goal)}</div></div>
+      <div><div class="n">Biggest</div><div class="v">${share}%</div></div>
+    </div>
+    <div class="card"><div class="lbl" style="padding:14px 16px 4px">What feeds it · every day</div><div class="list">${rows.map((r) => {
+      const pct = Math.round((100 * r.v) / all);
+      return `<div class="row${r.done ? ' done' : ''}"><div class="txt"><div class="t">${esc(r.name)}</div><div class="s">${esc(r.slot)}${r.time ? ' · ' + t12s(r.time) : ''}${r.done ? ' · eaten' : ''}</div><div class="mbar" style="margin-top:6px"><i style="transform:scaleX(${(r.v / (top.v || 1)).toFixed(3)})"></i></div></div><div style="text-align:right;flex-shrink:0"><div class="t">${fmt(r.v)}</div><div class="s">${pct}%</div></div></div>`;
+    }).join('')}</div></div>
+    <div class="card" style="padding:14px 16px"><div class="s" style="line-height:1.45">${cap
+      ? `${name} is a ceiling, not a target. The plan puts ${fmt(all)} in the day against ${fmt(goal)}, and ${esc(top.name)} is ${share}% of it, so that is the one to change if you want the number down.`
+      : `The plan puts ${fmt(all)} in the day against ${fmt(goal)}${all >= goal ? ', so a full day covers it' : `, which leaves you ${fmt(goal - all)} short even on a perfect day`}. ${esc(top.name)} carries ${share}% of it.`}</div></div>
+  `);
+}
+
 function microGrid(micros, opts = {}) {
   return MICRO_GROUPS.map(([title, keys]) =>
     `<div class="lbl grp-lbl" style="padding:12px 16px 0">${title}</div><div class="micro-grid">${keys.map((k) => microCell(MICRO_BY_KEY[k], micros[k], opts)).join('')}</div>`
