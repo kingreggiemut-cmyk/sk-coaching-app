@@ -1,0 +1,298 @@
+/* =====================================================================
+   THE WAR ROOM · the skin. Everything under body.sk-warroom.
+   One photographed room, one crimson, one gold. Titles in Barlow Condensed
+   900, eyebrows in Barlow caps, notes in Permanent Marker. Objects: a TV, a
+   whiteboard, a film reel, sticky notes, a desk.
+   ===================================================================== */
+body.sk-warroom{ --wr-crim:#9E1B32; --wr-gold:#F5A623; --wr-cream:#F0E7CB; --wr-ink:#17130E; --wr-gray:#828A8F;
+  --wr-room:url('art/Bama Assets__Alabama Office background.jpg');
+  background:#120A0C; color:var(--wr-cream); }
+/* THE ROOM IS BEHIND GLASS. One photo under every screen, blurred so nothing
+   on top of it has to fight for contrast, drifting with the pointer and the
+   scroll so the place has depth instead of being wallpaper.
+   TWO ELEMENTS, DELIBERATELY. The pinned layer carries NEITHER a filter nor a
+   transform: put both on a fixed element and the browser stops repainting the
+   page correctly on scroll (the sticky bar paints in the wrong place and the
+   space above it comes up black, while getBoundingClientRect still reports
+   the right numbers, so it only shows up on screen). The photo therefore
+   lives in a child that is absolutely positioned inside the pinned box, inset
+   past every edge because a blur pulls the picture in from its own borders. */
+.wr-bg{ position:fixed; inset:0; z-index:0; pointer-events:none; overflow:hidden; }
+.wr-bg i{ position:absolute; inset:-8%; display:block;
+  background:var(--wr-room) center/cover no-repeat;
+  filter:blur(15px) brightness(.68) saturate(.88);
+  transform:translate3d(calc(var(--bgx,0) * 20px), calc(var(--bgy,0) * 16px), 0); }
+.wr-bg::after{ content:''; position:absolute; inset:0;
+  background:linear-gradient(180deg,rgba(10,6,8,.55) 0%,rgba(10,6,8,.38) 40%,rgba(10,6,8,.88) 100%); }
+body:not(.sk-warroom) .wr-bg{ display:none; }
+body.sk-warroom .wrap, body.sk-warroom #main{ position:relative; z-index:1; }
+@media (prefers-reduced-motion:reduce){ .wr-bg i{ transform:none; } }
+body.sk-warroom .roomwrap{ display:block; }
+body.sk-warroom .room{ padding:0; }
+body.sk-warroom .rb, body.sk-warroom .roomnav{ display:none !important; }
+
+/* ---- type ---- */
+.wr-ttl{ font:900 54px/.86 var(--fd,'Barlow Condensed',sans-serif); letter-spacing:-.01em; text-transform:uppercase; }
+.wr-ey{ font:700 12px/1 'Barlow',sans-serif; letter-spacing:.22em; text-transform:uppercase; color:var(--wr-gold); }
+.wr-mk{ font-family:'Permanent Marker',cursive; font-weight:400; }
+
+/* ---- the bar ---- */
+.wr-bar{ position:sticky; top:0; z-index:60; display:flex; align-items:center; gap:22px; padding:16px clamp(18px,3vw,56px) 12px;
+  background:linear-gradient(180deg,rgba(10,6,8,.92),rgba(10,6,8,.55) 80%,rgba(10,6,8,0)); }
+.wr-back{ flex:none; border:0; cursor:pointer; padding:8px 12px; background:rgba(12,10,12,.86); color:var(--wr-cream);
+  border:1px solid rgba(240,231,203,.18); font:800 11px/1 'Barlow Condensed',sans-serif; letter-spacing:.14em; text-transform:uppercase; }
+.wr-id{ display:flex; align-items:center; gap:14px; min-width:0; flex:0 1 auto; }
+.wr-id .skh-crest{ width:56px; height:56px; flex:none; }
+/* the crest plate is a light disc, so the mark has to be drawn inside it */
+body.sk-warroom .skh-crest img{ width:100%; height:100%; object-fit:contain; padding:5px; box-sizing:border-box; }
+.wr-id i{ display:block; font:700 10px/1 'Barlow',sans-serif; letter-spacing:.22em; text-transform:uppercase; color:var(--wr-gold); font-style:normal; margin-bottom:5px; white-space:nowrap; }
+/* the name gives way before the nav does: it shrinks with the window and
+   only then wraps to two lines, so it is never cut off mid-word */
+.wr-id b{ display:block; font:900 clamp(22px,2.3vw,34px)/.9 'Barlow Condensed',sans-serif; letter-spacing:-.01em; text-transform:uppercase; }
+.wr-nav{ display:flex; flex-wrap:wrap; justify-content:flex-end; gap:8px; margin-left:auto; flex:1 1 auto; }
+.wr-item{ position:relative; }
+.wr-plate{ display:inline-block; cursor:pointer; border:1px solid rgba(240,231,203,.18); background:rgba(12,10,12,.86); color:var(--wr-cream);
+  padding:11px 14px; font:800 14px/1 'Barlow Condensed',sans-serif; letter-spacing:.06em; text-transform:uppercase; white-space:nowrap; }
+.wr-plate:hover{ border-color:rgba(240,231,203,.5); }
+.wr-item.on .wr-plate{ background:var(--wr-crim); border-color:var(--wr-crim); color:#fff; }
+.wr-plate.gold{ background:var(--wr-gold); border-color:var(--wr-gold); color:var(--wr-ink); }
+/* the dropdown: opens on hover, stays while the pointer is over it */
+.wr-dd{ position:absolute; top:100%; right:0; min-width:290px; max-height:70vh; overflow-y:auto; padding:8px; margin-top:6px; z-index:70;
+  background:rgba(12,10,12,.96); border:1px solid rgba(240,231,203,.2); box-shadow:0 24px 60px rgba(0,0,0,.6);
+  opacity:0; visibility:hidden; translate:0 -6px; transition:opacity .16s ease, translate .16s ease, visibility 0s .16s; }
+.wr-item::after{ content:''; position:absolute; left:0; right:0; top:100%; height:8px; }
+.wr-item:hover .wr-dd, .wr-item:focus-within .wr-dd{ opacity:1; visibility:visible; translate:0 0; transition-delay:0s; }
+.wr-dd-h{ display:flex; justify-content:space-between; padding:9px 10px 5px; font:800 10px/1 'Barlow',sans-serif; letter-spacing:.2em; text-transform:uppercase; color:var(--wr-gold); }
+.wr-dd-h i{ font-style:normal; color:var(--wr-gray); letter-spacing:.06em; }
+.wr-dd-row{ display:flex; justify-content:space-between; align-items:baseline; gap:12px; width:100%; text-align:left; border:0; cursor:pointer;
+  padding:9px 10px; background:transparent; color:var(--wr-cream); border-top:1px solid rgba(240,231,203,.06); }
+.wr-dd-row:hover{ background:rgba(240,231,203,.08); }
+.wr-dd-row b{ font:800 16px/1 'Barlow Condensed',sans-serif; text-transform:uppercase; letter-spacing:.03em; }
+.wr-dd-row span{ font:600 11px/1 'Barlow',sans-serif; color:var(--wr-gray); white-space:nowrap; }
+.wr-dd-row.on b{ color:var(--wr-gold); }
+.wr-dd-row.on b::before{ content:'\2713  '; }
+.wr-meter{ flex:none; text-align:right; }
+.wr-meter i{ display:block; font:700 10px/1 'Barlow',sans-serif; letter-spacing:.22em; text-transform:uppercase; color:var(--wr-gold); font-style:normal; }
+.wr-meter b{ display:block; font:900 34px/1 'Barlow Condensed',sans-serif; margin-top:3px; }
+.wr-meter b span{ font-size:16px; color:var(--wr-gray); margin-left:4px; }
+.wr-meter u{ display:block; width:120px; height:4px; margin:6px 0 0 auto; background:rgba(240,231,203,.15); text-decoration:none; }
+.wr-meter u em{ display:block; height:100%; width:calc(var(--p,0)*100%); background:var(--wr-gold); }
+
+/* ---- the stage ---- */
+body.sk-warroom #skbody{ padding:22px clamp(18px,3vw,56px) 60px; }
+
+/* ---- objects ---- */
+.wr-tv{ position:relative; background:#07070A; border:14px solid #15161A; border-radius:8px; box-shadow:0 30px 80px rgba(0,0,0,.7), inset 0 0 0 2px #2A2C33; }
+.wr-tv::after{ content:''; position:absolute; inset:0; background:linear-gradient(115deg,rgba(255,255,255,.07) 0%,rgba(255,255,255,0) 38%); pointer-events:none; }
+.wr-tv-screen{ aspect-ratio:620/340; width:100%; }
+.wr-tv-screen svg, .wr-tv-screen img{ width:100%; height:100%; display:block; object-fit:cover; }
+.wr-tv-plate{ position:absolute; left:22px; bottom:22px; font-size:26px !important; z-index:2; }
+.wr-tv-plate span{ color:var(--wr-gold); font-size:16px; margin-left:10px; }
+.wr-film{ display:flex; gap:14px; overflow-x:auto; scrollbar-width:none; }
+.wr-film::-webkit-scrollbar{ display:none; }
+.wr-reel{ background:#111; padding:14px 18px; display:flex; gap:14px; align-items:center; border-top:10px dashed #2A2C33; border-bottom:10px dashed #2A2C33; margin-top:22px; }
+.wr-reel .wr-film{ flex:1 1 auto; min-width:0; }
+.wr-slide{ flex:none; width:150px; cursor:pointer; border:0; background:transparent; padding:0; text-align:left; opacity:.55; }
+.wr-slide.on, .wr-slide:hover{ opacity:1; }
+.wr-slide-art{ display:block; height:84px; background:#0B0D12; border:3px solid #2A2C33; border-radius:4px; overflow:hidden; }
+.wr-slide.on .wr-slide-art{ border-color:var(--wr-gold); }
+.wr-slide.ink .wr-slide-art{ border-color:#5E8A3A; }
+.wr-slide-art svg, .wr-slide-art img{ width:100%; height:100%; display:block; object-fit:cover; }
+.wr-slide i{ display:block; margin-top:6px; font:800 11px/1.2 'Barlow',sans-serif; letter-spacing:.12em; text-transform:uppercase; color:var(--wr-gray); font-style:normal; }
+.wr-slide.on i{ color:var(--wr-gold); }
+.wr-reel-count{ flex:none; text-align:right; }
+.wr-reel-count i{ display:block; font:700 11px/1 'Barlow',sans-serif; letter-spacing:.22em; text-transform:uppercase; color:var(--wr-gold); font-style:normal; }
+.wr-reel-count b{ display:block; font:900 44px/1 'Barlow Condensed',sans-serif; }
+.wr-reel-count b span{ font-size:22px; color:var(--wr-gray); }
+
+/* ---- THE ROOM · FOUR BANDS ----------------------------------------
+   Rebuilt 2026-09-04. The first pass put seven blocks on one page and every
+   one of them had to be small to fit; he was right to reject it. Each band
+   now does ONE thing at a size you can read across a room, and anything a
+   band was duplicating (the pillars, the counters, the front tiles, the call
+   rack) was cut because it already lives one click away in the bar. No coach
+   cutout either: the crest and the room photo are the only art, and both
+   exist for every team, so a new scheme costs no new asset.
+
+   BAND 1 · the name. Who this is, nothing else. */
+.wr-b1{ min-height:calc(100vh - 240px); display:flex; flex-direction:column; align-items:flex-start; justify-content:center;
+  padding:clamp(20px,4vh,60px) 0; }
+.wr-b1-crest{ width:clamp(64px,6vw,92px); height:clamp(64px,6vw,92px); margin-bottom:clamp(14px,2.4vh,28px); }
+.wr-b1 .wr-ey{ font-size:13px; letter-spacing:.28em; }
+.wr-b1-name{ margin:10px 0 0; font:900 clamp(64px,9.6vw,152px)/.82 'Barlow Condensed',sans-serif; letter-spacing:-.022em;
+  text-transform:uppercase; text-wrap:balance; text-shadow:0 12px 46px rgba(0,0,0,.6); }
+.wr-b1-tag{ margin-top:clamp(14px,2vh,22px); font:400 clamp(26px,2.9vw,42px)/1.05 'Permanent Marker',cursive; color:var(--wr-gold); }
+.wr-b1-era{ margin-top:12px; font:800 13px/1 'Barlow',sans-serif; letter-spacing:.26em; text-transform:uppercase; color:rgba(240,231,203,.62); }
+.wr-b1-go{ margin-top:clamp(24px,3.4vh,40px); flex:0 0 auto; width:auto; font-size:15px !important; padding:16px 26px !important; }
+
+/* BAND 2 · the proof. Four numbers, nothing under them. */
+.wr-b2{ display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:0;
+  border-top:1px solid rgba(240,231,203,.22); border-bottom:1px solid rgba(240,231,203,.22); }
+.wr-pf{ padding:clamp(22px,3vh,34px) 26px; border-right:1px solid rgba(240,231,203,.1); }
+.wr-pf:last-child{ border-right:0; }
+.wr-pf b{ display:block; font:900 clamp(52px,6.2vw,96px)/.86 'Barlow Condensed',sans-serif; letter-spacing:-.02em; }
+.wr-pf i{ display:block; margin-top:10px; font:800 11px/1.35 'Barlow',sans-serif; letter-spacing:.22em; text-transform:uppercase;
+  color:var(--wr-gray); font-style:normal; }
+
+/* BAND 3 · what it believes. The biggest block on the page, because it is
+   the only one carrying the actual scheme. */
+.wr-b3{ padding:clamp(34px,5vh,64px) 0 clamp(20px,3vh,34px); }
+.wr-b3 .wr-ey{ margin-bottom:clamp(16px,2.4vh,26px); font-size:13px; letter-spacing:.28em; }
+.wr-b3-row{ display:flex; align-items:baseline; gap:clamp(18px,2.4vw,34px); width:100%; text-align:left; cursor:pointer;
+  border:0; border-top:1px solid rgba(240,231,203,.14); background:transparent; color:var(--wr-cream);
+  padding:clamp(20px,2.8vh,32px) 0; transition:padding-left .18s ease; }
+.wr-b3-row:last-child{ border-bottom:1px solid rgba(240,231,203,.14); }
+.wr-b3-row:hover{ padding-left:14px; }
+.wr-b3-row:hover b{ color:var(--wr-gold); }
+.wr-b3-row:hover u{ opacity:1; translate:6px 0; }
+.wr-b3-row i{ flex:none; width:clamp(52px,4.4vw,74px); font:900 clamp(36px,3.6vw,58px)/1 'Barlow Condensed',sans-serif;
+  font-style:normal; color:var(--wr-crim); }
+.wr-b3-row span{ flex:1; min-width:0; }
+.wr-b3-row b{ display:block; font:900 clamp(28px,3.4vw,46px)/1 'Barlow Condensed',sans-serif; text-transform:uppercase;
+  letter-spacing:.005em; transition:color .18s ease; }
+.wr-b3-row em{ display:block; margin-top:10px; font:500 clamp(16px,1.35vw,21px)/1.45 'Barlow',sans-serif; font-style:normal;
+  color:rgba(240,231,203,.72); max-width:74ch; }
+.wr-b3-row u{ flex:none; font:400 26px/1 'Barlow',sans-serif; text-decoration:none; color:var(--wr-gold); opacity:.4;
+  transition:opacity .18s ease, translate .18s ease; }
+
+/* BAND 4 · what you get, and the way in again. One line. */
+.wr-b4{ display:flex; flex-wrap:wrap; align-items:center; gap:clamp(16px,2vw,30px);
+  padding:clamp(22px,3vh,34px) 0 clamp(40px,6vh,70px); border-top:1px solid rgba(240,231,203,.22); }
+.wr-b4-count{ font:800 clamp(15px,1.5vw,20px)/1 'Barlow',sans-serif; letter-spacing:.16em; text-transform:uppercase; color:var(--wr-gray); }
+.wr-b4-count b{ font:900 clamp(30px,3vw,44px)/1 'Barlow Condensed',sans-serif; letter-spacing:0; color:var(--wr-cream); margin-right:9px; }
+.wr-b4-count s{ display:inline-block; width:1px; height:22px; margin:0 clamp(12px,1.4vw,20px); vertical-align:-4px;
+  background:rgba(240,231,203,.24); text-decoration:none; }
+.wr-b4-bk{ cursor:pointer; text-align:left; padding:12px 18px; border:1px dashed rgba(245,166,35,.5);
+  background:rgba(245,166,35,.07); color:var(--wr-cream); }
+.wr-b4-bk:hover{ background:rgba(245,166,35,.15); }
+.wr-b4-bk i{ display:block; font:800 9.5px/1 'Barlow',sans-serif; letter-spacing:.22em; text-transform:uppercase;
+  color:var(--wr-gold); font-style:normal; }
+.wr-b4-bk b{ display:block; margin-top:5px; font:900 clamp(18px,1.7vw,24px)/1 'Barlow Condensed',sans-serif; text-transform:uppercase; }
+.wr-b4-go{ margin-left:auto; flex:0 0 auto; width:auto; font-size:14px !important; padding:15px 24px !important; }
+@media (max-width:900px){
+  .wr-b2{ grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .wr-pf:nth-child(2){ border-right:0; }
+  .wr-b3-row{ flex-wrap:wrap; }
+  .wr-b4-go{ margin-left:0; }
+}
+
+
+/* ---- THE PLAN · whiteboard ---- */
+.wr-wb{ background:#F7F5EE; color:var(--wr-ink); border:16px solid #C9CBD1; border-radius:6px; box-shadow:0 30px 70px rgba(0,0,0,.6); position:relative; }
+.wr-wb-head{ background:var(--wr-crim); color:#fff; padding:20px 34px; display:flex; align-items:center; gap:18px; }
+.wr-wb-head .skh-crest{ width:44px; height:44px; }
+.wr-wb-head b{ font:900 38px/.9 'Barlow Condensed',sans-serif; text-transform:uppercase; }
+.wr-wb-head i{ margin-left:auto; font-size:21px; color:#FFD9DD; font-style:normal; }
+.wr-wb-body{ padding:34px 40px 40px; }
+.wr-prin{ display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:34px; }
+.wr-prin-i i{ font-size:22px; color:var(--wr-crim); font-style:normal; }
+.wr-prin-i b{ display:block; font:900 42px/.9 'Barlow Condensed',sans-serif; text-transform:uppercase; margin:6px 0 12px; }
+.wr-prin-i span{ display:block; font-size:20px; line-height:1.3; color:#2B2622; }
+.wr-prin-i p{ margin:12px 0 0; font:500 14px/1.5 'Barlow',sans-serif; color:#4A443C; }
+.wr-fronts{ display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:34px; }
+.wr-front{ position:relative; background:#0B0D12; padding:10px; transform:rotate(var(--r,0deg)); box-shadow:0 12px 24px rgba(0,0,0,.35); color:var(--wr-cream); }
+.wr-tape{ position:absolute; top:-12px; left:50%; width:70px; height:20px; margin-left:-35px; background:rgba(255,255,255,.55); transform:rotate(-3deg); }
+.wr-front-art{ height:150px; cursor:pointer; }
+.wr-front-art svg{ width:100%; height:100%; display:block; }
+.wr-notile{ display:grid; place-items:center; height:100%; font:900 22px 'Barlow Condensed',sans-serif; color:var(--wr-gray); }
+.wr-front-cap{ display:flex; justify-content:space-between; align-items:baseline; gap:10px; margin-top:8px; }
+.wr-front-cap b{ font:900 24px/1 'Barlow Condensed',sans-serif; text-transform:uppercase; }
+.wr-front-cap span{ font-size:14px; color:var(--wr-gold); text-align:right; }
+.wr-front-calls{ display:flex; flex-wrap:wrap; gap:6px; margin-top:10px; }
+.wr-chip{ cursor:pointer; border:0; background:rgba(240,231,203,.12); color:var(--wr-cream); padding:5px 8px; font:800 11px/1 'Barlow Condensed',sans-serif; letter-spacing:.06em; text-transform:uppercase; }
+.wr-chip:hover{ background:var(--wr-gold); color:var(--wr-ink); }
+
+/* ---- ALL PLAYS ---- */
+.wr-plays-top{ display:flex; align-items:center; gap:10px; margin-bottom:18px; }
+.wr-plays-main{ display:grid; grid-template-columns:minmax(0,1fr) 380px; gap:36px; align-items:start; }
+.wr-wb-side{ border-width:10px; }
+.wr-wb-side .wr-wb-body{ padding:20px 22px 22px; }
+.wr-side-t{ display:block; font:900 32px/.9 'Barlow Condensed',sans-serif; text-transform:uppercase; }
+.wr-side-p{ margin:12px 0 0; font-size:17px; line-height:1.35; color:#2B2622; }
+.wr-side-keys{ margin-top:14px; display:flex; flex-direction:column; gap:6px; }
+.wr-side-keys div{ font:800 17px/1.1 'Barlow Condensed',sans-serif; text-transform:uppercase; }
+.wr-side-keys i{ color:var(--wr-crim); font-style:normal; margin-right:8px; }
+.wr-side-acts{ display:flex; gap:8px; margin-top:18px; flex-wrap:wrap; }
+
+/* ---- CALL SHEET · the lifted module, on the desk ---- */
+.gp-room{ position:relative; height:calc(100vh - 150px); min-height:720px; }
+.gp-room .ab2-card, .gp-room .card{ position:absolute; inset:0; }
+.gp-room .gp-wrap{ position:absolute; inset:0; }
+
+/* ---- THE INSTALL · install.js untouched, restyled ---- */
+/* the install brings its own backdrop element; it gets the same glass */
+body.sk-warroom.sk-install .ins-bg .ins-room{ background-image:var(--wr-room) !important; opacity:1;
+  filter:blur(15px) brightness(.68) saturate(.88); scale:1.14;
+  transform:translate3d(calc(var(--bgx,0) * 20px), calc(var(--bgy,0) * 16px), 0); }
+/* ONE BAR, NOT TWO. The room's bar already carries the crest, the name and
+   the way back, so the install's own mast keeps only what the bar cannot:
+   the pillar chips and the inked count, as a slim strip under it. */
+body.sk-warroom .ins-mast{ background:transparent; padding-top:0; }
+body.sk-warroom .ins-mast .ins-back, body.sk-warroom .ins-mast .ins-id{ display:none !important; }
+body.sk-warroom .ins-mast .ins-pillars{ margin-left:0; }
+body.sk-warroom .ins-chip{ background:rgba(12,10,12,.86); border:1px solid rgba(240,231,203,.18); color:var(--wr-cream); clip-path:none; }
+body.sk-warroom .ins-chip.on{ background:var(--wr-crim); border-color:var(--wr-crim); color:#fff; }
+body.sk-warroom .ins-chip.done{ background:rgba(12,10,12,.86); color:var(--wr-gold); }
+body.sk-warroom .ins-chip.on span span, body.sk-warroom .ins-chip.on i{ color:#FFD9DD; }
+/* the TV the play plays on */
+body.sk-warroom .hero{ background:#07070A; border:14px solid #15161A; border-radius:8px; box-shadow:0 30px 80px rgba(0,0,0,.7), inset 0 0 0 2px #2A2C33; }
+body.sk-warroom .hero-tilt{ border-radius:0; }
+body.sk-warroom .pl-form{ color:var(--wr-gray); }
+/* the play's name sits above the card now, at cover size */
+body.sk-warroom .reads-h .ins-ey{ color:var(--wr-gold); }
+body.sk-warroom .reads-h h2{ font-family:'Barlow Condensed',sans-serif; font-weight:900; text-transform:uppercase; }
+body.sk-warroom .reads-why{ font-family:'Permanent Marker',cursive; color:var(--wr-gold); }
+/* THE WALL. Every key is a dark plate on the wall; the one that has landed
+   is the sticky note somebody actually wrote out and pinned up. That is the
+   whole point of C2: five keys stay scannable beside the card because only
+   one of them is carrying a paragraph. */
+body.sk-warroom .rp{ background:rgba(12,10,12,.82); color:var(--wr-cream); border:1px solid rgba(240,231,203,.16); border-radius:0; box-shadow:none; position:relative; }
+body.sk-warroom .rp i{ background:transparent; color:var(--wr-gray); box-shadow:inset 0 0 0 2px rgba(130,138,143,.45); font:900 22px/1 'Barlow Condensed',sans-serif; }
+body.sk-warroom .rp b{ font:800 25px/1.02 'Barlow Condensed',sans-serif; text-transform:uppercase; }
+body.sk-warroom .rp.on:not(.now){ opacity:1; border-color:rgba(245,166,35,.4); }
+body.sk-warroom .rp.on:not(.now) i{ color:var(--wr-gold); box-shadow:inset 0 0 0 2px rgba(245,166,35,.55); }
+body.sk-warroom .rp.wait{ opacity:.45; background:transparent; }
+body.sk-warroom .rp.now{ background:#F6EFA6; color:var(--wr-ink); border:0; box-shadow:0 14px 30px rgba(0,0,0,.55); transform:rotate(-1deg) translateX(6px); }
+body.sk-warroom .rp.now::before{ content:''; position:absolute; top:-9px; left:50%; width:58px; height:17px; margin-left:-29px; background:rgba(255,255,255,.6); transform:rotate(-2deg); }
+body.sk-warroom .rp.now i{ background:var(--wr-crim); color:#fff; box-shadow:none; }
+body.sk-warroom .rp.now b{ color:var(--wr-ink); }
+body.sk-warroom .rp.now p{ font:500 18px/1.45 'Barlow',sans-serif; color:#2B2622; }
+/* adjustments are plates under the TV */
+body.sk-warroom .adj .ins-ey{ color:var(--wr-gold); }
+body.sk-warroom .adj-b{ background:rgba(12,10,12,.86); border:1px solid rgba(240,231,203,.18); color:var(--wr-cream); border-radius:0; }
+body.sk-warroom .adj-b i{ background:transparent; color:var(--wr-gray); }
+body.sk-warroom .adj-b.on{ background:var(--wr-gold); border-color:var(--wr-gold); color:var(--wr-ink); }
+body.sk-warroom .adj-b.on i{ color:var(--wr-ink); }
+/* the film strip along the bottom */
+body.sk-warroom .ins-foot{ background:#111; border-top:10px dashed #2A2C33; }
+body.sk-warroom .fg u{ color:var(--wr-gray); }
+body.sk-warroom .fg.cur u{ color:var(--wr-gold); }
+body.sk-warroom .fc .fc-art{ border:3px solid #2A2C33; border-radius:4px; background:#0B0D12; }
+body.sk-warroom .fc.on .fc-art{ border-color:var(--wr-gold); }
+body.sk-warroom .fc.ink .fc-art{ border-color:#5E8A3A; }
+body.sk-warroom .skb.gold{ background:var(--wr-gold); color:var(--wr-ink); }
+body.sk-warroom .ins-home h1, body.sk-warroom .ins-open h1, body.sk-warroom .ins-game h1{ font-family:'Barlow Condensed',sans-serif; font-weight:900; }
+/* THE HOME · three columns, and THE TITLE CARD · the split.
+   The room's bar already carries the crest, the name and the inked count, so
+   on the home stop the install's whole masthead comes off: the pillar chips
+   are the three columns again and the count is in the bar. That height goes
+   straight into the play cards, which is the only thing on the screen that
+   cannot be read at a smaller size. */
+body.sk-warroom .ins[data-t="home"] .ins-mast{ display:none; }
+body.sk-warroom .ins[data-t="home"] .home-count{ display:none; }
+body.sk-warroom .hcol{ border-top-color:rgba(240,231,203,.22); }
+body.sk-warroom .hcol.up{ border-top-color:var(--wr-crim); }
+body.sk-warroom .hcol.up .hc-num{ color:var(--wr-crim); }
+body.sk-warroom .hc-name, body.sk-warroom .hp-lab b, body.sk-warroom .opc-lab b{ font-family:'Barlow Condensed',sans-serif; font-weight:900; }
+body.sk-warroom .hc-ey, body.sk-warroom .home-count em{ color:var(--wr-gold); }
+body.sk-warroom .hp-art, body.sk-warroom .opc-art{ border-radius:4px; box-shadow:0 0 0 3px #2A2C33, 0 12px 26px rgba(0,0,0,.55); }
+body.sk-warroom .hp.ink .hp-art, body.sk-warroom .opc.ink .opc-art{ box-shadow:0 0 0 3px var(--wr-gold), 0 12px 26px rgba(0,0,0,.55); }
+body.sk-warroom .op-ey{ color:var(--wr-gold); }
+body.sk-warroom .op-ck i{ color:var(--wr-crim); }
+body.sk-warroom .opc-lab i{ font-family:'Barlow Condensed',sans-serif; }
+body.sk-warroom .opc.ink .opc-lab i{ color:var(--wr-gold); }
+
+
+/* ---- DRIVES · BOARD · PERSONNEL · re-housed, operation untouched ---- */
+body.sk-warroom .vh b{ font:900 54px/.86 'Barlow Condensed',sans-serif; text-transform:uppercase; }
+body.sk-warroom .vh span{ font-family:'Permanent Marker',cursive; color:var(--wr-gold); font-size:18px; }

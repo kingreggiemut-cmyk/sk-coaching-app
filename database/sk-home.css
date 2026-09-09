@@ -1,0 +1,203 @@
+/* =====================================================================
+   THE HOME, look C ("the broadcast"), his pick 2026-09-06. Loaded after
+   sk-app.css and schemes.css on index.html and defense.html.
+   THE BAR: one blue bar across the top with the Scheme Kings crown, the
+   wordmark, the three sections as torn cream tabs, the side of the ball
+   and the library as glass at the right end. The sections live up here
+   now, so the left rail only ever holds the books.
+   THE PICKER: the whole field takes the standing team's colour, the name
+   huge and faint behind the deck, the chips as a strip in the corner, the
+   name on a slab in the team's colour under the deck, Open the install in
+   gold. The deck and its flip are untouched.
+   ===================================================================== */
+:root{--skb:#1E54B7;--skb2:#0F2E6B;--skgold:#F5A623;--cream6:#F6EEDC;--fd6:'Anton',Impact,sans-serif;--fc6:'Barlow Condensed','Arial Narrow',sans-serif;--fb6:'Barlow',Arial,sans-serif}
+
+/* ---------- the bar ---------- */
+.head{grid-column:1/4;margin:0;position:relative;z-index:5}
+.banner{border:0;outline:0;border-radius:0;padding:0 44px;height:84px;display:flex;align-items:center;justify-content:flex-start;gap:28px;
+  background:linear-gradient(180deg,var(--skb) 0%,var(--skb2) 100%);border-bottom:3px solid var(--skgold);box-shadow:0 10px 30px rgba(0,0,0,.45)}
+.brand{display:flex;align-items:center;gap:14px;text-align:left;flex:none}
+.brand::before{content:"";width:52px;height:52px;border-radius:50%;background:#fff url("logos/scheme-kings.png") center/contain no-repeat;box-shadow:0 6px 14px rgba(0,0,0,.4);flex:none}
+.brand b{font:400 32px/1 var(--fd6);letter-spacing:.02em;color:#fff;text-shadow:0 2px 6px rgba(0,0,0,.4);text-transform:uppercase}
+.brand b i{color:var(--skgold)}
+.brand span{margin-top:5px;font:800 10px/1 var(--fc6);letter-spacing:.3em;color:#C9D8F5;text-transform:uppercase}
+.brand span:before,.brand span:after{content:none}
+/* the sections as torn tabs hanging off the bar */
+#topnav{display:flex;gap:14px;align-items:flex-start;align-self:stretch;margin-left:32px;padding-top:12px}
+#topnav .sktab{flex:none;width:auto;white-space:nowrap}
+#topnav .sktab{position:relative;cursor:pointer;border:0;padding:12px 22px 14px;background:var(--cream6);color:var(--skb2);text-align:left;
+  clip-path:polygon(1.5% 14%,0% 50%,2% 90%,50% 100%,98.5% 95%,100% 52%,97.5% 6%,48% 0%);box-shadow:0 8px 18px rgba(0,0,0,.45);transition:transform .14s ease}
+#topnav .sktab:nth-child(even){clip-path:polygon(0% 10%,2% 52%,1.5% 92%,52% 100%,98% 96%,100% 48%,98.5% 5%,46% 0%)}
+#topnav .sktab:hover{transform:translateY(-3px)}
+#topnav .sktab b{display:block;font:400 24px/1 var(--fd6);text-transform:uppercase;letter-spacing:.02em}
+#topnav .sktab span{display:block;margin-top:4px;font:800 10px/1 var(--fc6);letter-spacing:.18em;text-transform:uppercase;color:#6B7A90}
+#topnav .sktab.on{background:var(--skgold);color:#172447;transform:translateY(4px)}
+#topnav .sktab.on span{color:#5D4408}
+/* the side of the ball and the library, glass at the right end */
+.sidebox{position:absolute;right:300px;top:50%;transform:translateY(-50%);left:auto;z-index:6;background:transparent;padding:0;box-shadow:none;clip-path:none;display:flex;align-items:center;gap:10px}
+.sidecap{margin:0;font:800 12px/1 var(--fc6);letter-spacing:.2em;color:#C9D8F5}
+.sidebtns{display:flex;gap:0;background:rgba(246,238,220,.08);border:1px solid rgba(240,231,203,.25)}
+.sidebtns .sb{background:transparent;color:#C9D8F5;padding:9px 14px;font:800 13px/1 var(--fc6);letter-spacing:.2em;clip-path:none}
+.sidebtns .sb:hover{background:rgba(246,238,220,.12);color:#fff}
+.sidebtns .sb.on{background:#fff;color:var(--skb2)}
+.live{position:absolute;right:352px;top:50%;transform:translateY(-50%);display:flex;align-items:baseline;gap:7px;height:30px;padding:0 10px;border-radius:0;background:rgba(10,8,10,.5);border:1px solid rgba(240,231,203,.25)}
+.live i{font:800 11px/1 var(--fc6);letter-spacing:.2em;color:var(--skgold)}
+.live b{font:400 15px/1 var(--fd6);color:#fff}
+.live u{font:800 11px/1 var(--fc6);letter-spacing:.14em;color:#C9D8F5;text-transform:uppercase}
+/* the left rail holds only the books now */
+#railnav{display:none}
+.rail{padding-top:24px}
+.wrap{grid-template-rows:auto 1fr}
+.title b{font-family:var(--fc6);font-weight:800}
+
+/* ---------- the picker: the field takes the standing team's colour ---------- */
+body.sk-pick{background:radial-gradient(90% 70% at 50% 62%,color-mix(in srgb,var(--tc,#1E54B7) 42%,#120a10) 0%,color-mix(in srgb,var(--tc,#1E54B7) 14%,#0a0e1a) 55%,#0a0e1a 100%) fixed,#0a0e1a;transition:background .6s ease}
+body.sk-pick .wrap{grid-template-columns:0 minmax(0,1fr) 0}
+body.sk-pick .rail,body.sk-pick .vrail,body.sk-pick .hunt,body.sk-pick .tabs,body.sk-pick .filters{display:none!important}
+body.sk-pick .body{padding:0 44px 40px}
+body.sk-pick .title{margin:22px 0 0;width:auto;background:transparent;color:var(--skgold);padding:0;clip-path:none;box-shadow:none;text-align:left}
+body.sk-pick .title b{display:inline;font:800 13px/1 var(--fc6);letter-spacing:.3em;text-transform:uppercase}
+body.sk-pick .title span{display:inline;margin:0 0 0 10px;font:800 13px/1 var(--fc6);letter-spacing:.3em;text-transform:uppercase;color:#C9BFA8}
+body.sk-pick .title span:before{content:"·";margin:0 10px 0 0;color:#C9BFA8}
+body.sk-pick .title span:after{content:none}
+body.sk-pick .pk{display:block;min-height:min(72vh,720px);position:relative}
+body.sk-pick .pk::before{content:none}
+/* the chips as a strip in the corner */
+body.sk-pick .pk-rail{position:absolute;left:0;top:18px;flex-direction:row;gap:10px;z-index:4;overflow:visible}
+body.sk-pick .pk-chip{width:110px;height:78px;border-radius:0;padding:0;justify-content:center;background:rgba(10,8,10,.6);border:1.5px solid rgba(240,231,203,.2);transition:border-color .16s,transform .16s}
+body.sk-pick .pk-chip:hover{transform:translateY(-3px);border-color:var(--skgold)}
+body.sk-pick .pk-chip.on{border-color:var(--skgold);background:rgba(10,8,10,.86);box-shadow:none}
+body.sk-pick .pk-chip img{width:30px;height:30px;padding:0;border-radius:50%;background:var(--cream6)}
+body.sk-pick .pk-chip span{font:800 10px/1 var(--fc6);letter-spacing:.16em;color:#C9BFA8}
+body.sk-pick .pk-chip.on span{color:var(--cream6)}
+/* the name huge and faint behind the deck */
+.pk-big{position:absolute;left:0;right:0;top:40px;text-align:center;pointer-events:none;z-index:0;color:rgba(246,238,220,.06);font:400 clamp(160px,17vw,300px)/.86 var(--fd6);text-transform:uppercase;white-space:nowrap;letter-spacing:.01em}
+.pk-big span{display:block}
+body.sk-pick .pk-stage{position:relative;z-index:1;padding-top:96px}
+body.sk-pick .pk-eyebrow{display:none}
+body.sk-pick .pk-deck{--cw:clamp(220px,15vw,260px)}
+/* the name on a slab in the team's colour, the meta as a label, the state as a tab */
+body.sk-pick .pk-name{position:relative;display:inline-block;color:#fff;padding:8px 24px;font:400 clamp(40px,4vw,60px)/.9 var(--fd6);letter-spacing:.005em;text-shadow:none;margin-top:10px}
+body.sk-pick .pk-name::before{content:"";position:absolute;inset:-4px -8px;background:var(--tc,#1E54B7);z-index:-1;clip-path:polygon(0% 6%,1.4% 0,46% 3px,98% 0,100% 8%,99.4% 92%,97.5% 100%,52% 97%,1.6% 100%,0 94%)}
+body.sk-pick .pk-meta{font:800 13px/1 var(--fc6);letter-spacing:.24em;color:#C9BFA8;margin-top:6px}
+body.sk-pick .pk-state{padding:7px 12px;background:var(--cream6);color:#9E1B32;font:800 11px/1 var(--fc6);letter-spacing:.2em;border-radius:0;clip-path:polygon(2% 14%,0% 52%,3% 94%,50% 100%,98% 97%,100% 50%,97% 4%,45% 0%)}
+body.sk-pick .pk-go{border-radius:0;font:700 15px/1 'Oswald',var(--fc6);letter-spacing:.14em;text-transform:uppercase;height:48px;padding:0 24px;background:var(--skgold);color:#17130E;box-shadow:none}
+body.sk-pick .pk-go:hover{transform:translateY(-2px);filter:brightness(1.06)}
+body.sk-pick .pk-dot.on{background:var(--skgold)}
+body.sk-pick #foot{color:#8A7F6A;font:800 12px/1 var(--fc6);letter-spacing:.2em;text-transform:uppercase;text-align:left;border:0;background:transparent;padding:0;margin-top:16px}
+@media (max-width:1100px){#topnav .sktab{padding:10px 14px 12px}#topnav .sktab b{font-size:20px}.brand span{display:none}}
+
+/* the picker has no foot line: the deck explains itself */
+body.sk-pick #foot{display:none}
+
+/* ---------- THE SHELF (his pick, 2026-09-09), sized like the stage: one
+   unit for the whole picker, --u = the window against 1600 x 900, so the
+   card, the dossier and the playbook strip keep their proportion and fill
+   the screen at every size ---------- */
+body.sk-pick{--u:min(calc(100vw / 1600),calc(100vh / 900))}
+body.sk-pick .pk{display:grid;grid-template-columns:minmax(0,1fr) calc(560 * var(--u));grid-template-rows:minmax(0,1fr) auto;gap:0 calc(36 * var(--u));height:calc(100vh - 84px - 66px - 40px);min-height:0}
+body.sk-pick .pk-rail{top:calc(14 * var(--u));gap:calc(10 * var(--u))}
+body.sk-pick .pk-chip{width:calc(118 * var(--u));height:calc(82 * var(--u));gap:calc(6 * var(--u))}
+body.sk-pick .pk-chip img{width:calc(32 * var(--u));height:calc(32 * var(--u))}
+body.sk-pick .pk-chip span{font-size:calc(10.5 * var(--u))}
+body.sk-pick .pk-stage{grid-column:1;grid-row:1;padding-top:calc(108 * var(--u));min-height:0;justify-content:flex-start;gap:calc(8 * var(--u))}
+body.sk-pick .pk-deck{--cw:calc(440 * var(--u));--agap:calc(28 * var(--u));min-height:0}
+body.sk-pick .pk-card{aspect-ratio:1/1;background:transparent;border:0;border-radius:0;box-shadow:none;overflow:visible}
+body.sk-pick .pk-card::before,body.sk-pick .pk-card::after{display:none}
+body.sk-pick .pk-card img.pk-pol{position:relative;z-index:1;width:100%;height:100%;aspect-ratio:auto;object-fit:contain;border-radius:0;padding:0;background:none;box-shadow:none;animation:none;filter:drop-shadow(0 calc(26 * var(--u)) calc(40 * var(--u)) rgba(0,0,0,.6))}
+body.sk-pick .pk-card.mid:hover{box-shadow:none}
+body.sk-pick .pk-card.mid:hover img.pk-pol{filter:drop-shadow(0 calc(34 * var(--u)) calc(50 * var(--u)) rgba(0,0,0,.7))}
+body.sk-pick .pk-foil{display:none}
+/* the shimmer is cut to the polaroid, never the box around it */
+body.sk-pick .pk-card .pk-glare{-webkit-mask:var(--face) center/contain no-repeat;mask:var(--face) center/contain no-repeat}
+body.sk-pick .pk-arrow{width:calc(52 * var(--u));font-size:calc(30 * var(--u))}
+body.sk-pick .pk-dots{margin-top:calc(6 * var(--u));gap:calc(10 * var(--u))}
+body.sk-pick .pk-dot{width:calc(11 * var(--u));height:calc(11 * var(--u))}
+.pk-dossier{grid-column:2;grid-row:1;align-self:start;margin-top:calc(26 * var(--u));position:relative;background:var(--cream6);color:#17130E;padding:calc(22 * var(--u)) calc(26 * var(--u)) calc(24 * var(--u));box-shadow:0 calc(18 * var(--u)) calc(40 * var(--u)) rgba(0,0,0,.5)}
+.pd-tape{position:absolute;left:50%;top:calc(-12 * var(--u));width:calc(100 * var(--u));height:calc(24 * var(--u));transform:translateX(-50%) rotate(-2deg);background:rgba(246,238,220,.6);box-shadow:0 2px 4px rgba(0,0,0,.25)}
+.pd-k{font:800 calc(12 * var(--u))/1 var(--fc6);letter-spacing:.24em;text-transform:uppercase;color:var(--tc,#9E1B32)}
+.pd-name{display:inline-block;margin-top:calc(8 * var(--u));padding:calc(6 * var(--u)) calc(14 * var(--u));background:var(--tc,#9E1B32);color:#fff;font:400 calc(44 * var(--u))/1 var(--fd6);text-transform:uppercase;letter-spacing:.01em}
+.pd-stamp{display:inline-block;margin-top:calc(10 * var(--u));padding:calc(5 * var(--u)) calc(9 * var(--u));border:2px solid var(--tc,#9E1B32);color:var(--tc,#9E1B32);font:800 calc(11.5 * var(--u))/1 var(--fc6);letter-spacing:.2em;text-transform:uppercase;transform:rotate(-1.5deg)}
+.pd-t{margin-top:calc(10 * var(--u));font:500 calc(15.5 * var(--u))/1.45 var(--fb6);color:#4A3D2A}
+.pd-lab{margin-top:calc(12 * var(--u));font:800 calc(11.5 * var(--u))/1 var(--fc6);letter-spacing:.22em;text-transform:uppercase;color:var(--tc,#9E1B32)}
+.pd-tiles{display:flex;gap:calc(8 * var(--u));margin-top:calc(6 * var(--u))}
+.pd-tiles .tl{flex:1;min-width:0;aspect-ratio:1.82;background:#15161A;border:2px solid #15161A;overflow:hidden}
+.pd-tiles .tl svg{width:100%;height:100%;display:block}
+.pd-tlab{display:flex;gap:calc(8 * var(--u));margin-top:calc(4 * var(--u))}
+.pd-tlab span{flex:1;text-align:center;font:800 calc(10.5 * var(--u))/1.2 var(--fc6);letter-spacing:.12em;text-transform:uppercase;color:#8A7F6A}
+.pd-rows{margin-top:calc(8 * var(--u))}
+.pd-row{display:flex;justify-content:space-between;align-items:baseline;gap:calc(12 * var(--u));padding:calc(7 * var(--u)) 0;border-top:1px solid rgba(23,19,14,.14)}
+.pd-row u{text-decoration:none;font:800 calc(11.5 * var(--u))/1 var(--fc6);letter-spacing:.2em;text-transform:uppercase;color:#8A7F6A;flex:none}
+.pd-row b{font:400 calc(19 * var(--u))/1.1 var(--fd6);text-transform:uppercase;text-align:right}
+.pd-go{margin-top:calc(14 * var(--u));display:flex;align-items:center;gap:calc(14 * var(--u));flex-wrap:wrap}
+.pd-go .pk-go{margin:0;height:calc(48 * var(--u));padding:0 calc(22 * var(--u));font-size:calc(15 * var(--u))}
+.pd-go .pk-state{font-size:calc(11.5 * var(--u));padding:calc(7 * var(--u)) calc(12 * var(--u))}
+.pk-book{grid-column:1/3;grid-row:2;display:flex;align-items:center;gap:calc(20 * var(--u));padding:0 calc(22 * var(--u));min-height:calc(96 * var(--u));margin-top:calc(16 * var(--u));background:rgba(10,8,10,.72);border:1px solid rgba(240,231,203,.18);color:#F6EEDC}
+.pk-book:empty{display:none}
+.pk-book img{height:calc(74 * var(--u));width:auto;box-shadow:0 8px 18px rgba(0,0,0,.6)}
+.pk-book .h{font:400 calc(26 * var(--u))/1 var(--fd6);text-transform:uppercase}
+.pk-book .h i{color:var(--skgold);font-style:normal}
+.pk-book .k7{margin-top:calc(5 * var(--u));font:800 calc(11.5 * var(--u))/1 var(--fc6);letter-spacing:.2em;text-transform:uppercase;color:#C9BFA8}
+.pk-book .cuts{margin-left:auto;display:flex;gap:calc(8 * var(--u));align-items:center;flex-wrap:wrap;justify-content:flex-end}
+.pk-book .cuts u{text-decoration:none;font:800 calc(11 * var(--u))/1 var(--fc6);letter-spacing:.18em;text-transform:uppercase;color:#8A7F6A;margin-right:calc(4 * var(--u))}
+.pk-book .cuts span{padding:calc(8 * var(--u)) calc(11 * var(--u));background:rgba(246,238,220,.1);border:1px solid rgba(240,231,203,.22);font:800 calc(11.5 * var(--u))/1 var(--fc6);letter-spacing:.12em;text-transform:uppercase}
+@media (max-width:1100px){body.sk-pick .pk{grid-template-columns:1fr;height:auto}.pk-dossier{grid-column:1;grid-row:2;margin-top:12px}.pk-book{grid-column:1;grid-row:3}}
+
+/* ---------- the side of the ball stands out in the bar ---------- */
+.sidebox{right:590px;gap:14px}
+.sidecap{font:800 14px/1 var(--fc6);letter-spacing:.24em;color:#fff}
+.sidebtns{border:2px solid rgba(246,238,220,.45);background:rgba(10,8,10,.35)}
+.sidebtns .sb{padding:13px 22px;font:800 17px/1 var(--fc6);letter-spacing:.2em;color:#E4ECFA}
+.sidebtns .sb.on{background:var(--skgold);color:#17130E}
+@media (max-width:1700px){.sidebox{right:400px}.live{display:none}.sidebtns .sb{padding:11px 16px;font-size:15px}.sidecap{display:none}}
+
+/* the view rail sits under the bar as a row, not floating at the top right (his note, 2026-09-09) */
+.wrap{grid-template-rows:auto auto 1fr}
+.head{grid-row:1;grid-column:1/4}
+.rail{grid-row:2/4}
+.vrail{grid-column:2/4;grid-row:2;padding:14px 22px 0;text-align:left;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.vrail:empty{display:none}
+.vrail .cap{margin:0 6px 0 0;font:800 11px/1 var(--fc6);letter-spacing:.24em;color:#C9BFA8}
+.body{grid-row:3;grid-column:2/4}
+.vrail .vw{width:auto;margin:0;display:inline-flex;align-items:baseline;gap:8px;padding:9px 14px;clip-path:polygon(1.5% 14%,0% 50%,2% 90%,50% 100%,98.5% 95%,100% 52%,97.5% 6%,48% 0%)}
+.vrail .vw:nth-child(even){clip-path:polygon(0% 10%,2% 52%,1.5% 92%,52% 100%,98% 96%,100% 48%,98.5% 5%,46% 0%)}
+.vrail .vw:hover{transform:translateY(-2px)}
+.vrail .vw b{font:800 13px/1 var(--fc6);letter-spacing:.06em;text-transform:uppercase}
+.vrail .vw i{font-style:normal;font:700 9px/1 var(--fc6);letter-spacing:.12em;text-transform:uppercase}
+
+/* the play pop-up: a save button you can see, and no inferred badges (his note, 2026-09-09) */
+#playpop .pp-meta .sb{background:var(--skgold);color:#17130E;font:800 12px/1 var(--fc6);letter-spacing:.16em;text-transform:uppercase;padding:10px 14px;border-radius:0}
+#playpop .pp-meta .sb:hover{background:#ffb84d;color:#17130E}
+#playpop .pp-meta .sb.on{background:#17130E;color:var(--skgold)}
+#playpop u[title^="not in the play"]{display:none!important}
+
+/* SAVED, organised: the group-by row, then a header per group */
+.svby{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:0 0 16px}
+.svby span{font:800 11px/1 var(--fc6);letter-spacing:.24em;text-transform:uppercase;color:#C9BFA8;margin-right:4px}
+.svby button{padding:8px 12px;background:rgba(246,238,220,.1);border:1px solid rgba(240,231,203,.22);color:#F6EEDC;font:800 11px/1 var(--fc6);letter-spacing:.16em;text-transform:uppercase;cursor:pointer}
+.svby button:hover{border-color:var(--skgold)}
+.svby button.on{background:var(--skgold);color:#17130E;border-color:var(--skgold)}
+.svby u{margin-left:auto;text-decoration:none;font:800 11px/1 var(--fc6);letter-spacing:.2em;text-transform:uppercase;color:#8A7F6A}
+.svgrp{margin:0 0 26px}
+.svh{display:flex;align-items:center;gap:10px;margin:0 0 10px;font:400 24px/1 var(--fd6);text-transform:uppercase;color:#F6EEDC;letter-spacing:.01em}
+.svh img{width:30px;height:30px;object-fit:contain}
+.svh u{text-decoration:none;font:800 11px/1 var(--fc6);letter-spacing:.18em;text-transform:uppercase;color:#C9BFA8;margin-left:2px}
+.svh i{font:800 11px/1 var(--fc6);letter-spacing:.2em;background:var(--skgold);color:#17130E;padding:5px 7px;font-style:normal}
+
+/* the animate button in the play pop-up: big, green, impossible to miss */
+#playpop .tbtn.run{background:#1F9D55;color:#fff;font:800 15px/1 var(--fc6);letter-spacing:.14em;text-transform:uppercase;padding:14px 22px;border-radius:0;box-shadow:0 8px 18px rgba(0,0,0,.35)}
+#playpop .tbtn.run:hover{background:#25B764}
+#playpop .tbtn.run[disabled]{opacity:.4}
+
+/* the full screen button at the right end of the bar */
+.fsr2{position:absolute;right:44px;top:50%;transform:translateY(-50%);height:34px;padding:0 14px;background:rgba(10,8,10,.5);border:1px solid rgba(240,231,203,.35);color:var(--skgold);font:800 12px/1 var(--fc6);letter-spacing:.18em;text-transform:uppercase;cursor:pointer}
+.fsr2:hover{background:var(--skgold);color:#17130E;border-color:var(--skgold)}
+
+/* who is here: Sign in, or the member and Sign out, beside the full screen button */
+.skwho{position:absolute;right:192px;top:50%;transform:translateY(-50%);display:flex;align-items:center;gap:8px}
+.skwho[hidden]{display:none}
+.skwho-name{font:800 12px/1 var(--fc6);letter-spacing:.14em;text-transform:uppercase;color:#C9D8F5;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.skwho-btn{height:34px;padding:0 12px;background:rgba(10,8,10,.5);border:1px solid rgba(240,231,203,.35);color:#F6EEDC;font:800 12px/1 var(--fc6);letter-spacing:.18em;text-transform:uppercase;cursor:pointer}
+.skwho-btn:hover{border-color:var(--skgold);color:var(--skgold)}
+.skwho-btn.on{background:var(--skgold);color:#17130E;border-color:var(--skgold)}
+.skwho-btn.on:hover{background:#ffb84d;color:#17130E}

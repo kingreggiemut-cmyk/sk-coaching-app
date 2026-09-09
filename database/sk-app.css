@@ -1,0 +1,614 @@
+/* sk-app.css — the database page's own chrome: rails, header, grids, cards,
+   the play popup. SHARED BY EVERY DATABASE PAGE (offence and defence), so a
+   change here lands on both. The card art itself is drawn by sk-cards.js;
+   the scheme section brings schemes.css and install.css of its own. */
+  :root{
+    --bg:#0a1018; --bg2:#141d2c;
+    --cream:#f2ecd9; --cream2:#e2dbc4;
+    --blue:#1d4f96; --blue2:#12315e; --ink:#0e1622;
+    --gold:#f0b02f; --gold2:#c98d16;
+    --row:#1a2432; --rowline:rgba(255,255,255,.07);
+    --dim:#8a94a4; --white:#eef2f7;
+    --pass:#2c55b9; --run:#b92c2c; --rpo:#0f8d7a; --sp:#5b6577;
+    /* the tracker's own type + easing system — condensed poster face for
+       names and numerals is most of what made those cards feel made */
+    --poster:"Haettenschweiler","Arial Narrow",Impact,sans-serif;
+    --body:"Segoe UI",system-ui,sans-serif;
+    --e-out:cubic-bezier(.22,1,.36,1);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%}
+  body{
+    background:radial-gradient(120% 90% at 50% 0%, var(--bg2) 0%, var(--bg) 62%) fixed, var(--bg);
+    color:var(--white);
+    font:14px/1.45 "Segoe UI",system-ui,-apple-system,sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  /* left rail = big sections · right rail = views inside the open section */
+  .wrap{display:grid;grid-template-columns:186px minmax(0,1fr) 172px;grid-template-rows:auto 1fr;
+    gap:0;min-height:100%}
+
+  /* ---------- left rail ---------- */
+  /* spans both rows so its height never stretches the header row */
+  .rail{grid-column:1;grid-row:1/3;padding:104px 0 40px 14px}
+
+  /* ---------- right rail (view switcher) ---------- */
+  .vrail{grid-column:3;grid-row:2;padding:8px 14px 40px 0;text-align:right}
+  .vrail .cap{font:700 8px/1 "Segoe UI";letter-spacing:.2em;color:var(--dim);
+    text-transform:uppercase;margin:0 4px 9px 0;display:block}
+  .vw{display:block;width:100%;margin:0 0 7px;padding:9px 13px;background:var(--cream);
+    color:var(--blue2);border:0;cursor:pointer;text-align:right;font:800 11px/1.2 "Segoe UI";
+    letter-spacing:.06em;text-transform:uppercase;
+    clip-path:polygon(2% 0,100% 4%,99% 100%,0 94%);box-shadow:0 3px 9px rgba(0,0,0,.4);
+    transition:transform .12s}
+  .vw:nth-child(odd){clip-path:polygon(0 5%,99% 0,100% 95%,1% 100%)}
+  .vw:hover{transform:translateX(-3px)}
+  .vw.on{background:var(--gold);color:#241a03}
+  .vw i{display:block;font-style:normal;font:600 8px/1.3 "Segoe UI";letter-spacing:.1em;
+    color:#6b7a90;margin-top:2px}
+  .vw.on i{color:#5d4408}
+  .nav{display:block;width:168px;margin:0 0 11px;padding:9px 13px;
+    background:var(--cream);color:var(--blue2);text-decoration:none;
+    clip-path:polygon(0 4%,99% 0,100% 92%,1% 100%);
+    box-shadow:0 3px 10px rgba(0,0,0,.4);cursor:pointer;border:0;text-align:left;
+    transition:transform .12s ease, filter .12s ease}
+  .nav:nth-child(even){clip-path:polygon(1% 0,100% 5%,99% 100%,0 93%)}
+  .nav:hover{transform:translateX(3px)}
+  .nav b{display:block;font:800 15px/1.15 "Segoe UI";letter-spacing:.01em}
+  .nav span{display:block;font:600 8.5px/1.3 "Segoe UI";letter-spacing:.1em;
+    text-transform:uppercase;color:#6a7album;color:#6b7a90;margin-top:1px}
+  .nav.on{background:var(--gold);color:#231803}
+  .nav.on span{color:#5d4408}
+
+  /* ---------- header ---------- */
+  .head{grid-column:2/4;margin:16px 22px 0;position:relative}
+  .banner{background:linear-gradient(180deg,#215bab 0%,#173f7d 100%);
+    border:2px solid var(--gold2);outline:2px solid #0c1c38;outline-offset:2px;
+    border-radius:3px;padding:13px 20px;display:flex;align-items:center;justify-content:center;
+    box-shadow:0 8px 24px rgba(0,0,0,.5)}
+  .brand{text-align:center;line-height:1}
+  .brand b{font:900 30px/1 "Segoe UI";letter-spacing:.02em;color:#fff;text-shadow:0 2px 6px rgba(0,0,0,.5)}
+  .brand b i{color:var(--gold);font-style:normal}
+  .brand span{display:block;margin-top:5px;font:600 9px/1 "Segoe UI";letter-spacing:.34em;
+    color:#a8c4e8;text-transform:uppercase}
+  .brand span:before,.brand span:after{content:"—";margin:0 8px;color:var(--gold2)}
+  .stamp{position:absolute;left:22px;top:50%;transform:translateY(-50%) rotate(-6deg);
+    border:2px solid #c0403a;color:#e0655e;border-radius:3px;padding:5px 11px;
+    font:800 10px/1 "Segoe UI";letter-spacing:.18em}
+  .live{position:absolute;right:22px;top:50%;transform:translateY(-50%);
+    background:rgba(6,16,32,.72);border:1px solid rgba(255,255,255,.14);border-radius:3px;
+    padding:7px 13px;text-align:right}
+  .live i{display:block;font:700 8px/1 "Segoe UI";letter-spacing:.16em;color:var(--gold);font-style:normal}
+  .live b{display:block;font:800 13px/1.25 "Segoe UI";color:#fff}
+  .live u{display:block;font:600 9px/1 "Segoe UI";color:#93a3ba;text-decoration:none}
+
+  /* ---------- section title ---------- */
+  .title{text-align:center;margin:-9px auto 16px;width:max-content;
+    background:var(--cream);color:var(--ink);padding:11px 44px 13px;
+    clip-path:polygon(0 0,100% 0,99% 76%,96% 100%,92% 78%,86% 96%,80% 78%,74% 96%,68% 78%,
+      62% 96%,56% 78%,50% 96%,44% 78%,38% 96%,32% 78%,26% 96%,20% 78%,14% 96%,8% 78%,4% 100%,1% 76%);
+    box-shadow:0 6px 18px rgba(0,0,0,.45)}
+  .title b{display:block;font:900 19px/1 "Segoe UI";letter-spacing:.13em}
+  .title span{display:block;margin-top:5px;font:600 8.5px/1 "Segoe UI";letter-spacing:.15em;color:#5d6673}
+  .title span:before,.title span:after{content:"★";margin:0 7px;color:var(--gold2)}
+
+  /* ---------- body ---------- */
+  .body{grid-column:2;padding:0 22px 60px}
+  .tabs{display:flex;gap:9px;flex-wrap:wrap;margin:0 0 14px}
+  /* max-width stops the flexbox orphan: eleven family tabs wrap to a second
+     row and the lone survivor used to stretch the full width of the frame */
+  .tab{flex:1 1 0;min-width:96px;max-width:230px;background:var(--cream);color:var(--ink);border:0;cursor:pointer;
+    padding:9px 6px 8px;border-radius:2px;text-align:center;
+    box-shadow:0 3px 9px rgba(0,0,0,.35);transition:transform .1s}
+  .tab:hover{transform:translateY(-1px)}
+  .tab b{display:block;font:800 14px/1.1 "Segoe UI";letter-spacing:.05em}
+  .tab span{display:block;font:600 8px/1.3 "Segoe UI";letter-spacing:.09em;color:#69737f;
+    text-transform:uppercase;margin-top:2px}
+  .tab.on{background:var(--gold);color:#241a03}
+  .tab.on span{color:#5e4508}
+
+  .bar{display:flex;align-items:center;gap:9px;margin:0 0 15px;flex-wrap:wrap}
+  /* type, sort and conference used to be three stacked rows; side by side they
+     cost one row of chrome instead of three */
+  .filters{display:flex;align-items:center;gap:10px 26px;flex-wrap:wrap;margin:0 0 14px}
+  .filters .bar{margin:0}
+  .filters:empty,.filters:has(>.bar:empty:only-child){display:none}
+  .filters .bar:empty{display:none}
+  .lbl{font:700 8.5px/1 "Segoe UI";letter-spacing:.16em;color:var(--dim);text-transform:uppercase}
+  .chip{background:#16202e;border:1px solid var(--rowline);color:#b9c4d2;cursor:pointer;
+    padding:6px 12px;border-radius:2px;font:700 10px/1 "Segoe UI";letter-spacing:.07em;
+    text-transform:uppercase}
+  .chip:hover{border-color:rgba(255,255,255,.2);color:#fff}
+  .chip.on{background:var(--gold);border-color:var(--gold);color:#241a03}
+  .search{flex:1;min-width:190px;background:#16202e;border:1px solid var(--rowline);
+    color:#fff;padding:8px 13px;border-radius:2px;font:14px "Segoe UI"}
+  .search::placeholder{color:#68738a}
+  .search:focus{outline:none;border-color:var(--gold2)}
+
+  /* ---------- set rows ---------- */
+  .sets{display:grid;gap:8px}
+  .set{display:flex;align-items:center;gap:16px;background:var(--row);border:1px solid var(--rowline);
+    border-radius:4px;padding:13px 18px;cursor:pointer;text-align:left;width:100%;
+    color:inherit;font:inherit;transition:border-color .12s, background .12s}
+  .set:hover{border-color:rgba(240,176,47,.5);background:#1e2a3a}
+  .set .nm{flex:1;font:800 17px/1.15 "Segoe UI"}
+  .set .fam{font:600 8.5px/1 "Segoe UI";letter-spacing:.14em;color:var(--dim);
+    text-transform:uppercase;display:block;margin-bottom:3px}
+  .mini{display:flex;gap:6px}
+  .mini i{font-style:normal;font:700 9px/1 "Segoe UI";letter-spacing:.07em;color:#cdd6e2;
+    background:#0f1826;border:1px solid var(--rowline);border-radius:2px;padding:5px 8px}
+  .set .big{font:900 26px/1 "Segoe UI";color:#fff;min-width:56px;text-align:right}
+  .set .big u{display:block;font:600 7.5px/1 "Segoe UI";letter-spacing:.14em;color:var(--dim);
+    text-decoration:none;margin-top:4px}
+
+  /* ---------- conference sections ---------- */
+  .confhd{display:flex;align-items:center;gap:12px;margin:0 0 14px}
+  .confbadge{display:grid;place-items:center;width:42px;height:42px;border-radius:5px;
+    color:#fff;font:900 12px/1 "Segoe UI";letter-spacing:.02em;flex:none;
+    box-shadow:0 3px 10px rgba(0,0,0,.5);border:1px solid rgba(255,255,255,.16);text-align:center}
+  .confhd .ct{font:900 20px/1.05 "Segoe UI";color:#fff}
+  .confhd .cs{display:block;font:700 8px/1.3 "Segoe UI";letter-spacing:.17em;color:var(--dim);
+    text-transform:uppercase;margin-top:3px}
+  .confhd:after{content:"";flex:1;height:2px;
+    background:linear-gradient(90deg,var(--rowline),transparent)}
+  .confwrap{margin:0 0 34px}
+
+  /* ---------- team card ----------------------------------------------------
+     Rebuilt against PRODUCT.md: "a hand-made artifact, not an app screen …
+     varsity patch, athletic tape, polaroid". The previous pass was a flat
+     gradient rectangle with a glow behind the crest — i.e. the exact
+     "generic SaaS / dashboard UI" anti-reference, plus a banned glow.
+     Devices lifted from the tracker's own system: --poster condensed type,
+     many-point torn-paper clip paths, tape strips at slight rotations. */
+  .books{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:19px}
+  @media (max-width:1250px){.books{grid-template-columns:repeat(3,minmax(0,1fr))}}
+  @media (max-width:900px){.books{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+  .book{position:relative;display:block;width:100%;border:0;padding:16px 15px 17px;
+    cursor:pointer;text-align:left;color:inherit;font:inherit;
+    box-shadow:0 8px 22px rgba(0,0,0,.62);
+    transition:transform .16s var(--e-out), box-shadow .16s var(--e-out);
+    clip-path:polygon(0% 2%,3% 0%,42% 1.4%,74% 0%,98% 1.6%,100% 5%,99.4% 48%,100% 95%,
+      97% 100%,58% 98.6%,26% 100%,2.5% 98.4%,0% 94%)}
+  .book:hover{transform:translateY(-4px) rotate(.25deg);box-shadow:0 20px 44px rgba(0,0,0,.75)}
+  /* paper tooth over the team colour — no glow, no digital gradient */
+  .book:before{content:"";position:absolute;inset:0;pointer-events:none;
+    background:
+      radial-gradient(ellipse at 26% 12%,rgba(255,255,255,.20) 0%,rgba(255,255,255,0) 58%),
+      linear-gradient(158deg,rgba(255,255,255,.10) 0%,rgba(0,0,0,.46) 100%)}
+  .book:after{content:"";position:absolute;inset:0;pointer-events:none;opacity:.13;
+    background-image:radial-gradient(rgba(0,0,0,.9) 1px,transparent 1.2px);
+    background-size:4px 4px}
+  .book>*{position:relative;z-index:1}
+
+  /* name plate — torn cream, off-square like a strip of card stock */
+  .plate{display:flex;align-items:baseline;gap:9px;background:#F4EBD6;color:#17130E;
+    padding:10px 14px 11px;box-shadow:0 6px 15px rgba(0,0,0,.34);transform:rotate(-.5deg);
+    clip-path:polygon(0% 12%,2% 0%,46% 4%,98% 0%,100% 16%,99% 82%,97% 100%,52% 95%,2% 100%,0% 84%)}
+  .plate .bt{flex:1;min-width:0;font:400 25px/.92 var(--poster);letter-spacing:.02em;
+    text-transform:uppercase}
+  .plate .bp{font:400 26px/.92 var(--poster);color:#7A1F2B;white-space:nowrap}
+  .plate .bp u{font:700 8px/1 var(--body);letter-spacing:.13em;color:#655E4C;
+    text-decoration:none;margin-left:4px}
+
+  /* varsity patch: cream arch, stitched ring, no glow */
+  .well{position:relative;display:grid;place-items:center;height:136px;margin:15px 0 13px}
+  .arch{position:relative;width:110px;height:110px;display:grid;place-items:center;
+    background:#F4EBD6;border-radius:55px 55px 10px 10px;transform:rotate(.7deg);
+    box-shadow:0 8px 18px rgba(0,0,0,.5), inset 0 0 0 3px #F4EBD6, inset 0 0 0 5px rgba(23,19,14,.28)}
+  .arch img{width:76px;height:76px;object-fit:contain}
+  .arch .glyph{font:400 52px/1 var(--poster);color:#7A1F2B}
+  .conftag{position:absolute;top:4px;right:-2px;background:#17130E;color:#F4EBD6;
+    padding:5px 10px 6px;font:700 8.5px/1 var(--body);letter-spacing:.15em;
+    text-transform:uppercase;transform:rotate(2.2deg);
+    clip-path:polygon(2% 10%,0% 56%,3% 96%,50% 100%,98% 95%,100% 48%,97% 3%,45% 0%)}
+
+  /* identity on gold tape — the card's loudest note */
+  .idplate{display:block;background:var(--gold);color:#251A02;padding:8px 12px 10px;
+    text-align:center;box-shadow:0 6px 15px rgba(0,0,0,.42);transform:rotate(.9deg);
+    clip-path:polygon(2% 12%,0% 54%,3% 95%,50% 100%,98% 96%,100% 46%,97% 3%,45% 0%)}
+  .idplate u{display:block;font:700 7px/1 var(--body);letter-spacing:.2em;color:#6B5108;
+    text-decoration:none;margin-bottom:4px}
+  .idplate b{display:block;font:400 20px/.94 var(--poster);letter-spacing:.025em;
+    text-transform:uppercase}
+
+  /* the standout: where this book ranks first in the country */
+  .best{display:flex;align-items:baseline;justify-content:center;gap:7px;margin-top:11px;
+    background:#17130E;color:#F4EBD6;padding:7px 11px 8px;transform:rotate(-.6deg);
+    box-shadow:0 5px 13px rgba(0,0,0,.4);
+    clip-path:polygon(0% 14%,1.6% 0%,48% 4%,98% 0%,100% 18%,99% 84%,97% 100%,50% 96%,2% 100%,0% 82%)}
+  .best em{font-style:normal;font:700 8px/1 var(--body);letter-spacing:.17em;
+    text-transform:uppercase;color:#B9AE93}
+  .best b{font:400 17px/1 var(--poster);letter-spacing:.03em;color:var(--gold);
+    text-transform:uppercase}
+
+  /* grade strips — each its own piece of tape, alternating tilt */
+  .chips{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:11px}
+  .cchip{background:#F4EBD6;color:#17130E;padding:8px 3px 7px;text-align:center;
+    box-shadow:0 5px 12px rgba(0,0,0,.38);
+    clip-path:polygon(0% 14%,2% 0%,50% 5%,98% 0%,100% 18%,99% 84%,97% 100%,48% 95%,2% 100%,0% 82%)}
+  .cchip:nth-child(odd){transform:rotate(-.7deg)}
+  .cchip:nth-child(even){transform:rotate(.6deg)}
+  .cchip b{display:block;font:400 26px/.9 var(--poster);color:#7A1F2B}
+  .cchip u{display:block;font:700 6.5px/1.1 var(--body);letter-spacing:.13em;color:#655E4C;
+    text-decoration:none;margin-top:4px}
+
+  .bar3{display:flex;height:8px;overflow:hidden;background:rgba(0,0,0,.55);margin-top:13px;
+    clip-path:polygon(0% 10%,1% 0%,99% 4%,100% 14%,99.5% 90%,98% 100%,1.5% 96%,0% 88%)}
+  .bar3 span{display:block;height:100%}
+  .bar3 .p{background:#5B8BF0}.bar3 .r{background:#EE6A6A}.bar3 .o{background:#35D0B4}
+  .mixline{display:flex;justify-content:space-between;margin-top:7px;
+    font:700 7.5px/1 var(--body);letter-spacing:.12em;color:rgba(255,255,255,.9);
+    text-transform:uppercase;text-shadow:0 1px 3px rgba(0,0,0,.8)}
+  .crumb{display:flex;align-items:center;gap:9px;margin:0 0 14px}
+  .back{background:#16202e;border:1px solid var(--rowline);color:#b9c4d2;cursor:pointer;
+    padding:7px 13px;border-radius:2px;font:700 10px/1 "Segoe UI";letter-spacing:.09em}
+  .back:hover{color:#fff;border-color:rgba(255,255,255,.22)}
+  .crumb h2{margin:0;font:900 21px/1 "Segoe UI"}
+  .crumb em{font-style:normal;font:600 9px/1 "Segoe UI";letter-spacing:.14em;color:var(--dim);
+    text-transform:uppercase}
+  .empty{padding:44px 0;text-align:center;color:var(--dim)}
+  .note{margin:16px 0 0;font:12px/1.5 "Segoe UI";color:#6d788a}
+  .note b{color:#95a2b4}
+  /* ---------- the map ---------- */
+  .mapwrap{background:#0d1622;padding:10px 14px 6px;box-shadow:0 8px 24px rgba(0,0,0,.55);
+    clip-path:polygon(0% 1.5%,2% 0%,44% 1.2%,98% 0%,100% 4%,99.4% 96%,97% 100%,52% 98.8%,
+      2% 100%,0% 96%)}
+  .usmap{display:block;width:100%;height:auto}
+  .usmap .states path{fill:#16222f;stroke:#2b3d51;stroke-width:.7;vector-effect:non-scaling-stroke}
+  .pin{cursor:pointer;transition:opacity .18s var(--e-out)}
+  .pin .halo{opacity:.55}
+  .pin .disc{stroke:#17130E;stroke-width:1.2}
+  .pin.off{opacity:.26}
+  .pin:hover{opacity:1}
+  .pin:hover .halo{opacity:1}
+
+  /* ---------- formation badges (inside a book) ---------- */
+  .fgrid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
+  @media (max-width:1250px){.fgrid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+  @media (max-width:900px){.fgrid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+  .fbadge{position:relative;display:block;width:100%;border:0;padding:13px 13px 14px;
+    cursor:pointer;text-align:left;color:inherit;font:inherit;
+    box-shadow:0 7px 18px rgba(0,0,0,.55);
+    transition:transform .16s var(--e-out), box-shadow .16s var(--e-out);
+    clip-path:polygon(0% 3%,3% 0%,44% 1.6%,98% 0%,100% 6%,99.4% 94%,97% 100%,
+      56% 98.4%,2.5% 100%,0% 93%)}
+  .fbadge:hover{transform:translateY(-3px) rotate(-.3deg);box-shadow:0 16px 34px rgba(0,0,0,.7)}
+  .fbadge:before{content:"";position:absolute;inset:0;pointer-events:none;
+    background:linear-gradient(158deg,rgba(255,255,255,.13) 0%,rgba(0,0,0,.48) 100%)}
+  .fbadge:after{content:"";position:absolute;inset:0;pointer-events:none;opacity:.11;
+    background-image:radial-gradient(rgba(0,0,0,.9) 1px,transparent 1.2px);background-size:4px 4px}
+  .fbadge>*{position:relative;z-index:1}
+  .fplate{display:block;background:#F4EBD6;color:#17130E;padding:9px 12px 10px;
+    transform:rotate(-.55deg);box-shadow:0 5px 13px rgba(0,0,0,.36);
+    clip-path:polygon(0% 12%,2% 0%,46% 4%,98% 0%,100% 16%,99% 82%,97% 100%,52% 95%,2% 100%,0% 84%)}
+  .fplate em{display:block;font-style:normal;font:800 9.5px/1 var(--body);letter-spacing:.19em;
+    text-transform:uppercase;color:#5E5646;margin-bottom:5px}
+  .fplate b{display:block;font:400 22px/.94 var(--poster);letter-spacing:.02em;
+    text-transform:uppercase}
+  .fplate .fn{display:block;margin-top:5px;font-style:normal;font:800 10.5px/1 var(--body);
+    letter-spacing:.15em;text-transform:uppercase;color:#7A1F2B}
+  /* THE PERSONNEL SITS ON THE NAME'S LINE, big, hard right. One line, no
+     second row, no label. */
+  .frow{display:flex;align-items:baseline;gap:16px}
+  .frow b{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .fmeta{flex:none;display:flex;align-items:baseline;gap:11px;white-space:nowrap}
+  .fmeta .fpn{font-style:normal;font:400 30px/.78 var(--poster);color:#7A1F2B;letter-spacing:.01em}
+  .fmeta .fpb{font-style:normal;font:800 15px/1 var(--body);letter-spacing:.05em;
+    text-transform:uppercase;color:#241E14}
+  /* the alignment itself: the same ground as a play card, given real height */
+  .fdiag{display:block;margin-top:11px;aspect-ratio:620/260;border-radius:6px;overflow:hidden;background:#0b0f14;
+    box-shadow:inset 0 0 0 1px rgba(244,235,214,.16),0 10px 24px rgba(0,0,0,.45)}
+  .fdiag svg{display:block;width:100%;height:100%}
+  .fplate b{font-size:27px}
+  .fdiag.none{display:grid;place-items:center;min-height:52px;
+    font:700 8px/1 var(--body);letter-spacing:.14em;text-transform:uppercase;
+    color:rgba(244,235,214,.45)}
+  .ftapes{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:12px}
+  /* the count and what it counts, side by side and both readable */
+  .ftape{background:#F4EBD6;color:#17130E;padding:7px 6px;
+    display:flex;align-items:baseline;justify-content:center;gap:7px;
+    box-shadow:0 4px 10px rgba(0,0,0,.34);
+    clip-path:polygon(0% 14%,2% 0%,50% 5%,98% 0%,100% 18%,99% 84%,97% 100%,48% 95%,2% 100%,0% 82%)}
+  .ftape:nth-child(odd){transform:rotate(-.8deg)}
+  .ftape:nth-child(even){transform:rotate(.7deg)}
+  .ftape b{font:400 27px/.82 var(--poster);color:#7A1F2B}
+  .ftape u{font:800 11px/1 var(--body);letter-spacing:.12em;color:#5E5646;text-decoration:none}
+
+  /* ---------- play cards: four across, on paper ---------- */
+  .grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px}
+  /* a book open: three to a row, the way the game lays its plays out, so a
+     row here is a row there */
+  .inbook .grid,.inbook .fgrid{grid-template-columns:repeat(3,minmax(0,1fr))}
+  @media (max-width:1400px){.grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+  @media (max-width:1000px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+  .card{position:relative;background:#F4EBD6;border:0;padding:5px;cursor:pointer;
+    box-shadow:0 8px 20px rgba(0,0,0,.55);
+    transition:transform .16s var(--e-out), box-shadow .16s var(--e-out);
+    clip-path:polygon(0% 2.5%,2.5% 0%,45% 1.4%,98% 0%,100% 5%,99.4% 95%,97% 100%,
+      55% 98.6%,2% 100%,0% 94%)}
+  .card:nth-child(odd){transform:rotate(-.35deg)}
+  .card:nth-child(even){transform:rotate(.3deg)}
+  .card:hover{transform:translateY(-4px) rotate(0deg);box-shadow:0 18px 38px rgba(0,0,0,.72)}
+  /* THE NAMEPLATE. Cream over the field with dark ink, because a band on the
+     art was neither loud enough to read at a glance nor clear of the routes.
+     It sits above the field, never over it, and the type carries the card:
+     the formation as a real kicker, the play name big. */
+  /* the play reads first and biggest, the formation answers it on the right */
+  .card .plate{display:flex;align-items:baseline;gap:10px;padding:6px 34px 8px 6px}
+  .card .plate .nm{flex:1;min-width:0;font:400 25px/.86 var(--poster);letter-spacing:.015em;
+    color:#141009;text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .card .plate .frm{flex:none;max-width:48%;font:400 21px/.88 var(--poster);letter-spacing:.02em;
+    color:#6E6552;text-transform:uppercase;text-align:right;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .fld{position:relative;background:#242526;box-shadow:inset 0 0 0 1px rgba(0,0,0,.5)}
+  .fld svg{display:block;width:100%;height:auto}
+  .tag{position:absolute;left:8px;bottom:8px;font:700 8px/1 var(--body);letter-spacing:.14em;
+    padding:4px 10px 5px;color:#F4EBD6;transform:rotate(-1.2deg);
+    clip-path:polygon(2% 12%,0% 54%,3% 95%,50% 100%,98% 96%,100% 46%,97% 3%,45% 0%)}
+  .t-Pass{background:#2C55B9}.t-Run{background:#B92C2C}
+  .t-RPO{background:#0F8D7A}.t-Special{background:#5B6577}
+  .calls{position:absolute;right:8px;bottom:9px;font:700 7px/1 var(--body);
+    letter-spacing:.11em;color:#9B9992}
+  /* the star rides the cream header, not the art */
+  .star{position:absolute;right:6px;top:6px;z-index:3;background:rgba(20,17,12,.08);
+    border:1px solid rgba(23,19,14,.22);color:#8C8067;width:24px;height:24px;cursor:pointer;
+    font-size:12px;line-height:1;padding:0;border-radius:3px}
+  .star:hover{color:#7A1F2B;border-color:#7A1F2B}
+  .star.on{color:#8A6408;border-color:#C79413;background:rgba(240,176,47,.3)}
+  /* ---------- search as the hero of a lookup tool ----------
+     It was a thin dark field below two chip rows and read as a filter.
+     All Plays exists to answer "where is this play", so search leads. */
+  .hunt{display:flex;align-items:center;gap:11px;background:#F4EBD6;margin:0 0 16px;
+    padding:11px 16px 12px;box-shadow:0 7px 18px rgba(0,0,0,.45);
+    clip-path:polygon(0% 10%,1.6% 0%,46% 3%,98% 0%,100% 12%,99.4% 88%,97% 100%,
+      52% 96%,2% 100%,0% 90%)}
+  .hunt:focus-within{box-shadow:0 7px 22px rgba(0,0,0,.6), 0 0 0 2px var(--gold)}
+  .huntico{font:400 25px/1 var(--body);color:#8A8163;transform:translateY(-1px)}
+  .hunt .search{flex:1;min-width:0;background:none;border:0;padding:0;border-radius:0;
+    color:#17130E;font:400 26px/1.05 var(--poster);letter-spacing:.02em}
+  .hunt .search::placeholder{color:#9A917A;font:400 26px/1.05 var(--poster);letter-spacing:.02em}
+  .hunt .search:focus{outline:none}
+  .huntclear{background:#17130E;color:#F4EBD6;border:0;cursor:pointer;padding:6px 12px 7px;
+    font:700 9px/1 var(--body);letter-spacing:.15em;text-transform:uppercase;
+    clip-path:polygon(2% 12%,0% 54%,3% 95%,50% 100%,98% 96%,100% 46%,97% 3%,45% 0%)}
+  .huntclear:hover{background:#7A1F2B}
+
+  /* the original floating rows still serve the Schemes section, which is
+     short lists where a card each is fine */
+
+  .hshape{display:block;background:rgba(9,13,20,.5);padding:3px 4px;
+    box-shadow:inset 0 0 0 1px rgba(244,235,214,.12)}
+  .hshape svg{display:block;width:100%;height:auto}
+  .hshape.none,.dkfld.none{display:grid;place-items:center;min-height:30px;
+    font:700 7px/1.25 var(--body);letter-spacing:.1em;text-transform:uppercase;
+    text-align:center;color:#5B667A}
+  .hnm{display:block;font:400 21px/.95 var(--poster);letter-spacing:.02em;color:#F4EBD6;
+    text-transform:uppercase;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .hfam{display:block;margin-top:4px;font:700 8px/1 var(--body);letter-spacing:.15em;
+    text-transform:uppercase;color:#8A94A4;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .htags{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+  .htags i{font-style:normal;font:700 8px/1 var(--body);letter-spacing:.12em;
+    padding:5px 9px 6px;color:#F4EBD6;background:#2a3646;white-space:nowrap}
+  .htags i.t-Pass{background:#2C55B9}.htags i.t-Run{background:#B92C2C}
+  .htags i.t-RPO{background:#0F8D7A}.htags i.t-Special{background:#5B6577}
+  .htags i.t-Zone{background:#2C55B9}.htags i.t-Man{background:#7A4FBF}
+  .htags i.t-Blitz{background:#B92C2C}
+  .hbooks{text-align:right;min-width:52px}
+  .hbooks b{display:block;font:400 27px/.9 var(--poster);color:var(--gold)}
+  .hbooks u{display:block;font:700 6.5px/1 var(--body);letter-spacing:.15em;color:#7E8899;
+    text-decoration:none;margin-top:3px}
+
+  /* ---------- the play board ----------
+     Every row used to be its own floating card with a gap and its own torn
+     edge, so nothing lined up down the page: the tags and the count landed at
+     a different x on every line. Thirteen thousand plays is a table, not a
+     stack of cards. One board, one torn outline, named columns that cannot
+     drift because the header and the rows share --cols, and hairlines instead
+     of gaps - which also buys back roughly twice the rows per screen.
+     Scoped to .board so the Schemes section keeps its card rows. */
+  /* the torn edge is measured in px, not %: a board 7,000px tall turned a
+     0.6% inset into a 40px diagonal slicing across the header bar.
+     overflow stays visible so the sticky header is not trapped in a scroll
+     box of its own - clip-path already contains the corners. */
+  .board{--cols:70px minmax(0,1.25fr) minmax(0,1fr) 96px 128px 58px;
+    background:#111a26;box-shadow:0 8px 22px rgba(0,0,0,.5);
+    clip-path:polygon(0% 5px,1% 0,48% 4px,99% 0,100% 9px,
+      99.7% calc(100% - 9px),99% 100%,54% calc(100% - 4px),1% 100%,0 calc(100% - 5px))}
+  .bhead{display:grid;grid-template-columns:var(--cols);gap:14px;align-items:center;
+    background:#F4EBD6;color:#5A5344;padding:9px 15px 10px;position:sticky;top:0;z-index:2}
+  .bhead span{font:700 7.5px/1 var(--body);letter-spacing:.17em;text-transform:uppercase;
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .bhead .c-num{text-align:right}
+  .brow{display:grid;grid-template-columns:var(--cols);gap:14px;align-items:center;
+    width:100%;border:0;cursor:pointer;text-align:left;color:inherit;font:inherit;
+    background:none;padding:7px 15px;border-top:1px solid rgba(244,235,214,.07);
+    transition:background .12s var(--e-soft)}
+  .brow:nth-of-type(even){background:rgba(244,235,214,.022)}
+  .brow:hover{background:#1E2A39}
+  .brow:focus-visible{outline:2px solid var(--gold);outline-offset:-2px}
+  .board .hshape{padding:2px 3px}
+  .board .hshape.none{display:grid;place-items:center;min-height:24px;background:none;
+    box-shadow:none;font:700 7px/1 var(--body);letter-spacing:.1em;color:#4E596B}
+  .board .hnm{min-width:0;font-size:18px;line-height:1}
+  .board .hfam{margin-top:0;min-width:0;font:700 9px/1.2 var(--body);letter-spacing:.11em;
+    color:#939FB1}
+  .board .htags{flex-wrap:nowrap;justify-content:flex-start;min-width:0}
+  .board .htags i{padding:4px 8px 5px;overflow:hidden;text-overflow:ellipsis}
+  .board .hbooks{min-width:0;font:400 20px/1 var(--poster);color:var(--gold);
+    font-variant-numeric:tabular-nums}
+  /* the narrow columns go first when the frame gets tight - the play name and
+     where it lives are what the row is actually for */
+  @media (max-width:1150px){
+    .board{--cols:70px minmax(0,1.25fr) minmax(0,1fr) 96px 58px}
+    .board .c-kind{display:none}
+  }
+  @media (max-width:900px){
+    .board{--cols:minmax(0,1.3fr) minmax(0,1fr) 58px}
+    .board .c-shape,.board .c-type{display:none}
+  }
+  .more{display:block;width:100%;margin-top:13px;background:#F4EBD6;color:#17130E;border:0;
+    cursor:pointer;padding:12px;font:700 10px/1 var(--body);letter-spacing:.16em;
+    text-transform:uppercase;box-shadow:0 5px 14px rgba(0,0,0,.4);
+    clip-path:polygon(0% 14%,1% 0%,50% 4%,99% 0%,100% 16%,99.4% 86%,98% 100%,52% 96%,1% 100%,0% 84%)}
+  .more:hover{background:var(--gold)}
+  .spn.on{background:var(--sc1,#26364b);color:#F4EBD6;box-shadow:inset 0 0 0 1px rgba(244,235,214,.3)}
+  .spn.on u{color:rgba(244,235,214,.72)}
+
+  /* the deck: front card square on, neighbours tucked behind and dealt away */
+
+  @media (prefers-reduced-motion:reduce){
+  }
+
+  @media (max-width:940px){
+  }
+
+  /* the beliefs in one line each - enough to tell two installs apart at a
+     glance, not enough to make the card a page of reading */
+
+  /* the right half is the actual install, not decoration: its opening plays */
+
+  /* ---------- offence / defence switch ---------- */
+  .sidebox{position:absolute;left:0;top:50%;transform:translateY(-50%);z-index:3;
+    background:#F4EBD6;padding:8px 11px 9px;box-shadow:0 5px 14px rgba(0,0,0,.5);
+    clip-path:polygon(0% 8%,2% 0%,48% 3%,98% 0%,100% 10%,99.4% 90%,97% 100%,52% 97%,2% 100%,0% 92%)}
+  .sidecap{display:block;font:700 7px/1 var(--body);letter-spacing:.18em;color:#7A7263;
+    text-transform:uppercase;margin-bottom:6px}
+  .sidebtns{display:flex;gap:5px}
+  .sb{background:#E2D8BE;color:#5F5847;border:0;cursor:pointer;padding:6px 11px 7px;
+    font:700 9.5px/1 var(--body);letter-spacing:.11em;text-transform:uppercase;
+    clip-path:polygon(2% 10%,0% 55%,3% 95%,50% 100%,98% 96%,100% 45%,97% 3%,45% 0%)}
+  .sb:hover{background:#D6CAA9;color:#17130E}
+  .sb.on{background:#7A1F2B;color:#F4EBD6}
+
+  /* ---- a play, opened big ----------------------------------------------
+     Clicking a card in the library pulls the play up to fill the screen, so
+     the routes can actually be read. The card itself is the hero; the rest
+     is what the database knows about it. */
+  #playpop{--rail:clamp(200px,14vw,300px);
+    position:fixed;inset:0;z-index:600;display:none;align-items:center;justify-content:center;
+    padding:clamp(12px,3vh,40px);padding-left:calc(var(--rail) + clamp(20px,3vw,52px));
+    padding-right:calc(var(--rail) + clamp(20px,3vw,52px));
+    overflow:auto}   /* a safety net only: the height budget above keeps it unused */
+  #playpop.on{display:flex}
+  /* THE PLAYBOOK RAIL FLOATS on the left, off both edges, and the card
+     centres in what is left. Both scale with the screen. */
+  /* sits in the top quarter of the screen, not centred against the card */
+  #playpop .pp-rail{position:fixed;left:clamp(14px,2vw,34px);top:clamp(56px,14vh,150px);
+    z-index:2;width:var(--rail);max-height:calc(100vh - clamp(76px,18vh,190px));overflow:auto;scrollbar-width:thin;background:#F4EBD6;
+    padding:14px 12px 16px;box-shadow:0 26px 60px rgba(0,0,0,.6);
+    animation:ppIn .34s cubic-bezier(.2,1.05,.3,1) both;
+    clip-path:polygon(0 7px,1.5% 0,44% 4px,98.5% 0,100% 8px,99% calc(100% - 8px),96% 100%,50% calc(100% - 4px),2% 100%,0 calc(100% - 6px))}
+  #playpop .pp-rail h4{font-size:10px;margin-bottom:11px}
+  #playpop .pp-rail .bk{padding:7px;font-size:14px;gap:10px}
+  #playpop .pp-rail .bk img,#playpop .pp-rail .bk .gl{width:27px;height:27px}
+  /* THE ADJUSTMENTS RAIL, the mirror of the playbook rail. Everything you can
+     change about the play lives here, not under the card. */
+  #playpop .pp-adj{position:fixed;right:clamp(14px,2vw,34px);top:clamp(56px,14vh,150px);
+    z-index:2;width:var(--rail);max-height:calc(100vh - clamp(76px,18vh,190px));
+    overflow:auto;scrollbar-width:thin;background:#F4EBD6;padding:14px 12px 16px;
+    box-shadow:0 26px 60px rgba(0,0,0,.6);animation:ppIn .34s cubic-bezier(.2,1.05,.3,1) both;
+    clip-path:polygon(0 7px,1.5% 0,44% 4px,98.5% 0,100% 8px,99% calc(100% - 8px),96% 100%,50% calc(100% - 4px),2% 100%,0 calc(100% - 6px))}
+  #playpop .pp-adj h4{margin:0 0 4px;font:800 10px/1.3 var(--body);letter-spacing:.2em;
+    text-transform:uppercase;color:#7B7259}
+  #playpop .pp-adj .ahint{display:block;margin:0 0 11px;font:600 12px/1.35 var(--body);color:#6E6552}
+  #playpop .pp-adj .awho{display:block;margin:2px 0 9px;font:400 20px/.92 var(--poster);
+    text-transform:uppercase;color:#17130E}
+  #playpop .pp-adj .agrp{margin:0 0 6px;font:800 8.5px/1 var(--body);letter-spacing:.16em;
+    text-transform:uppercase;color:#9A9078}
+  #playpop .pp-adj button.hb{display:block;width:100%;text-align:left;cursor:pointer;border:0;
+    margin-bottom:4px;padding:7px 9px 8px;background:#E4D9BB;color:#17130E;
+    font:800 11px/1.1 var(--body);letter-spacing:.05em;text-transform:uppercase}
+  #playpop .pp-adj button.hb:hover{background:#F2B50E}
+  #playpop .pp-adj button.hb.gate{background:rgba(23,19,14,.08);color:#6E6552}
+  #playpop .pp-adj button.hb.gate:hover{background:#C9B27A;color:#17130E}
+  /* the defensive menu carries how often the game asks for that job */
+  #playpop .pp-adj button.hb{display:flex;align-items:baseline;gap:8px;justify-content:space-between}
+  #playpop .pp-adj button.hb .apct{flex:none;font:700 9.5px/1 var(--body);font-style:normal;
+    letter-spacing:.06em;color:#7A6F58}
+  #playpop .pp-adj button.hb:hover .apct{color:#17130E}
+  /* the job he already has */
+  #playpop .pp-adj button.hb.on{background:#17130E;color:#F4EBD6}
+  #playpop .pp-adj button.hb.on .apct{color:#C9B27A}
+  #playpop .pp-adj .aback{width:100%;margin-bottom:10px;padding:8px 10px 9px;cursor:pointer;border:0;
+    background:#17130E;color:#F4EBD6;font:800 9.5px/1 var(--body);letter-spacing:.15em;text-transform:uppercase}
+  #playpop .pp-adj .aback:hover{background:#7A1F2B}
+  @media (max-width:1180px){#playpop .pp-rail,#playpop .pp-adj{display:none}#playpop{--rail:0px}}
+  #playpop .pp-rail h4,.bookrail h4{margin:0 0 9px;font:800 9.5px/1.3 var(--body);letter-spacing:.2em;
+    text-transform:uppercase;color:#7B7259}
+  .bk{display:flex;align-items:center;gap:9px;width:100%;border:0;background:transparent;cursor:pointer;
+    padding:6px;text-align:left;color:#241E14;font:700 13px/1.15 var(--body);border-radius:3px}
+  .bk:hover{background:rgba(122,31,43,.12);color:#7A1F2B}
+  .bk img{width:25px;height:25px;object-fit:contain;flex:none}
+  .bk .gl{width:25px;height:25px;flex:none;display:grid;place-items:center;background:rgba(23,19,14,.12);
+    font:400 15px/1 var(--poster);color:#7A1F2B;font-style:normal}
+  .bk span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .bk.here{background:rgba(122,31,43,.16);color:#7A1F2B}
+  .bk.here::after{content:"OPEN";font:800 8px/1 var(--body);letter-spacing:.13em;color:#7A1F2B}
+  /* the same rail, in the left rail under the section buttons, so the plays
+     stay squared off and centred instead of shifting across */
+  #railbooks .bookrail{width:168px;background:#F4EBD6;padding:10px 9px 11px;margin-top:4px;
+    max-height:min(56vh,520px);overflow:auto;scrollbar-width:thin;
+    box-shadow:0 6px 18px rgba(0,0,0,.42);
+    clip-path:polygon(0 6px,1.5% 0,44% 4px,98.5% 0,100% 7px,99% calc(100% - 7px),96% 100%,50% calc(100% - 4px),2% 100%,0 calc(100% - 5px))}
+  #railbooks .bk{padding:5px;font-size:12px;gap:7px}
+  #railbooks .bk img,#railbooks .bk .gl{width:21px;height:21px}
+  #railbooks h4{font-size:8.5px;letter-spacing:.16em}
+  #playpop .pp-scrim{position:absolute;inset:0;background:rgba(6,10,18,.72);backdrop-filter:blur(10px) saturate(.8);-webkit-backdrop-filter:blur(10px) saturate(.8);animation:ppFade .2s ease both}
+  @keyframes ppFade{from{opacity:0}to{opacity:1}}
+  /* IT ALWAYS FITS. The card is sized off the viewport HEIGHT, not the width,
+     so the header, the buttons, the hot routes and the tags all land on
+     screen and the card never scrolls. */
+  #playpop .pp{position:relative;z-index:1;width:100%;
+    max-width:calc(100vw - (var(--rail) * 2) - clamp(56px,9vw,150px));
+    max-height:none;overflow:visible;
+    background:#F4EBD6;padding:clamp(12px,1.4vw,20px) clamp(12px,1.4vw,20px) clamp(14px,1.6vw,22px);
+    clip-path:polygon(0 8px,.6% 0,42% 5px,99.4% 0,100% 9px,99.5% calc(100% - 9px),97% 100%,52% calc(100% - 4px),1% 100%,0 calc(100% - 7px));
+    box-shadow:0 40px 90px rgba(0,0,0,.75);animation:ppIn .3s cubic-bezier(.2,1.05,.3,1) both}
+  @keyframes ppIn{from{opacity:0;transform:translateY(26px) scale(.97)}to{opacity:1;transform:none}}
+  #playpop .pp-hd{display:flex;align-items:flex-end;gap:16px;flex-wrap:wrap;padding:2px 4px 10px}
+  #playpop .pp-hd .frm{display:block;font:800 10px/1 "Segoe UI";letter-spacing:.22em;text-transform:uppercase;color:#7B7259}
+  #playpop .pp-hd .nm{display:block;margin-top:5px;font:400 clamp(28px,3.4vw,54px)/.92 var(--poster);letter-spacing:.02em;color:#17130E;text-transform:uppercase}
+  #playpop .pp-meta{margin-left:auto;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  #playpop .pp-close{cursor:pointer;border:0;padding:9px 15px 10px;background:#17130E;color:#F4EBD6;font:800 10px/1 "Segoe UI";letter-spacing:.16em;text-transform:uppercase}
+  #playpop .pp-close:hover{background:#7A1F2B}
+  /* the coverage key: what each defender is actually doing, in words */
+  #playpop .covkey{padding:14px 18px 16px;background:#1B1C1D;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.06)}
+  #playpop .covkey h4{margin:0 0 10px;font:800 11px/1 var(--disp,inherit);
+    letter-spacing:.16em;text-transform:uppercase;color:#8E959E}
+  #playpop .covkey ul{margin:0;padding:0;list-style:none;
+    display:grid;grid-template-columns:repeat(auto-fit,minmax(215px,1fr));gap:7px 18px}
+  #playpop .covkey li{display:flex;align-items:center;gap:9px;
+    font:600 13px/1.35 var(--disp,inherit);color:#E7E3D8}
+  #playpop .covkey i{flex:0 0 auto;width:11px;height:11px;border-radius:3px}
+  #playpop .covkey b{font-weight:700}
+  #playpop .covkey em{font-style:normal;color:#9AA1AA;font-size:11.5px}
+  #playpop .covkey u{margin-left:2px;padding:2px 6px;border-radius:3px;text-decoration:none;
+    font:700 9.5px/1 var(--disp,inherit);letter-spacing:.1em;text-transform:uppercase;
+    background:rgba(242,193,78,.14);color:#E0B455;cursor:help}
+  #playpop .covkey p{margin:12px 0 0;font:500 11px/1.55 var(--disp,inherit);color:#767D86}
+  #playpop .pp-fld{position:relative;background:#242526;box-shadow:inset 0 0 0 1px rgba(0,0,0,.5);
+    width:min(100%,calc(var(--fldh) * 620 / 340));aspect-ratio:620/340;margin-inline:auto}
+  /* the adjustments moved to their own rail, so nothing below the card grows
+     and it can take the height back */
+  #playpop{--fldh:56vh}
+  #playpop .pp-fld svg{display:block;width:100%;height:100%}
+  #playpop .pp-ft{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding-top:11px;font:600 12px/1.4 "Segoe UI";color:#4A4232}
+  #playpop .pp-ft b{font:800 10px/1 "Segoe UI";letter-spacing:.18em;text-transform:uppercase;color:#7B7259}
+  #playpop .chip{padding:5px 10px 6px;background:#E4D9BB;color:#17130E;font:800 10px/1 "Segoe UI";letter-spacing:.1em;text-transform:uppercase}
+  #playpop .chip.run{background:#E8A9A2;color:#3A0F0F}
+  #playpop .chip.pass{background:#A9BEE8;color:#0F1B3A}
+  #playpop .chip.rpo{background:#9FD3C0;color:#0C2A20}
+  /* run the play, and change it */
+  #playpop .pp-tools{display:flex;align-items:center;gap:9px;flex-wrap:wrap;padding:11px 2px 0}
+  #playpop .tbtn{cursor:pointer;border:0;padding:9px 16px 10px;background:#17130E;color:#F4EBD6;
+    font:800 10.5px/1 var(--body);letter-spacing:.16em;text-transform:uppercase}
+  #playpop .tbtn:hover{background:#7A1F2B}
+  #playpop .tbtn.ghost{background:rgba(23,19,14,.1);color:#4A4232}
+  #playpop .tbtn.ghost:hover{background:rgba(122,31,43,.18);color:#7A1F2B}
+  #playpop .tbtn[disabled]{opacity:.4;cursor:default}
+  #playpop .thint{font:600 12px/1.3 var(--body);color:#6E6552}
+  #playpop .mvr{cursor:pointer}
+  #playpop .mvr.pick circle,#playpop .mvr.pick rect,#playpop .mvr.pick path{filter:drop-shadow(0 0 6px #F2B50E)}
+  @media (prefers-reduced-motion:reduce){#playpop .pp,#playpop .pp-scrim{animation:none}}

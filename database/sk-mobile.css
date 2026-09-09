@@ -1,0 +1,68 @@
+/* =====================================================================
+   THE DATABASE ON A PHONE (2026-09-09). Loaded last on index.html and
+   defense.html. Under 760 px: one column, the bar wraps (brand and the side
+   of the ball on the first row, the sections as a scrolling row of tabs
+   under it), the view chips scroll, every grid is one or two across, the
+   picker runs at a phone unit, the play pop-up fills the screen.
+   ===================================================================== */
+@media (max-width:759px){
+  html,body{overflow-x:hidden}
+  /* the picker's own grid (body.sk-pick .wrap) outranks these, so they insist */
+  .wrap,body.sk-pick .wrap{grid-template-columns:minmax(0,1fr)!important;grid-template-rows:auto auto 1fr!important}
+  .rail{display:none!important}
+  .head{grid-column:1!important;grid-row:1!important}
+  .banner{height:auto;flex-wrap:wrap;padding:10px 12px 0;gap:8px 12px;align-items:center}
+  .brand{gap:10px}
+  .brand::before{width:36px;height:36px}
+  .brand b{font-size:22px}
+  .brand span{display:none}
+  .sidebox{position:absolute;right:12px;top:10px;left:auto;transform:none;gap:8px;z-index:7}
+  .sidecap{display:none}
+  .sidebtns .sb{padding:9px 12px;font-size:13px;letter-spacing:.14em}
+  /* no map on a phone */
+  .vrail .vw[data-v="map"]{display:none}
+  .live,.fsr2{display:none}
+  .skwho{position:static;transform:none;margin-left:6px}
+  .skwho-name{max-width:70px;font-size:10px}
+  .skwho-btn{height:30px;padding:0 9px;font-size:10px}
+  #topnav{order:10;flex:0 0 100%;margin:4px 0 0;padding:0 0 0;gap:8px;overflow-x:auto;scrollbar-width:none;align-items:stretch}
+  #topnav::-webkit-scrollbar{display:none}
+  #topnav .sktab{padding:9px 14px 11px;flex:1 0 auto}
+  #topnav .sktab b{font-size:17px}
+  #topnav .sktab span{font-size:8.5px}
+  #topnav .sktab:hover{transform:none}
+  #topnav .sktab.on{transform:translateY(3px)}
+  /* the view chips scroll under the bar */
+  .vrail{grid-column:1!important;grid-row:2!important;padding:10px 12px 0;text-align:left;display:flex;gap:8px;overflow-x:auto;scrollbar-width:none}
+  .vrail::-webkit-scrollbar{display:none}
+  .vrail .cap{display:none}
+  .vrail .nav,.vrail button{flex:0 0 auto}
+  .body,body.sk-pick .body{grid-column:1!important;grid-row:3!important;padding:0 12px 60px}
+  .title{margin:8px auto 10px;max-width:100%}
+  .hunt{padding:8px 12px;margin-bottom:10px}
+  .hunt .search{font-size:18px}
+  .hunt .search::placeholder{font-size:17px}
+  .bar{flex-wrap:wrap;gap:6px}
+  .books,.fgrid,.grid{grid-template-columns:1fr!important;gap:12px}
+  /* the picker: a phone unit, everything stacked */
+  body.sk-pick{--u:calc(100vw / 500)}
+  body.sk-pick .pk{display:flex;flex-direction:column;height:auto;gap:12px;min-height:0}
+  body.sk-pick .pk-rail{position:relative;top:0;flex-direction:row;overflow-x:auto;scrollbar-width:none;padding:2px 0}
+  body.sk-pick .pk-rail::-webkit-scrollbar{display:none}
+  body.sk-pick .pk-stage{padding-top:0;min-height:0}
+  body.sk-pick .pk-deck{--cw:calc(100vw - 150px);--agap:8px;min-height:calc(100vw - 100px)}
+  body.sk-pick .pk-arrow{width:40px;font-size:24px}
+  .pk-dossier{margin-top:8px;width:100%}
+  .pd-name{font-size:32px}
+  .pd-t{font-size:15px}
+  .pd-row b{font-size:18px}
+  .pd-go .pk-go{height:46px;font-size:14px}
+  .pk-book{flex-wrap:wrap;padding:12px;gap:12px;min-height:0}
+  .pk-book img{height:56px}
+  .pk-book .h{font-size:20px}
+  .pk-book .cuts{margin-left:0;justify-content:flex-start}
+  /* the play pop-up fills the screen */
+  #playpop{--rail:0px}
+  #playpop .pp{width:100vw!important;height:100vh!important;max-width:none!important;max-height:none!important;left:0!important;top:0!important;transform:none!important;border-radius:0;overflow:auto}
+  #playpop .pp-rail,#playpop .pp-adj{display:none}
+}

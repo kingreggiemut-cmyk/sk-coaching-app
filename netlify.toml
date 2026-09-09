@@ -142,3 +142,19 @@
 # ---------------------------------------------------------------------------
 [functions."day-nudge"]
   schedule = "0 * * * *"
+
+# THE PLAY DATABASE (/database/). Art, the drawn cards and the crests change
+# rarely and are large: cache them a week. The pages, the scripts and the
+# scheme data keep the default so a deploy is live at once.
+[[headers]]
+  for = "/database/art/*"
+  [headers.values]
+    Cache-Control = "public, max-age=604800"
+[[headers]]
+  for = "/database/cards/*"
+  [headers.values]
+    Cache-Control = "public, max-age=604800"
+[[headers]]
+  for = "/database/logos/*"
+  [headers.values]
+    Cache-Control = "public, max-age=604800"

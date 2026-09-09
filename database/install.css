@@ -1,0 +1,382 @@
+/* =====================================================================
+   THE INSTALL · built from the ground up, 2026-09-02 (second pass).
+   The frame is the dynasty tracker's: navy ground, cream paper only on the
+   chrome, gold means "current", team colour fills the hero card. Behind it
+   the team's own room, blurred, drifting with the pointer. The play card
+   is drawn like the game's card and tilts like a holo card. Reads land as
+   broadcast plates. Materials: paper (.ip, torn with feTurbulence), tape
+   chips (.ic), plates (.rp), rank chips (.rank). One accent: gold.
+   ===================================================================== */
+body.sk-install .rb,body.sk-install .roomnav{display:none!important}
+body.sk-install .roomwrap{grid-template-columns:1fr}
+body.sk-install .room{padding:0}
+body.sk-install .body{padding:0}
+
+.ins{--pap:#F3ECD9;--pap2:#E6DCC2;--ink:#141820;--gold:#F2B50E;--gold-ink:#3A2A04;--red:#D8452F;--green:#2E7D43;--dim:rgba(240,231,203,.5);
+  position:relative;isolation:isolate;display:grid;grid-template-rows:auto minmax(0,1fr) auto;min-height:100vh;box-sizing:border-box;
+  padding:0 clamp(18px,2.4vw,44px);background:#0a0e1a}
+/* ---------- the room behind everything ---------- */
+.ins-bg{position:fixed;inset:0;z-index:-1;overflow:hidden;pointer-events:none;background:#0a0e1a}
+.ins-room{position:absolute;inset:-6%;background-size:cover;background-position:center;filter:blur(7px) brightness(.62) saturate(.9);
+  transform:translate(calc(var(--px,0)*-22px + var(--cam,0)*-0.35%),calc(var(--py,0)*-14px)) scale(1.06);transition:transform .9s var(--sk-ease);will-change:transform}
+.ins-wash{position:absolute;inset:0;background:radial-gradient(120% 90% at 50% -10%,color-mix(in srgb,var(--tc,#1E54B7) 42%,transparent),transparent 60%),linear-gradient(180deg,rgba(6,9,18,.35),rgba(6,9,18,.7) 60%,rgba(6,9,18,.92))}
+.ins-grain{position:absolute;inset:0;background-image:var(--sk-noise);opacity:.08;mix-blend-mode:overlay}
+
+/* ---------- materials ---------- */
+.ip{position:relative;isolation:isolate;color:var(--ink)}
+.ip::before{content:"";position:absolute;inset:0;z-index:-1;pointer-events:none;clip-path:var(--tear);
+  background-image:var(--sk-noise),linear-gradient(163deg,#F6F0E0,#EBE2CC 55%,#F2EBDA);background-blend-mode:multiply;background-size:160px 160px,auto;
+  filter:url(#skTorn)}
+.ic{display:inline-flex;align-items:center;gap:6px;padding:6px 11px 7px;background:var(--pap2);color:#17130E;font:800 10px/1 var(--fd);letter-spacing:.14em;text-transform:uppercase;white-space:nowrap;clip-path:var(--tape);box-shadow:0 3px 7px rgba(0,0,0,.25)}
+.ic.gold{background:var(--gold);color:var(--gold-ink)}
+.ic.run{background:#E8A9A2;color:#3A0F0F}.ic.pass{background:#A9BEE8;color:#0F1B3A}.ic.star{background:var(--gold);color:var(--gold-ink)}
+.rank{display:grid;place-items:center;width:38px;height:38px;background:var(--ink);color:#F4EBD6;font:900 18px/1 var(--fd);clip-path:var(--tape);box-shadow:0 4px 10px rgba(0,0,0,.4)}
+.rank.gold{background:var(--gold);color:var(--gold-ink)}
+.rank svg{width:16px;height:16px}
+.istamp{padding:3px 7px;color:var(--green);border:2px solid var(--green);border-radius:3px;font:900 8px/1 var(--fd);letter-spacing:.16em;text-transform:uppercase;rotate:-6deg;opacity:.92;animation:stampIn .35s cubic-bezier(.2,1.4,.3,1) both}
+.istamp.big{font-size:16px;padding:6px 12px;border-width:3px}
+@keyframes stampIn{from{opacity:0;scale:1.6}to{opacity:.92;scale:1}}
+
+/* ---------- masthead ---------- */
+.ins-mast{display:grid;grid-template-columns:auto auto minmax(0,1fr) auto;align-items:center;gap:clamp(14px,1.8vw,32px);padding:14px 0 12px;border-bottom:1px solid rgba(240,231,203,.1)}
+.ins-back{cursor:pointer;border:0;padding:11px 18px 12px;background:var(--pap);color:var(--ink);font:800 14px/1 var(--fd);letter-spacing:.16em;text-transform:uppercase;clip-path:var(--tape);box-shadow:0 5px 12px rgba(0,0,0,.4);transition:transform .14s var(--sk-ease)}
+.ins-back:hover{transform:translateX(-3px)}
+.ins-id{display:flex;align-items:center;gap:12px;min-width:0;cursor:pointer;border:0;background:transparent;padding:0;text-align:left}
+.ins-id .skh-crest{width:46px;height:46px;transition:transform .2s var(--sk-ease)}
+.ins-id:hover .skh-crest{transform:scale(1.06)}
+.ins-id b{display:block;font:900 27px/1 var(--fd);letter-spacing:.03em;text-transform:uppercase;color:#F4EBD6;white-space:nowrap}
+.ins-id i{display:block;margin-top:4px;font:800 11px/1 var(--fd);letter-spacing:.24em;text-transform:uppercase;color:var(--gold);font-style:normal}
+.ins-pillars{display:flex;justify-content:center;gap:clamp(8px,1vw,14px);min-width:0}
+.ins-chip{position:relative;cursor:pointer;border:0;display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center;gap:10px;min-width:clamp(170px,14.5vw,260px);padding:12px 18px 13px 12px;text-align:left;
+  background:var(--pap);color:var(--ink);clip-path:polygon(1.5% 12%,0% 50%,2% 90%,50% 100%,98.5% 95%,100% 52%,97.5% 6%,48% 0%);box-shadow:0 5px 14px rgba(0,0,0,.45);
+  transition:translate .16s var(--sk-ease),filter .16s,background .25s}
+.ins-chip:nth-child(even){clip-path:polygon(0% 10%,2% 52%,1.5% 92%,52% 100%,98% 96%,100% 48%,98.5% 5%,46% 0%)}
+.ins-chip:hover{translate:0 -3px}
+.ins-chip.home{min-width:clamp(120px,10vw,170px);margin-right:clamp(6px,1vw,18px)}
+.ins-chip.home i{background:transparent;color:var(--ink);box-shadow:inset 0 0 0 2px rgba(20,24,32,.35);font-size:18px}
+.ins-chip.home.on i{background:#172447;color:var(--gold);box-shadow:none}
+.ins-chip i{width:40px;height:40px;display:grid;place-items:center;border-radius:50%;font:900 18px/1 var(--fd);font-style:normal;background:var(--ink);color:#F4EBD6}
+.ins-chip i svg{width:15px;height:15px}
+.ins-chip b{display:block;font:900 clamp(19px,1.5vw,26px)/1 var(--fd);letter-spacing:.03em;text-transform:uppercase;color:#1a2a5c}
+.ins-chip span span{display:block;margin-top:4px;font:800 11px/1.2 var(--fd);letter-spacing:.16em;text-transform:uppercase;color:#6B7A90}
+.ins-chip.on{background:linear-gradient(100deg,var(--gold),#DFA32E);translate:0 -3px}
+.ins-chip.on b{color:#172447}.ins-chip.on span span{color:#5D4408}.ins-chip.on i{background:#172447;color:var(--gold)}
+.ins-chip.done i{background:var(--green);color:#fff}
+.ins-chip.lock{filter:saturate(.3) brightness(.78);cursor:default}
+.ins-chip.lock b{color:#5c6577}.ins-chip.lock i{background:#9aa0ad;color:#2b3140}
+.ins-chip .istamp{position:absolute;right:8px;top:-8px;background:var(--pap)}
+.ins-count{display:grid;grid-template-columns:auto auto;grid-template-rows:auto auto;align-items:baseline;column-gap:10px;text-align:right}
+.ins-count b{grid-row:1/3;font:900 clamp(34px,3vw,48px)/1 var(--fd);color:var(--gold)}
+.ins-count span{font:800 11px/1 var(--fd);letter-spacing:.2em;text-transform:uppercase;color:var(--dim);align-self:end}
+.ins-count u{display:block;width:clamp(90px,8vw,140px);height:6px;border-radius:99px;background:rgba(240,231,203,.14);overflow:hidden;text-decoration:none;align-self:start;margin-top:6px}
+.ins-count u i{display:block;height:100%;width:100%;background:linear-gradient(90deg,var(--tc,#1E54B7),var(--gold));transform:scaleX(var(--p,0));transform-origin:left;transition:transform .6s var(--sk-ease)}
+
+/* ---------- the stage ----------
+   PIN THE THREE ROWS. .ins is a grid of auto / 1fr / auto and its children
+   fill it in order, so the moment the masthead is hidden (which the home
+   stop does) the stage slid up into the auto row and collapsed to its own
+   content instead of taking the screen. Naming the rows makes a hidden
+   masthead an empty row rather than a missing one. */
+.ins-mast{grid-row:1}
+.ins-stage{grid-row:2}
+.ins-foot{grid-row:3}
+.ins-stage{min-height:0;padding:clamp(16px,2.2vh,28px) 0 clamp(10px,1.4vh,16px);animation:insIn .45s var(--sk-ease) both;perspective:1400px}
+.ins-stage[data-dir="back"]{animation-name:insBack}
+@keyframes insIn{from{opacity:0;transform:translateX(28px)}to{opacity:1;transform:none}}
+@keyframes insBack{from{opacity:0;transform:translateX(-28px)}to{opacity:1;transform:none}}
+.ins-ey{font:800 clamp(12px,.95vw,15px)/1 var(--fd);letter-spacing:.32em;text-transform:uppercase;color:var(--gold)}
+.ins-ey em{font-style:normal;color:var(--dim);margin-left:10px;letter-spacing:.2em}
+
+/* ---------- THE INSTALL HOME · A2, THREE COLUMNS ----------
+   His pick from the install boards, 2026-09-04. One column per pillar, each
+   headed by its own title-card door, its calls stacked under it.
+
+   THE SIZING RULE HE ASKED FOR. A pillar holds however many plays the book
+   gives it: two on the Alabama defence, three on every offensive book, one
+   on the match book. So the cards are NOT given a width. The column is a
+   flex column of known height, each play is flex:1 1 0, and the card is
+   height:100% with the 620/340 ratio, which makes the width fall out of the
+   height. Two plays get big cards, four get small ones, and the column never
+   overflows or leaves a hole. --n is on the section for anything that has to
+   know the count. */
+/* THE HOME GETS ITS HEIGHT BACK BY DROPPING WHAT IT SAYS TWICE. The cards
+   here are sized by the room left over, so every strip of chrome above them
+   comes straight off the cards. On this one stop the pillar chips and the
+   film strip along the bottom are both just a second and third listing of
+   the same six calls the columns are showing full size, so both go, and the
+   ~220px they were taking goes into the cards. They come back the moment you
+   open a pillar, where they are the only way to see the rest. */
+.ins[data-t="home"] .ins-foot{display:none}
+.ins[data-t="home"] .ins-pillars{display:none}
+/* AND THE HOME IS ONE SCREEN, NOT A PAGE. The cards only shrink to fit if
+   something above them has a definite height to divide, so on this stop the
+   section is exactly the viewport and the columns take what is left. Below
+   760px tall there is not enough to divide, so it goes back to a normal
+   scrolling page and the cards keep a floor instead. */
+.ins[data-t="home"]{height:calc(100vh - var(--instop,0px));min-height:0}
+.ins[data-t="home"] .ins-stage{min-height:0;overflow:hidden}
+.ins-home{display:grid;grid-template-rows:auto minmax(0,1fr) auto;gap:clamp(16px,2.2vh,28px);height:100%}
+@media (max-height:760px){
+  .ins[data-t="home"]{height:auto;min-height:100vh}
+  .ins[data-t="home"] .ins-stage{overflow:visible}
+  .ins-home{height:auto;min-height:100%}
+  .hp-art{min-height:130px}
+}
+.home-head{display:flex;align-items:flex-end;gap:clamp(20px,3vw,50px)}
+.home-head h1{margin:4px 0 8px;font:900 clamp(46px,5vw,88px)/.84 var(--fd);letter-spacing:.005em;text-transform:uppercase;color:#F4EBD6;text-shadow:0 10px 50px rgba(0,0,0,.65)}
+.home-head p.line{margin:0;max-width:70ch;font:500 clamp(16px,1.2vw,21px)/1.35 var(--fb);color:rgba(240,231,203,.74)}
+.home-count{margin-left:auto;flex:none;display:flex;align-items:baseline;gap:12px;text-align:right}
+.home-count b{font:900 clamp(40px,4vw,68px)/1 var(--fd);color:var(--gold)}
+.home-count span{font:800 13px/1.4 var(--fd);letter-spacing:.18em;text-transform:uppercase;color:var(--dim)}
+.home-count em{display:block;font-style:normal;color:var(--gold)}
+
+.home-cols{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:clamp(16px,2vw,34px);min-height:0}
+@media (max-width:1000px){.home-cols{grid-template-columns:1fr}}
+.hcol{display:flex;flex-direction:column;min-height:0;min-width:0;padding-top:14px;border-top:3px solid rgba(240,231,203,.2);
+  animation:pcIn .5s var(--sk-ease) both}
+.hcol:nth-child(2){animation-delay:.07s}.hcol:nth-child(3){animation-delay:.14s}
+@keyframes pcIn{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
+.hcol.up{border-top-color:var(--tc,#1E54B7)}
+.hcol.done{border-top-color:var(--green)}
+.hc-top{display:flex;align-items:baseline;gap:14px;width:100%;cursor:pointer;border:0;background:transparent;padding:0;text-align:left;color:#F4EBD6;
+  transition:color .16s}
+.hc-num{font:900 clamp(30px,2.6vw,44px)/.8 var(--fd);font-style:normal;color:#5A5F68;transition:color .16s}
+.hcol.up .hc-num{color:var(--tc,#1E54B7)}
+.hcol.done .hc-num{color:var(--green)}
+.hc-name{flex:1;min-width:0;font:900 clamp(28px,2.6vw,44px)/.92 var(--fd);letter-spacing:.01em;text-transform:uppercase;text-wrap:balance}
+.hc-go{flex:none;text-decoration:none;font:400 24px/1 var(--fb);color:var(--gold);opacity:.45;transition:opacity .16s,translate .16s}
+.hc-top:hover .hc-name{color:var(--gold)}
+.hc-top:hover .hc-go{opacity:1;translate:5px 0}
+.hc-ey{margin:9px 0 6px;font:800 12px/1.3 var(--fd);letter-spacing:.2em;text-transform:uppercase;color:var(--gold)}
+.hc-ey em{font-style:normal;color:var(--dim);margin-left:10px;letter-spacing:.14em}
+.hc-line{margin:0 0 12px;font:500 clamp(14.5px,1.15vw,17px)/1.38 var(--fb);color:rgba(240,231,203,.62);
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+
+.hc-plays{flex:1 1 auto;min-height:0;display:flex;flex-direction:column;gap:clamp(8px,1.2vh,16px)}
+.hp{flex:1 1 0;min-height:0;display:flex;flex-direction:column;gap:8px;cursor:pointer;border:0;background:transparent;padding:0;text-align:left;color:#F4EBD6;
+  transition:transform .22s var(--sk-ease)}
+.hp:hover{transform:translateY(-4px)}
+.hp-art{flex:1 1 auto;min-height:0;height:100%;aspect-ratio:620/340;width:auto;max-width:100%;
+  border-radius:5px;overflow:hidden;background:#0B0D12;box-shadow:0 0 0 2px rgba(240,231,203,.16),0 10px 24px rgba(0,0,0,.5);
+  filter:grayscale(.45) brightness(.82);transition:filter .22s,box-shadow .22s}
+.hp:hover .hp-art{filter:none}
+.hp.ink .hp-art{filter:none;box-shadow:0 0 0 2px var(--gold),0 10px 24px rgba(0,0,0,.5)}
+.hp-art svg,.hp-art img{display:block;width:100%;height:100%}
+.hp-lab{flex:none;display:flex;align-items:baseline;gap:10px;min-width:0}
+.hp-lab b{font:900 clamp(17px,1.5vw,24px)/1 var(--fd);letter-spacing:.02em;text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hp-lab i{font:800 10.5px/1 var(--fd);letter-spacing:.16em;text-transform:uppercase;color:var(--dim);font-style:normal;white-space:nowrap}
+.hp-lab u{margin-left:auto;text-decoration:none;color:var(--gold);font-size:15px}
+.home-foot{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+.home-foot .skb{flex:0 0 auto;width:auto;font-size:14px}
+.home-foot .skb.gold{font-size:15px;padding:15px 24px}
+
+
+/* ---------- THE PLAY · C2, THE CARD AND THE WALL ----------
+   Card left, keys right. The name sits ABOVE the card instead of on a plate
+   across its corner, the adjustments sit UNDER it where the thing they
+   redraw is, and the right column holds nothing but the keys. Only the
+   landed key carries its text; the rest are titles, so a five key play reads
+   as a wall you can scan instead of a wall of words. */
+.ins-play{display:grid;grid-template-columns:minmax(0,60fr) minmax(340px,40fr);gap:clamp(24px,2.8vw,52px);align-items:start}
+@media (max-width:1100px){.ins-play{grid-template-columns:1fr}}
+.pl-main{min-width:0;display:flex;flex-direction:column;gap:clamp(10px,1.4vh,18px)}
+.pl-form{display:flex;align-items:center;gap:12px;flex-wrap:wrap;font:800 11px/1 var(--fd);letter-spacing:.2em;text-transform:uppercase;color:var(--dim)}
+.hero{position:relative;isolation:isolate;padding:clamp(12px,1.2vw,18px);border-radius:14px;
+  background:linear-gradient(160deg,color-mix(in srgb,var(--tc,#1E54B7) 88%,#fff),color-mix(in srgb,var(--tc,#1E54B7) 72%,#000));
+  box-shadow:0 30px 70px rgba(0,0,0,.6),inset 0 1px 0 rgba(255,255,255,.25);
+  transform:rotateX(var(--rx,0deg)) rotateY(var(--ry,0deg));transform-style:preserve-3d;transition:transform .7s cubic-bezier(.2,.9,.2,1),box-shadow .35s var(--sk-ease)}
+.hero.hot{transition:transform .12s linear,box-shadow .35s var(--sk-ease)}
+.hero::before{content:"";position:absolute;inset:0;z-index:-1;border-radius:14px;background-image:var(--sk-noise);opacity:.14;mix-blend-mode:overlay}
+.hero.inked{box-shadow:0 0 0 4px var(--gold),0 30px 70px rgba(0,0,0,.6)}
+.hero-tilt{position:relative}
+.hero-glare{position:absolute;inset:-2px;border-radius:12px;pointer-events:none;opacity:0;mix-blend-mode:overlay;transition:opacity .4s;
+  background:radial-gradient(farthest-corner circle at var(--mx,50%) var(--my,50%),rgba(255,255,255,.55) 0%,rgba(255,255,255,.12) 28%,transparent 62%),
+  linear-gradient(115deg,transparent 30%,rgba(242,181,14,.16) 46%,rgba(255,255,255,.18) 50%,rgba(242,181,14,.16) 54%,transparent 70%);
+  background-size:100% 100%,240% 240%;background-position:0 0,calc(var(--mx,50%) * 1.4) calc(var(--my,50%) * 1.4)}
+.hero.hot .hero-glare{opacity:.9}
+.hero-art{position:relative;aspect-ratio:620/340;border-radius:8px;overflow:hidden;background:#1d1f24;box-shadow:inset 0 0 0 1px rgba(255,255,255,.12),0 10px 30px rgba(0,0,0,.45)}
+.hero-art svg,.hero-art img{display:block;width:100%;height:100%;object-fit:cover}
+.hero-art svg.gcard{transform-origin:var(--ox,50%) var(--oy,50%);transition:transform .8s var(--sk-ease),transform-origin .8s var(--sk-ease)}
+.hero-art.lit svg.gcard{transform:scale(1.14)}
+.hero-art.flash::after{content:"";position:absolute;inset:0;background:rgba(242,181,14,.18);animation:flash .45s ease-out both}
+@keyframes flash{from{opacity:1}to{opacity:0}}
+.hero-stamp{position:absolute;right:28px;top:26px;z-index:2;padding:7px 14px;background:rgba(10,14,26,.55);border:3px solid var(--gold);border-radius:4px;color:var(--gold);font:900 16px/1 var(--fd);letter-spacing:.2em;text-transform:uppercase;rotate:-8deg;opacity:0;scale:1.4;transition:opacity .25s,scale .35s cubic-bezier(.2,1.4,.3,1)}
+.hero.inked .hero-stamp{opacity:1;scale:1}
+.hero-tags{display:flex;gap:6px;flex-wrap:wrap}
+.hero-door{cursor:pointer;border:0;padding:10px 16px 11px;background:rgba(240,231,203,.08);color:rgba(240,231,203,.8);border-radius:999px;box-shadow:inset 0 0 0 1.5px rgba(240,231,203,.25);font:800 12.5px/1 var(--fd);letter-spacing:.12em;text-transform:uppercase;transition:color .14s,box-shadow .14s}
+.hero-door:hover{color:var(--gold);box-shadow:inset 0 0 0 1.5px var(--gold)}
+/* the game-style card */
+.gcard .man{transition:opacity .45s ease}
+.gcard .rt{stroke-dasharray:1200;stroke-dashoffset:0}
+.hero-art.flash .gcard .rt{animation:drawRoute .6s var(--sk-ease) both}
+@keyframes drawRoute{from{stroke-dashoffset:1200}to{stroke-dashoffset:0}}
+.hero-art.lit .man{opacity:.24}
+.hero-art.lit .man.hot{opacity:1}
+.gcard .halo{fill:none;stroke:#FF5A3C;stroke-width:2.6;stroke-dasharray:5 4;opacity:0;transition:opacity .3s}
+.gcard .man.hot .halo{opacity:1;animation:haloSpin 5s linear infinite}
+@keyframes haloSpin{to{stroke-dashoffset:-54}}
+.gcard .dm{animation:rpIn .35s var(--sk-ease) both}
+.gcard .dm circle{fill:rgba(255,90,60,.14);stroke:#FF5A3C;stroke-width:2.6;stroke-dasharray:4 3}
+.gcard .dm path{fill:none;stroke:#FF5A3C;stroke-width:3.2;stroke-linecap:round}
+
+/* the keys: the wall */
+.reads{min-width:0;display:flex;flex-direction:column;gap:12px}
+.reads-h{display:flex;align-items:baseline;justify-content:space-between;gap:12px}
+.reads-h h2{margin:0;font:900 clamp(34px,3.4vw,60px)/.92 var(--fd);letter-spacing:.01em;text-transform:uppercase;color:#F4EBD6;text-shadow:0 4px 18px rgba(0,0,0,.5);text-wrap:balance}
+.reads-h h2 .gpk-crown{width:.62em;height:.62em;color:var(--gold)}
+.reads-why{margin:0;font:400 clamp(16px,1.25vw,21px)/1.4 var(--fm);color:rgba(240,231,203,.7)}
+.rp-list{display:flex;flex-direction:column;gap:9px}
+.rp{display:grid;grid-template-columns:44px minmax(0,1fr);gap:0 14px;align-items:center;padding:14px 18px 15px 12px;border:0;border-radius:6px;text-align:left;cursor:pointer;
+  background:rgba(240,231,203,.06);box-shadow:inset 3px 0 0 var(--tc,#1E54B7),inset 0 0 0 1px rgba(240,231,203,.12);color:#F0E7CB;
+  transition:background .3s,transform .35s var(--sk-ease),box-shadow .3s,opacity .3s}
+.rp i{width:38px;height:38px;display:grid;place-items:center;font:900 19px/1 var(--fd);font-style:normal;background:transparent;color:var(--gold);box-shadow:inset 0 0 0 2px rgba(242,181,14,.5);border-radius:50%}
+.rp b{display:block;font:900 clamp(18px,1.5vw,25px)/1.05 var(--fd);letter-spacing:.03em;text-transform:uppercase}
+/* ONLY THE LANDED KEY CARRIES ITS TEXT. Everything else is a title, which is
+   what makes five keys readable side by side with the card. */
+.rp p{display:none;margin:8px 0 0;font:500 clamp(15px,1.15vw,19px)/1.4 var(--fb)}
+.rp.now p{display:block;color:#2e2a1f}
+.rp.on{animation:rpIn .38s var(--sk-ease) both}
+@keyframes rpIn{from{opacity:0;transform:translateX(26px)}to{opacity:1;transform:none}}
+.rp.on:not(.now){opacity:.85}
+.rp.on:not(.now):hover{opacity:1}
+.rp.now{align-items:start;background:linear-gradient(163deg,#F6F0E0,#EBE2CC);color:var(--ink);box-shadow:inset 4px 0 0 var(--red),0 14px 30px rgba(0,0,0,.45);transform:translateX(6px)}
+.rp.now i{background:var(--red);color:#fff;box-shadow:none;margin-top:2px}
+.rp.wait{background:transparent;box-shadow:inset 3px 0 0 rgba(240,231,203,.18),inset 0 0 0 1px rgba(240,231,203,.12);opacity:.5;animation:none}
+.rp.wait:hover{opacity:.8}
+.rp.wait i{color:rgba(240,231,203,.5);box-shadow:inset 0 0 0 1.5px rgba(240,231,203,.35)}
+.ins-acts{display:flex;flex-wrap:wrap;gap:10px}
+.ins-acts .skb{flex:0 0 auto;width:auto}
+.ins-acts .skb em{font:700 11px/1 var(--fd);letter-spacing:.14em;opacity:.55;margin-left:4px;font-style:normal}
+.skb[hidden]{display:none!important}
+/* adjustments: buttons that redraw the card, in a row under it */
+.adj{display:flex;flex-direction:column;gap:10px;padding-top:12px;border-top:1px dashed rgba(240,231,203,.16)}
+.adj-list{display:flex;flex-direction:column;gap:7px}
+.adj.row .adj-list{flex-direction:row;flex-wrap:wrap}
+.adj.row .adj-b{flex:0 1 auto;grid-template-columns:auto minmax(0,1fr);max-width:100%}
+.adj-b{display:grid;grid-template-columns:34px minmax(0,1fr);gap:14px;align-items:center;cursor:pointer;border:0;text-align:left;padding:12px 18px 13px 12px;border-radius:6px;
+  background:rgba(240,231,203,.06);box-shadow:inset 0 0 0 1px rgba(240,231,203,.14);color:#F0E7CB;font:600 clamp(15px,1.2vw,19px)/1.3 var(--fb);transition:background .18s,box-shadow .18s,transform .18s var(--sk-ease)}
+.adj-b i{width:30px;height:30px;display:grid;place-items:center;font:900 14px/1 var(--fd);font-style:normal;background:var(--pap2);color:#17130E;clip-path:var(--tape)}
+.adj-b:hover{background:rgba(240,231,203,.12)}
+.adj-b.on{background:linear-gradient(100deg,var(--gold),#DFA32E);color:var(--gold-ink);box-shadow:0 8px 20px rgba(242,181,14,.3);transform:translateY(-2px)}
+.adj-b.on i{background:var(--ink);color:var(--gold)}
+.adj-b.flat{cursor:default}
+.adj-b.flat:hover{background:rgba(240,231,203,.06)}
+
+
+/* ---------- THE TITLE CARD · B2, THE SPLIT ----------
+   Every pillar opens with one. Words left, calls right; the three things the
+   pillar's game has to show were promoted onto this screen because they are
+   worth reading BEFORE the plays, and the game card no longer repeats them.
+   The calls size themselves off the column height, exactly like the home. */
+.ins-open{display:grid;grid-template-columns:minmax(0,50fr) minmax(0,50fr);gap:clamp(26px,3.4vw,64px);min-height:100%;align-items:stretch}
+@media (max-width:1000px){.ins-open{grid-template-columns:1fr}}
+.op-words{display:flex;flex-direction:column;min-width:0;padding-right:clamp(0px,1.5vw,24px);border-right:1px solid rgba(240,231,203,.14)}
+@media (max-width:1000px){.op-words{border-right:0}}
+.ins-open h1{margin:8px 0 0;font:900 clamp(56px,7vw,124px)/.85 var(--fd);letter-spacing:.005em;text-transform:uppercase;color:#F4EBD6;text-shadow:0 8px 40px rgba(0,0,0,.6);text-wrap:balance}
+.op-ey{margin-top:12px;font:400 clamp(21px,2vw,30px)/1.1 var(--fm);color:var(--gold)}
+.ins-open p.line{margin:20px 0 0;max-width:52ch;font:500 clamp(17px,1.35vw,23px)/1.45 var(--fb);color:rgba(240,231,203,.8)}
+.op-checks{margin-top:auto;padding-top:clamp(20px,3vh,38px)}
+.op-checks .ins-ey{margin-bottom:12px}
+.op-ck{display:flex;align-items:flex-start;gap:16px;padding:11px 0;border-top:1px solid rgba(240,231,203,.14)}
+.op-ck i{flex:none;width:26px;font:900 clamp(22px,1.8vw,30px)/1 var(--fd);font-style:normal;color:var(--gold)}
+.op-ck span{font:500 clamp(15px,1.2vw,19px)/1.35 var(--fb);color:rgba(240,231,203,.82)}
+.op-calls{display:flex;flex-direction:column;min-height:0;min-width:0;gap:12px}
+.op-list{flex:1 1 auto;min-height:0;display:flex;flex-direction:column;gap:clamp(10px,1.6vh,22px)}
+.opc{flex:1 1 0;min-height:0;display:flex;align-items:center;gap:clamp(14px,1.6vw,26px);cursor:pointer;border:0;background:transparent;padding:0;text-align:left;color:#F4EBD6;
+  transition:transform .22s var(--sk-ease)}
+.opc:hover{transform:translateX(5px)}
+.opc-art{flex:0 1 auto;min-height:0;height:100%;aspect-ratio:620/340;width:auto;max-width:66%;
+  border-radius:6px;overflow:hidden;background:#0B0D12;box-shadow:0 0 0 2px rgba(240,231,203,.18),0 14px 30px rgba(0,0,0,.55);
+  transition:box-shadow .22s}
+.opc.ink .opc-art{box-shadow:0 0 0 2px var(--gold),0 14px 30px rgba(0,0,0,.55)}
+.opc:hover .opc-art{box-shadow:0 0 0 2px var(--pap),0 14px 30px rgba(0,0,0,.55)}
+.opc-art svg,.opc-art img{display:block;width:100%;height:100%}
+.opc-lab{flex:1;min-width:0}
+.opc-lab i{display:block;font:900 clamp(20px,1.8vw,30px)/1 var(--fd);font-style:normal;color:#5A5F68}
+.opc.ink .opc-lab i{color:var(--gold)}
+.opc-lab b{display:block;margin-top:7px;font:900 clamp(22px,2vw,34px)/.98 var(--fd);letter-spacing:.01em;text-transform:uppercase;text-wrap:balance}
+.opc-lab span{display:block;margin-top:8px;font:800 10.5px/1 var(--fd);letter-spacing:.18em;text-transform:uppercase;color:var(--dim)}
+
+
+/* ---------- the game card ---------- */
+.ins-game{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:clamp(24px,3vw,60px);align-items:start;max-width:1500px}
+@media (max-width:1000px){.ins-game{grid-template-columns:1fr}}
+.ins-game h1{margin:6px 0 10px;font:900 clamp(64px,8.5vw,150px)/.85 var(--fd);text-transform:uppercase;color:#F4EBD6;text-shadow:0 8px 40px rgba(0,0,0,.6)}
+.ins-game p.line{margin:0 0 22px;max-width:48ch;font:500 clamp(19px,1.5vw,27px)/1.4 var(--fb);color:rgba(240,231,203,.8)}
+.chk{display:flex;flex-direction:column;gap:8px;margin-bottom:18px}
+.chk button{display:grid;grid-template-columns:36px minmax(0,1fr) auto;gap:14px;align-items:center;cursor:pointer;border:0;text-align:left;padding:12px 16px;border-radius:8px;
+  background:rgba(240,231,203,.05);box-shadow:inset 0 0 0 1px rgba(240,231,203,.12);color:#F0E7CB;transition:background .15s}
+.chk button:hover{background:rgba(240,231,203,.1)}
+.chk button i{width:36px;height:36px;display:grid;place-items:center;border-radius:50%;font:900 15px/1 var(--fd);font-style:normal;color:rgba(240,231,203,.6);box-shadow:inset 0 0 0 2px rgba(240,231,203,.3)}
+.chk button.ink i{background:var(--gold);color:var(--gold-ink);box-shadow:none}
+.chk button b{font:900 clamp(21px,1.75vw,29px)/1 var(--fd);letter-spacing:.02em;text-transform:uppercase}
+.chk button em{font:700 12px/1 var(--fd);letter-spacing:.14em;text-transform:uppercase;font-style:normal;color:var(--dim)}
+/* the right of the game card is the pillar's calls, in colour once they are
+   on the sheet: the three checks it used to print here now open the pillar
+   on the title card instead, where they are read before the plays */
+.prove-cards{display:flex;flex-direction:column;gap:clamp(12px,2vh,22px);padding-top:clamp(16px,4vh,54px)}
+.pv-art{display:block;aspect-ratio:620/340;border-radius:6px;overflow:hidden;background:#0B0D12;
+  box-shadow:0 0 0 2px rgba(240,231,203,.16),0 14px 30px rgba(0,0,0,.5);filter:grayscale(.55) brightness(.78)}
+.pv-art.ink{filter:none;box-shadow:0 0 0 2px var(--gold),0 14px 30px rgba(0,0,0,.5)}
+.pv-art svg,.pv-art img{display:block;width:100%;height:100%}
+
+/* ---------- the foot: the pillar's plays as cards ---------- */
+.ins-foot{display:flex;align-items:flex-end;justify-content:space-between;gap:clamp(16px,2vw,34px);padding:12px 0 14px;border-top:1px solid rgba(240,231,203,.1);transition:opacity .3s}
+.ins[data-t="home"] .ins-foot{opacity:.55}
+.foot-groups{display:flex;align-items:flex-end;gap:clamp(18px,2.2vw,40px);flex-wrap:wrap;min-width:0}
+.fg{display:flex;flex-direction:column;gap:8px;min-width:0;transition:opacity .3s}
+.fg u{text-decoration:none;font:800 11.5px/1 var(--fd);letter-spacing:.22em;text-transform:uppercase;color:var(--dim)}
+.fg.cur u{color:var(--gold)}
+.fg.lock{opacity:.45}
+.fg-cards{display:flex;gap:10px;align-items:flex-end}
+.fc{position:relative;cursor:pointer;border:0;padding:0;background:transparent;text-align:left;color:rgba(240,231,203,.6);
+  --w:clamp(112px,9.6vw,172px);width:var(--w);transition:width .45s var(--sk-ease),transform .3s var(--sk-ease),color .2s}
+.fg:not(.cur) .fc{--w:clamp(72px,6vw,108px)}
+.fc-art{display:block;aspect-ratio:620/340;border-radius:5px;overflow:hidden;background:#1d1f24;box-shadow:0 0 0 2px rgba(240,231,203,.14),0 10px 24px rgba(0,0,0,.5);filter:grayscale(.6) brightness(.7);transition:filter .3s,box-shadow .3s}
+.fc-art svg{display:block;width:100%;height:100%}
+.fc:hover .fc-art{filter:none}
+.fc.on{color:#F4EBD6;transform:translateY(-6px)}
+.fc.on .fc-art{filter:none;box-shadow:0 0 0 3px var(--pap),0 14px 30px rgba(0,0,0,.6)}
+.fc.ink .fc-art{filter:none;box-shadow:0 0 0 3px var(--gold),0 10px 24px rgba(0,0,0,.5)}
+.fc.on.ink .fc-art{box-shadow:0 0 0 3px var(--gold),0 0 0 6px rgba(240,231,203,.35),0 14px 30px rgba(0,0,0,.6)}
+.fc b{display:block;margin-top:7px;font:800 clamp(11px,.9vw,14px)/1.15 var(--fd);letter-spacing:.08em;text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fg:not(.cur) .fc b{display:none}
+.fc .rank{position:absolute;left:-6px;top:-8px;width:24px;height:24px;font-size:11px;display:none;z-index:2}
+.fg.cur .fc .rank{display:grid}
+.fc i.tick{position:absolute;right:-6px;top:-8px;width:20px;height:20px;border-radius:50%;background:var(--gold);color:var(--gold-ink);display:none;place-items:center;font:900 11px/1 var(--fd);font-style:normal;box-shadow:0 3px 8px rgba(0,0,0,.4);z-index:2}
+.fc.ink i.tick{display:grid}
+.ins-keys{display:flex;gap:16px;flex-wrap:wrap;justify-content:flex-end;font:700 11px/1.3 var(--fd);letter-spacing:.14em;text-transform:uppercase;color:var(--dim)}
+.ins-keys b{display:inline-block;padding:4px 8px 5px;margin-right:6px;border-radius:4px;background:rgba(240,231,203,.1);color:#F0E7CB;font:800 11px/1 var(--fd);letter-spacing:.1em}
+
+/* ---------- the call sheet, popping up as a play lands ---------- */
+.ins-pop{position:fixed;inset:0;z-index:420;display:grid;place-items:center;padding:clamp(12px,3vh,40px)}
+.ins-pop[hidden]{display:none}
+.pop-scrim{position:absolute;inset:0;background:rgba(6,10,18,.62);backdrop-filter:blur(10px) saturate(.8);-webkit-backdrop-filter:blur(10px) saturate(.8);animation:popFade .25s ease both}
+.ins-pop.out .pop-scrim{animation:popFadeOut .25s ease both}
+@keyframes popFade{from{opacity:0}to{opacity:1}}
+@keyframes popFadeOut{from{opacity:1}to{opacity:0}}
+.pop-sheet{position:relative;z-index:1;width:min(1240px,94vw);padding:clamp(18px,2.2vw,32px) clamp(18px,2.4vw,36px) clamp(16px,2vw,28px);rotate:-.4deg;
+  filter:drop-shadow(0 40px 80px rgba(0,0,0,.7));animation:popIn .4s cubic-bezier(.2,1.1,.3,1) both}
+.ins-pop.out .pop-sheet{animation:popOut .25s ease both}
+@keyframes popIn{from{opacity:0;transform:translateY(40px) scale(.96)}to{opacity:1;transform:none}}
+@keyframes popOut{from{opacity:1}to{opacity:0;transform:translateY(16px)}}
+.pop-head{display:flex;align-items:baseline;gap:16px;padding-bottom:12px;border-bottom:2px solid rgba(20,24,32,.25);margin-bottom:16px}
+.pop-head b{font:900 clamp(24px,2.4vw,40px)/1 var(--fd);letter-spacing:.02em;text-transform:uppercase}
+.pop-head i{margin-left:auto;font:800 10px/1 var(--fd);letter-spacing:.2em;text-transform:uppercase;font-style:normal;color:#6B7A90}
+.pop-cols{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:clamp(12px,1.6vw,28px)}
+@media (max-width:900px){.pop-cols{grid-template-columns:1fr}}
+.pop-col{display:flex;flex-direction:column;gap:9px;padding:12px;border-radius:6px;background:rgba(20,24,32,.05);box-shadow:inset 0 0 0 1px rgba(20,24,32,.12)}
+.pop-col.lock{opacity:.45}
+.pop-col u{text-decoration:none;font:800 9.5px/1 var(--fd);letter-spacing:.24em;text-transform:uppercase;color:#6B7A90;margin-bottom:4px}
+.pop-col .slot{display:flex;align-items:center;gap:10px;min-height:46px;padding:0 12px;border:2px dashed rgba(20,24,32,.22);border-radius:4px;color:rgba(20,24,32,.35);font:900 12px/1 var(--fd)}
+.pop-col .slot i{font-style:normal}
+.pop-col .sticky{position:relative;display:flex;flex-direction:column;gap:3px;min-height:46px;justify-content:center;padding:8px 14px;border-radius:2px;background:#FBF3D6;box-shadow:0 6px 14px rgba(0,0,0,.25);rotate:var(--r,0deg);transform-origin:50% 0}
+.pop-col .sticky::before{content:"";position:absolute;left:50%;top:-7px;width:54px;height:14px;translate:-50% 0;background:rgba(242,181,14,.55);rotate:-2deg;clip-path:var(--tape)}
+.pop-col .sticky b{font:900 clamp(14px,1.15vw,18px)/1 var(--fd);letter-spacing:.03em;text-transform:uppercase}
+.pop-col .sticky em{font:800 8.5px/1 var(--fd);letter-spacing:.18em;text-transform:uppercase;font-style:normal;color:#6B7A90}
+.pop-col .sticky.land{animation:stickLand .55s cubic-bezier(.2,1.3,.3,1) var(--d,0ms) both}
+@keyframes stickLand{from{opacity:0;transform:translateY(-60px) scale(1.25) rotate(-6deg)}60%{opacity:1}to{opacity:1;transform:none}}
+.pop-foot{margin-top:16px;text-align:center;font:800 9.5px/1 var(--fd);letter-spacing:.24em;text-transform:uppercase;color:#6B7A90}
+
+@media (max-width:900px){.ins-mast{grid-template-columns:auto minmax(0,1fr);row-gap:10px}.ins-pillars{grid-column:1/3;justify-content:flex-start}.ins-count{display:none}}
+@media (prefers-reduced-motion:reduce){.ins-stage,.rp.on,.gcard .dm,.pcard,.pop-sheet,.pop-scrim,.sticky.land,.istamp{animation:none}.hero,.hero-art svg.gcard,.fc,.ins-room{transition:none;transform:none}.gcard .man.hot .halo{animation:none}}
