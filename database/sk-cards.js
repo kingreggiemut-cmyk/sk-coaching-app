@@ -83,8 +83,47 @@ function ruler(bx,by,bw,bh){
    empty field because every card showed all of it. The box is fitted to the
    ink this play actually puts down, clamped so nothing zooms past about one
    and a half, with the line of scrimmage always in frame. */
+/* ONE FRAME FOR EVERY PLAY (2026-09-10). Fitting the box to each play's own
+   ink made the zoom wander from full field to one and a half times closer
+   depending on how deep its routes ran, so a dive sat huge beside a four
+   verticals and no two cards read at the same scale. He wants the zoom, but
+   standard. So every card now uses the same frame: the ball in the middle,
+   the line of scrimmage at the same height, one zoom.
+     offence  1.15x   49 yards across, 17.7 above the line, 9.2 below it
+     defence  1.05x   the whole field sideline to sideline, 26 yards above
+   Measured over all 13,351 offensive cards: 99.4% fit that frame completely
+   (every formation out to the widest sets at 23 yards, the deepest pistol and
+   I-form backs below); the rest are practice drills with men parked off the
+   field, and they keep the fitted box below. Routes that run past the frame
+   stop at its edge with their arrow, the way they used to stop at the card's. */
+const FRAME={ off:{z:1.15, below:9.2}, def:{z:1.05, below:3.2} };
+function frameBox(g){
+  const def=!!g.def, F=def?FRAME.def:FRAME.off;
+  const bw=W/F.z, bh=H/F.z, bx=CX-bw/2, by=LOSY+F.below*SC-bh;
+  const half=(bw/2)/SC, top=(LOSY-by)/SC, low=-F.below;
+  const inside=(x,y,mx,my)=>Math.abs(x)<=half-mx&&y>=low+my&&y<=top-my;
+  for(const m of g.men){
+    if(!inside(m.x,m.y,1.0,0.7)) return null;
+    /* a motion line may brush the bottom edge: it is a line, not a man */
+    for(const p of (m.mpath||[])) if(!inside(p[0],p[1],1.0,-0.5)) return null;
+    /* but where the motion lands him is where he stands at the snap: a man */
+    if(m.mpath&&m.mpath.length){ const L=m.mpath[m.mpath.length-1]; if(!inside(L[0],L[1],1.0,0.7)) return null; }
+    if(m.shift&&!inside(m.x+m.shift[0],m.y+m.shift[1],1.0,0.7)) return null;
+    /* a zone may run a yard off the sideline, never off the top */
+    if(m.zone){ const [zx,zy,zrx,zry]=m.zone;
+      if(m.y+zy+zry>top-0.2||Math.abs(m.x+zx)-zrx>half) return null; }
+  }
+  return { bx, by, bw, bh, std:1 };
+}
 function fitBox(g){
   if(!g||!g.men||!g.men.length) return null;
+  const std=frameBox(g); if(std) return std;
+  /* an offensive play that will not fit the frame (a practice drill, an orbit
+     that lands a man deeper than the frame) shows the whole card, never a
+     closer crop: the only two scales anyone sees are the frame and the field.
+     Defence keeps the fitted box below for the kick returns whose men stand
+     sixty yards downfield. */
+  if(!g.def) return null;
   const def=!!g.def;
   /* a defensive card is not clipped to an offensive card's depth: the deep
      zones sit twenty yards upfield and the box zooms out to hold them */
@@ -204,19 +243,23 @@ function motionPre(m,qb,firstDx){
    stops inside the top edge, the way the game's card stops it. Clip a
    polyline (yards, relative to its origin) at the visible depth. */
 const DEPTH_MAX=(LOSY-16)/SC, DEPTH_MIN=-(H-LOSY-14)/SC, X_MAX=(W/2-14)/SC;
+/* the limits a route is clipped to: the card's by default, the frame's while
+   drawCard draws inside a standard frame (see FRAME) */
+let CLIPB={top:DEPTH_MAX, bot:DEPTH_MIN, x:X_MAX};
 /* clip against the whole card: top, bottom (a pitch man swinging out of a
    deep backfield) and both sides. ox may be omitted for a vertical-only clip. */
 function clipDepth(oy,pts,ox){
   if(!pts||!pts.length) return pts;
   const out=[]; let px0=0, py0=0;
-  const inside=(dx,dy)=>oy+dy<=DEPTH_MAX&&oy+dy>=DEPTH_MIN&&(ox===undefined||Math.abs(ox+dx)<=X_MAX);
+  const TOP=CLIPB.top, BOT=CLIPB.bot, XM=CLIPB.x;
+  const inside=(dx,dy)=>oy+dy<=TOP&&oy+dy>=BOT&&(ox===undefined||Math.abs(ox+dx)<=XM);
   for(const [dx,dy] of pts){
     if(!inside(dx,dy)){
       /* walk the segment back to the edge it crossed */
       let t=1;
-      if(oy+dy>DEPTH_MAX) t=Math.min(t,(DEPTH_MAX-oy-py0)/((dy-py0)||1e-9));
-      if(oy+dy<DEPTH_MIN) t=Math.min(t,(DEPTH_MIN-oy-py0)/((dy-py0)||1e-9));
-      if(ox!==undefined&&Math.abs(ox+dx)>X_MAX){ const lim=(dx>px0?X_MAX:-X_MAX)-ox; t=Math.min(t,(lim-px0)/((dx-px0)||1e-9)); }
+      if(oy+dy>TOP) t=Math.min(t,(TOP-oy-py0)/((dy-py0)||1e-9));
+      if(oy+dy<BOT) t=Math.min(t,(BOT-oy-py0)/((dy-py0)||1e-9));
+      if(ox!==undefined&&Math.abs(ox+dx)>XM){ const lim=(dx>px0?XM:-XM)-ox; t=Math.min(t,(lim-px0)/((dx-px0)||1e-9)); }
       t=Math.max(0,Math.min(1,t));
       out.push([px0+(dx-px0)*t,py0+(dy-py0)*t]); return out;
     }
@@ -353,7 +396,21 @@ function coverageKey(g){
     +`</ul><p>Read from the game's own assignment names. Zone sizes and landmarks are ours; which side each zone is on is measured from the game's data.</p></div>`;
 }
 function drawCard(g){
-  if(!g) return `<svg viewBox="0 0 ${W} ${H}">${CARD_DEFS}<rect width="${W}" height="${H}" fill="url(#cardG)"/>${FIELD}${ruler(0,0,W,H)}</svg>`;
+  if(!g) return drawCardEmpty();
+  const b=fitBox(g);
+  /* inside the standard frame a route stops at the frame's edge (an arrow's
+     length in from it), not the card's */
+  frameClip(b);
+  try{ return drawCardIn(g,b); } finally { frameClip(null); }
+}
+/* clip routes to a standard frame while it is being drawn; null puts the
+   card's own limits back. Shared with install.js, which draws its own card. */
+function frameClip(b){
+  if(b&&b.std){ const k=b.bw/W; CLIPB={top:(LOSY-b.by-15*k)/SC, bot:-(b.by+b.bh-LOSY-13*k)/SC, x:(b.bw/2-13*k)/SC}; }
+  else CLIPB={top:DEPTH_MAX, bot:DEPTH_MIN, x:X_MAX};
+}
+function drawCardEmpty(){ return `<svg viewBox="0 0 ${W} ${H}">${CARD_DEFS}<rect width="${W}" height="${H}" fill="url(#cardG)"/>${FIELD}${ruler(0,0,W,H)}</svg>`; }
+function drawCardIn(g,box){
   let pre='',glow='',routes='',bodies='',ico='';
   const CYAN='#5FD0F5', qb=g.men.find(q=>q.qb);
   const elig=g.men.filter(m=>!m.b&&!m.qb).sort((a,b)=>a.x-b.x);
@@ -439,7 +496,7 @@ function drawCard(g){
     if(m.qb) bodies+=`<g ${tag}><circle cx="${X}" cy="${Y}" r="5.2" fill="${WHITE}"/></g>`;
     else ico+=`<g ${tag}>${icon(m._i,X,Y)}</g>`;
   }
-  const b=fitBox(g), bx=b?b.bx:0, by=b?b.by:0, bw=b?b.bw:W, bh=b?b.bh:H;
+  const b=box, bx=b?b.bx:0, by=b?b.by:0, bw=b?b.bw:W, bh=b?b.bh:H;
   return `<svg viewBox="${bx.toFixed(1)} ${by.toFixed(1)} ${bw.toFixed(1)} ${bh.toFixed(1)}">${CARD_DEFS}`
     +`<rect x="-260" y="-360" width="${W+520}" height="${H+720}" fill="url(#cardG)"/>`
     +`${FIELD}${ruler(bx,by,bw,bh)}${pre}${glow}${routes}${bodies}${ico}</svg>`;
@@ -493,9 +550,12 @@ function personnelTag(shape){
   if(!shape||!shape.length||!shape.some(m=>m.p)) return '';
   const c={}; for(const m of shape) c[m.p]=(c[m.p]||0)+1;
   const rb=(c.RB||0)+(c.FB||0), te=c.TE||0, wr=c.WR||0;
-  if(!(c.QB&&c.OL===5)) return '';
+  /* a heavy or jumbo set has a sixth or seventh lineman and a wildcat can have a
+     second quarterback split out: the badge says so rather than going blank */
+  if(!c.QB||(c.OL||0)<5) return '';
+  const extra=(c.OL>5?` &nbsp;&middot;&nbsp; ${c.OL} OL`:'')+(c.QB>1?` &nbsp;&middot;&nbsp; ${c.QB} QB`:'');
   return `<span class="fmeta"><i class="fpn">${rb}${te}</i>`
-    +`<i class="fpb">${rb} RB &nbsp;&middot;&nbsp; ${te} TE &nbsp;&middot;&nbsp; ${wr} WR</i></span>`;
+    +`<i class="fpb">${rb} RB &nbsp;&middot;&nbsp; ${te} TE &nbsp;&middot;&nbsp; ${wr} WR${extra}</i></span>`;
 }
 
 /* ---------- ANIMATE A CARD. Every route draws itself along its own path

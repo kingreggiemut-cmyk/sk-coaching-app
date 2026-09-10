@@ -775,13 +775,57 @@ function bucketOf(p,g,i){
   const widest=same.reduce((a,b)=>Math.abs(b.x)>Math.abs(a.x)?b:a,same[0]||m);
   return Math.abs(m.x)>9.5?(m===widest?'OutsideWR':'SlotWR'):(Math.abs(m.x)<=9.5&&m.y>-1.8?'TE':'SlotWR');
 }
-/* the left or right cut of a hot route, whichever suits the side he is on */
-function hotPts(choice,m){
-  const want=m.x<0?'L':'R';
+/* WHICH WAY IS OUT. His own sideline: the side of the ball he plays from. A
+   man in motion runs from where the motion lands him, so the landing spot
+   decides; a back straight behind the quarterback goes right, as the game's
+   own menu does. */
+function outSide(m){
+  const x=m.mpath&&m.mpath.length?m.mpath[m.mpath.length-1][0]:m.x;
+  return x<-0.25?-1:1;
+}
+/* THE ROUTE HE IS HANDED. Every standard route carries a canonical shape in
+   inside/outside terms (build-hot-routes.js, CANON): x toward his own sideline,
+   so one table reads right on both sides of the ball. The game's own left and
+   right halves are kept only for the blocks, because its naming is split - some
+   halves are named by the man's side, some by the way the route runs - which is
+   what mirrored the drag, slant, curl, post-sit and sluggo. */
+/* the numbers on the far side of the frame: a route that heads for the
+   sideline runs up it here rather than off the edge of the card */
+const HOT_EDGE=22.5;
+function hotPts(choice,m,bucket,qb){
+  if(choice.io){
+    /* the game's own shape for his position (build-hot-routes.js), mirrored
+       to his side of the ball */
+    const io=Array.isArray(choice.io)?choice.io:(choice.io[bucket]||choice.io.OutsideWR||Object.values(choice.io)[0]);
+    const o=outSide(m), L=m.mpath&&m.mpath.length?m.mpath[m.mpath.length-1]:[m.x,m.y], sx=L[0], sy=L[1];
+    let pts=io.map(([x,y])=>{ let dx=x*o; if(Math.abs(sx+dx)>HOT_EDGE&&Math.sign(sx+dx)===o) dx=o*HOT_EDGE-sx; return [dx,y]; });
+    /* A SIT ROUTE SETTLES FACING THE QUARTERBACK (his call on the Post Sit):
+       the last step turns toward the passer instead of back down its own line */
+    if(choice.sit&&qb&&pts.length>=2){
+      const a=pts[pts.length-2], b=pts[pts.length-1];
+      const len=Math.max(1.4,Math.min(2,Math.hypot(b[0]-a[0],b[1]-a[1])));
+      const dx=qb.x-(sx+a[0]), dy=qb.y-(sy+a[1]), d=Math.hypot(dx,dy)||1;
+      pts[pts.length-1]=[a[0]+dx/d*len, a[1]+dy/d*len];
+    }
+    return {key:choice.key,pts:pts.map(([x,y])=>[Math.round(x*10)/10,Math.round(y*10)/10])};
+  }
+  const want=outSide(m)<0?'L':'R';
   const key=choice.sides[want]||choice.sides[want==='L'?'R':'L']||choice.sides.X;
   const r=HOTR.byKey.get(key);
   return r?{key,pts:(r.pts||[]).map(([x,y])=>[x,y])}:null;
 }
+/* a drawn route, simplified so a freehand stroke keeps its cuts and loses the
+   wobble (Ramer-Douglas-Peucker, half a yard) */
+function simplifyPts(pts,eps=0.5){
+  if(pts.length<3) return pts.slice();
+  const d=(p,a,b)=>{ const dx=b[0]-a[0],dy=b[1]-a[1],L=Math.hypot(dx,dy)||1e-9; return Math.abs(dy*p[0]-dx*p[1]+b[0]*a[1]-b[1]*a[0])/L; };
+  let idx=0,max=0; for(let i=1;i<pts.length-1;i++){ const v=d(pts[i],pts[0],pts[pts.length-1]); if(v>max){max=v;idx=i;} }
+  if(max<=eps) return [pts[0],pts[pts.length-1]];
+  const L=simplifyPts(pts.slice(0,idx+1),eps), R=simplifyPts(pts.slice(idx),eps);
+  return L.slice(0,-1).concat(R);
+}
+/* true while a custom route is being drawn: Escape leaves the drawing, not the play */
+let SK_DRAWING=false;
 /* PRESS PLAY. Every route draws itself in at one speed and each man walks
    his own path. The data carries no timing, so this is one tempo for
    everybody, not a real mesh. */
@@ -829,7 +873,7 @@ function openPlay(p,geo){
     /* every adjustment is kept as an instruction, and the play is rebuilt
        from the original each time, so nothing compounds and putting it back
        is exact. Only one man can be in motion, the way the game has it. */
-    const HOT=new Map(); let MOTION=null;
+    const HOT=new Map(), CUSTOM=new Map(); let MOTION=null, DRAW=null;
     let LIVE=JSON.parse(ORIG), PICK=null;
     const CHANGED=()=>HOT.size>0||!!MOTION;
     /* the formation's own motion menu, written by the card build */
@@ -850,9 +894,13 @@ function openPlay(p,geo){
         const m=LIVE.men[i]; if(!m) continue;
         if(LIVE.def){ const o=DEFADJ&&DEFADJ.byKey.get(key); if(o) applyDef(m,o); continue; }
         const c=HOTR&&HOTR.choiceBy.get(key); if(!c) continue;
-        const hp=hotPts(c,m); if(!hp) continue;
         delete m.opt; delete m.dd; delete m.stem;
-        if(c.block){ m.b=1; m.bk='p'; m.rel=hp.pts; delete m.pts; }
+        /* a drawn route: whatever he has been given so far, even nothing */
+        if(c.draw){ delete m.b; delete m.bk; delete m.rel; m.pts=(CUSTOM.get(i)||[]).map(p=>p.slice()); continue; }
+        /* an option route draws the game's option shape (the stick: hitch, or the out) */
+        if(c.opt){ delete m.b; delete m.bk; delete m.rel; m.opt=c.opt; m.stem=c.stem||0; m.pts=[]; continue; }
+        const hp=hotPts(c,m,bucketOf(p,LIVE,i),LIVE.men.find(q=>q.qb)); if(!hp) continue;
+        if(c.block){ m.b=1; m.bk=/run|lead/i.test(c.key)?'r':'p'; m.rel=hp.pts; delete m.pts; }
         else { delete m.b; delete m.bk; delete m.rel; m.pts=hp.pts; }
       }
     }
@@ -860,7 +908,16 @@ function openPlay(p,geo){
     const runBtn=box.querySelector('[data-run]');
     const mark=()=>{ fld.querySelectorAll('.mvr').forEach(gm=>gm.classList.toggle('pick',+gm.dataset.i===PICK)); };
     const wireMen=()=>{ fld.querySelectorAll('.mvr').forEach(gm=>{
-      gm.onclick=ev=>{ ev.stopPropagation(); if(innerWidth<760) return; /* adjustments are a desk thing */ showMenu(+gm.dataset.i); }; }); };
+      gm.onclick=ev=>{ ev.stopPropagation(); if(DRAW!==null||innerWidth<760) return; /* adjustments are a desk thing */ showMenu(+gm.dataset.i); }; });
+      /* the route line itself is a target: a four-pixel stroke is too thin to
+         hit, so each one gets a wide transparent twin that takes the click */
+      if(!LIVE.def&&innerWidth>=760) fld.querySelectorAll('path.rte').forEach(rp=>{
+        const hit=document.createElementNS('http://www.w3.org/2000/svg','path');
+        hit.setAttribute('d',rp.getAttribute('d')); hit.setAttribute('class','rhit'); hit.dataset.i=rp.dataset.i;
+        hit.setAttribute('fill','none'); hit.setAttribute('stroke','transparent'); hit.setAttribute('stroke-width','18');
+        hit.setAttribute('pointer-events','stroke');
+        hit.onclick=ev=>{ ev.stopPropagation(); if(DRAW!==null) return; showMenu(+hit.dataset.i); };
+        rp.parentNode.insertBefore(hit,rp.nextSibling); }); };
     const redraw=()=>{ stopPlay(box); runBtn.innerHTML=RUN_LABEL; fld.innerHTML=drawCard(LIVE); wireMen(); mark(); };
     const NAME={OutsideWR:'outside receiver',SlotWR:'slot receiver',TE:'tight end',RB:'back',
       DE:'defensive end',DT:'defensive tackle',LB:'linebacker',CB:'cornerback',
@@ -920,22 +977,100 @@ function openPlay(p,geo){
       const H=await hotRoutes();
       const bucket=bucketOf(p,LIVE,i);
       if(!bucket){ adj.innerHTML=head+'<span class="ahint">This man blocks on this play. The game gives him no hot route.</span>'
-        +(CHANGED?'<button class="aback" data-reset="1">Put the play back</button>':''); return; }
+        +(CHANGED()?'<button class="aback" data-reset="1">Put the play back</button>':''); return; }
       /* the ability-gated routes are left over from the old unlock system and
          are not in the game any more, so they are not offered */
       const base=(H.menu[bucket]||[]).map(k=>H.choiceBy.get(k)).filter(c=>c&&!c.mut);
-      const btn=c=>`<button class="hb" data-hot="${esc(c.key)}">${esc(c.label)}</button>`;
+      const cur=HOT.get(i);
+      const btn=c=>`<button class="hb${cur===c.key?' now':''}" data-hot="${esc(c.key)}">${esc(c.label)}${cur===c.key?'<em class="apct">Running</em>':''}</button>`;
       adj.innerHTML=head
         +`<span class="awho">${esc(NAME[bucket])}</span>`
         +(CHANGED()?'<button class="aback" data-reset="1">Put the play back</button>':'')
+        +(cur==='CustomRoute'?'<button class="aback adraw" data-redraw="1">Draw his route again</button>':'')
         +`<p class="agrp">${base.length} hot routes</p>${base.map(btn).join('')}`;
-      adj.scrollTop=0;
+      /* keep the one he is running in view */
+      const on=adj.querySelector('.hb.now'); adj.scrollTop=0; if(on) on.scrollIntoView({block:'nearest'});
     }
+    /* ---- CUSTOM ROUTE: draw it on the field ----
+       Click to put down each cut, or hold and drag to draw freehand. The route
+       starts from where he stands (or where his motion lands him), snaps to half
+       a yard, stays on the field, and draws with its arrow as it goes. */
+    const snap=v=>Math.round(v*2)/2;
+    function originOf(i){
+      const m=LIVE.men[i]; if(!m) return [0,0];
+      if(m.mpath&&m.mpath.length) return m.mpath[m.mpath.length-1];
+      const qb=LIVE.men.find(q=>q.qb); const mp=typeof motionPre==='function'?motionPre(m,qb,0):null;
+      return mp?mp.L:[m.x,m.y];
+    }
+    function yardsAt(ev){
+      const svg=fld.querySelector('svg'); if(!svg||!svg.getScreenCTM) return null;
+      const pt=svg.createSVGPoint(); pt.x=ev.clientX; pt.y=ev.clientY;
+      const p=pt.matrixTransform(svg.getScreenCTM().inverse());
+      return [(p.x-CX)/SC,(LOSY-p.y)/SC];
+    }
+    function drawRail(){
+      const k=CUSTOM.get(DRAW)||[];
+      adj.innerHTML='<h4>Adjustments</h4>'
+        +'<span class="awho">Custom route</span>'
+        +'<span class="ahint">Click on the field to put down each cut. Hold and drag to draw it freehand. It starts from his spot.</span>'
+        +'<p class="agrp">'+k.length+' point'+(k.length===1?'':'s')+'</p>'
+        +'<button class="aback" data-dend="1">Done</button>'
+        +'<button class="hb" data-dundo="1"'+(k.length?'':' disabled')+'>Undo last point <em class="apct">Ctrl Z</em></button>'
+        +'<button class="hb" data-dclear="1"'+(k.length?'':' disabled')+'>Clear the route</button>'
+        +'<span class="ahint" style="margin-top:10px">Enter finishes it, Escape too.</span>';
+    }
+    function startDraw(i,fresh){
+      DRAW=i; PICK=i; SK_DRAWING=true; HOT.set(i,'CustomRoute'); if(fresh||!CUSTOM.has(i)) CUSTOM.set(i,[]);
+      rebuild(); redraw(); fld.classList.add('drawing'); drawRail();
+    }
+    function endDraw(){
+      if(DRAW===null) return; const i=DRAW; DRAW=null; SK_DRAWING=false; fld.classList.remove('drawing');
+      /* nothing drawn: he goes back to what the play had him doing */
+      if(!(CUSTOM.get(i)||[]).length){ HOT.delete(i); CUSTOM.delete(i); }
+      rebuild(); redraw(); showMenu(i);
+    }
+    function addPt(ev,free){
+      const y=yardsAt(ev); if(!y) return false; const [ox,oy]=originOf(DRAW);
+      const EDGE=X_MAX-0.5;
+      const x=Math.max(-EDGE,Math.min(EDGE,y[0])), yy=Math.max(DEPTH_MIN+0.5,Math.min(DEPTH_MAX-0.2,y[1]));
+      const pt=[snap(x-ox),snap(yy-oy)], k=CUSTOM.get(DRAW)||[], last=k[k.length-1]||[0,0];
+      if(Math.hypot(pt[0]-last[0],pt[1]-last[1])<(free?1.2:0.5)) return false;
+      k.push(pt); CUSTOM.set(DRAW,k); return true;
+    }
+    let STROKE=null;
+    fld.addEventListener('pointerdown',ev=>{
+      if(DRAW===null) return; ev.preventDefault(); ev.stopPropagation();
+      STROKE={start:(CUSTOM.get(DRAW)||[]).length}; try{ fld.setPointerCapture(ev.pointerId); }catch(e){}
+      if(addPt(ev,false)){ rebuild(); redraw(); drawRail(); }
+    },true);
+    fld.addEventListener('pointermove',ev=>{
+      if(DRAW===null||!STROKE) return;
+      if(addPt(ev,true)){ rebuild(); redraw(); }
+    });
+    const lift=()=>{ if(DRAW===null||!STROKE) return;
+      /* a freehand stroke keeps its cuts and loses the wobble */
+      const k=CUSTOM.get(DRAW)||[], a=STROKE.start; STROKE=null;
+      if(k.length-a>2){ const head=k.slice(0,a), seg=simplifyPts([a?k[a-1]:[0,0],...k.slice(a)]).slice(1); CUSTOM.set(DRAW,head.concat(seg)); }
+      rebuild(); redraw(); drawRail(); };
+    fld.addEventListener('pointerup',lift); fld.addEventListener('pointercancel',lift);
+    fld.addEventListener('click',ev=>{ if(DRAW!==null){ ev.stopPropagation(); ev.preventDefault(); } },true);
+    const drawKeys=ev=>{
+      if(DRAW===null||!$('#playpop').classList.contains('on')) return;
+      if(ev.key==='Enter'||ev.key==='Escape'){ ev.preventDefault(); ev.stopImmediatePropagation(); endDraw(); }
+      else if((ev.key==='z'&&(ev.ctrlKey||ev.metaKey))||ev.key==='Backspace'){ ev.preventDefault(); const k=CUSTOM.get(DRAW)||[]; k.pop(); rebuild(); redraw(); drawRail(); }
+    };
+    if(window.__skDrawKeys) removeEventListener('keydown',window.__skDrawKeys,true);
+    window.__skDrawKeys=drawKeys; addEventListener('keydown',drawKeys,true);
+
     idle(); wireMen();
     runBtn.onclick=()=>{ if(ANIM||skCardRunning()){ stopPlay(box); runBtn.innerHTML=RUN_LABEL; } else runPlay(box,runBtn); };
     adj.onclick=async ev=>{
-      if(ev.target.closest('[data-idle]')){ idle(); return; }
-      if(ev.target.closest('[data-reset]')){ HOT.clear(); MOTION=null; rebuild(); redraw(); idle(); return; }
+      if(ev.target.closest('[data-dend]')){ endDraw(); return; }
+      if(ev.target.closest('[data-dundo]')){ const k=CUSTOM.get(DRAW)||[]; k.pop(); rebuild(); redraw(); drawRail(); return; }
+      if(ev.target.closest('[data-dclear]')){ CUSTOM.set(DRAW,[]); rebuild(); redraw(); drawRail(); return; }
+      if(ev.target.closest('[data-redraw]')){ if(PICK!==null) startDraw(PICK,true); return; }
+      if(ev.target.closest('[data-idle]')){ if(DRAW!==null) endDraw(); idle(); return; }
+      if(ev.target.closest('[data-reset]')){ if(DRAW!==null){ DRAW=null; SK_DRAWING=false; fld.classList.remove('drawing'); } HOT.clear(); CUSTOM.clear(); MOTION=null; rebuild(); redraw(); idle(); return; }
       const mo=ev.target.closest('[data-mo]');
       if(mo){
         MOTION = mo.dataset.mo==='off' ? null : Object.values(MOMENU)[+mo.dataset.mo]||null;
@@ -943,7 +1078,8 @@ function openPlay(p,geo){
       }
       const b=ev.target.closest('[data-hot]'); if(!b||PICK===null) return;
       if(LIVE.def) await defAdjust(); else await hotRoutes();
-      HOT.set(PICK,b.dataset.hot); rebuild(); redraw(); showMenu(PICK); };
+      if(!LIVE.def&&b.dataset.hot==='CustomRoute'){ startDraw(PICK,true); return; }
+      HOT.set(PICK,b.dataset.hot); CUSTOM.delete(PICK); rebuild(); redraw(); showMenu(PICK); };
   }
   /* jump to the same play in another book, and open it there */
   $('#pprail').onclick=async ev=>{
@@ -961,13 +1097,13 @@ function openPlay(p,geo){
     saveStars();
     const t=document.querySelector(`[data-star="${k}"].star`); if(t) t.classList.toggle('on',SAVED.has(k)); };
 }
-function closePlay(){ const el=$('#playpop'); if(!el||!el.classList.contains('on')) return;
+function closePlay(){ const el=$('#playpop'); if(!el||!el.classList.contains('on')) return; SK_DRAWING=false;
   if(ANIM){ cancelAnimationFrame(ANIM); ANIM=null; }
   el.classList.remove('on','hasmenu'); el.setAttribute('aria-hidden','true');
   el.querySelector('.pp').innerHTML=''; $('#pprail').innerHTML=''; $('#ppadj').innerHTML='';
   document.body.style.overflow=''; }
 $('#playpop').onclick=e=>{ if(e.target.classList.contains('pp-scrim')) closePlay(); };
-addEventListener('keydown',e=>{ if(e.key==='Escape'&&$('#playpop').classList.contains('on')){ e.preventDefault(); closePlay(); } });
+addEventListener('keydown',e=>{ if(e.key==='Escape'&&!SK_DRAWING&&$('#playpop').classList.contains('on')){ e.preventDefault(); closePlay(); } });
 
 /* ---------------- controls ---------------- */
 document.querySelector('.bar').onclick = e => {

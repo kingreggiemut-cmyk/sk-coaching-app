@@ -119,6 +119,13 @@ function RDWORD(sc, cap){ const w = (sc && sc.side === 'D') ? 'key' : 'read';
   return cap ? w.charAt(0).toUpperCase() + w.slice(1) + 's' : w; }
 function drawGameCard(g){
   if(!g) return drawCard(g);
+  /* the same standard frame as the library card, chosen BEFORE the routes are
+     drawn so a deep route stops at the frame's edge with its arrow */
+  const FB=(typeof fitBox==='function'&&fitBox(g))||null;
+  if(typeof frameClip==='function') frameClip(FB);
+  try{ return drawGameCardIn(g,FB); } finally { if(typeof frameClip==='function') frameClip(null); }
+}
+function drawGameCardIn(g,FB){
   keyMen(g);
   const run=!!g.run, GOLD='#E8DF5E', HOT='#FF4D3D', CYAN='#5FD0F5', qb=g.men.find(q=>q.qb);
   let glow='',routes='',bodies='',men='',pre='';
@@ -204,7 +211,7 @@ function drawGameCard(g){
      them. fitBox lets a defensive card zoom out and sit above the line. The
      box is written onto the svg because the read spotlight is positioned as a
      percentage of it. */
-  const b=(typeof fitBox==='function'&&fitBox(g))||null;
+  const b=FB;
   const bx=b?b.bx:0, by=b?b.by:0, bw=b?b.bw:W, bh=b?b.bh:H;
   return `<svg viewBox="${bx.toFixed(1)} ${by.toFixed(1)} ${bw.toFixed(1)} ${bh.toFixed(1)}" class="gcard"`
     +` data-bx="${bx.toFixed(1)}" data-by="${by.toFixed(1)}" data-bw="${bw.toFixed(1)}" data-bh="${bh.toFixed(1)}">

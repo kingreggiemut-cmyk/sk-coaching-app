@@ -612,3 +612,16 @@
   #playpop .mvr{cursor:pointer}
   #playpop .mvr.pick circle,#playpop .mvr.pick rect,#playpop .mvr.pick path{filter:drop-shadow(0 0 6px #F2B50E)}
   @media (prefers-reduced-motion:reduce){#playpop .pp,#playpop .pp-scrim{animation:none}}
+
+  /* THE ROUTE HE IS RUNNING lights up in the rail (2026-09-10): picked from
+     the list, it turns the house gold and says so, and stays in view. */
+  #playpop .pp-adj button.hb.now{background:#F2B50E;color:#17130E;box-shadow:inset 4px 0 0 #17130E}
+  #playpop .pp-adj button.hb.now .apct{color:#17130E;opacity:.75}
+  #playpop .pp-adj button.hb:disabled{opacity:.4;cursor:default;background:rgba(23,19,14,.06)}
+  #playpop .pp-adj .aback.adraw{background:#1F6E3A}
+  #playpop .pp-adj .aback.adraw:hover{background:#17130E}
+  /* a route line is a target too */
+  #playpop .pp-fld .rhit{cursor:pointer}
+  /* THE PEN: drawing a custom route */
+  #playpop .pp-fld.drawing{cursor:crosshair;outline:3px solid #F2B50E;outline-offset:-3px;touch-action:none}
+  #playpop .pp-fld.drawing .mvr,#playpop .pp-fld.drawing .rhit{cursor:crosshair}
