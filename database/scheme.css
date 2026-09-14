@@ -880,7 +880,11 @@ body.mob .footl{flex-wrap:wrap;gap:10px}
 
 /* the full screen button: top right of the stage, opposite the database link */
 .dbl.fsr{left:auto;right:44px;cursor:pointer}
-body.mob .stage > .dbl.fsr{display:none}
+/* on a phone the full screen button is a round one pinned top right (his note 2026-09-14); a takeover's own X takes that corner */
+body.mob .stage > .dbl.fsr{display:grid!important;place-items:center;position:fixed!important;right:12px!important;top:12px!important;left:auto!important;bottom:auto!important;width:44px!important;height:44px!important;padding:0;margin:0;border-radius:50%;font-size:0;background:rgba(10,8,10,.72);border:2px solid var(--gold);box-shadow:0 6px 16px rgba(0,0,0,.5);z-index:40;-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
+body.mob .stage > .dbl.fsr::before{content:"\26F6";font-size:20px;line-height:1;color:var(--gold)}
+body.mob .stage > .dbl.fsr.on::before{content:"\2716";font-size:18px}
+body.mob.lock .stage > .dbl.fsr{display:none!important}
 /* an opened principle grows to its points, over the fronts, and comes back */
 .belief.open{height:auto!important;min-height:190px;z-index:6}
 /* the full lineup button stands out: big, gold, with the crest */

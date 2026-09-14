@@ -160,6 +160,8 @@ async function ensureIndex(){
 async function ensureScheme(k){ const s=(SCHEMES||[]).find(x=>x.key===k); if(!s) return null;
   if(!s.plays){ try{ Object.assign(s, await (await fetch('schemes/'+encodeURIComponent(k)+'.json')).json()); }catch(e){} } return s; }
 async function boot(){
+  /* a phone has no room for the switch beside the brand: it joins the banner's second row (sk-mobile.css orders it) */
+  if(innerWidth<760){ const sb=$('#sidebox'), tn=$('#topnav'); if(sb&&tn&&tn.parentNode) tn.parentNode.insertBefore(sb,tn); }
   const [forms, names, idx] = await Promise.all([
     fetch('formations.json').then(r=>r.json()).catch(()=>({})),
     fetch('formation-names.json').then(r=>r.json()).catch(()=>({})),

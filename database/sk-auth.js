@@ -191,7 +191,7 @@ function skFullscreen(on) {
     try { window.open(location.href, '_blank', 'noopener'); } catch (e) { skSetFaux(true); }
   } else skSetFaux(true);
 }
-function skFullscreenLabels() { const on = skFsActive(); document.querySelectorAll('[data-fullscreen]').forEach((b) => { b.innerHTML = on ? '&#x2716; Exit full screen' : '&#x26F6; Full screen'; b.title = on ? 'Back to the window' : 'Take the whole screen'; }); }
+function skFullscreenLabels() { const on = skFsActive(); document.querySelectorAll('[data-fullscreen]').forEach((b) => { b.classList.toggle('on', on); b.innerHTML = on ? '&#x2716; Exit full screen' : '&#x26F6; Full screen'; b.title = on ? 'Back to the window' : 'Take the whole screen'; }); }
 document.addEventListener('fullscreenchange', skFullscreenLabels);
 document.addEventListener('webkitfullscreenchange', skFullscreenLabels);
 document.addEventListener('click', (e) => { const b = e.target && e.target.closest && e.target.closest('[data-fullscreen]'); if (!b) return; e.preventDefault(); skFullscreen(); });

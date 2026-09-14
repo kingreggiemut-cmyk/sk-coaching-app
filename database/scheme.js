@@ -283,7 +283,7 @@ function parallax() {
   addEventListener('pointermove', (e) => { mx = (e.clientX / innerWidth - .5) * 2; my = (e.clientY / innerHeight - .5) * 2; if (!raf) raf = requestAnimationFrame(apply); }, { passive: true });
 }
 const camBox = (H) => CAM ? `<div class="cam" style="height:176px"><span>Face cam</span></div>` : '';
-const stagewrap = (inner, h = STAGE_H, cls = '', extra = '') => `<div class="stagewrap" style="--h:${h}"><div class="stage${cls ? ' ' + cls : ''}" style="--h:${h}"><a class="dbl" href="${SC.side === 'D' ? 'defense' : 'index'}.html">&larr; The database</a><button class="dbl fsr" data-fullscreen>${(typeof skFsActive === 'function' ? skFsActive() : document.fullscreenElement) ? '&#x2716; Exit full screen' : '&#x26F6; Full screen'}</button><span class="dbl who" data-skwho hidden></span>${inner}${camBox(h)}</div>${extra}</div>`;
+const stagewrap = (inner, h = STAGE_H, cls = '', extra = '') => `<div class="stagewrap" style="--h:${h}"><div class="stage${cls ? ' ' + cls : ''}" style="--h:${h}"><a class="dbl" href="${SC.side === 'D' ? 'defense' : 'index'}.html">&larr; The database</a><button class="dbl fsr${(typeof skFsActive === 'function' ? skFsActive() : document.fullscreenElement) ? ' on' : ''}" data-fullscreen>${(typeof skFsActive === 'function' ? skFsActive() : document.fullscreenElement) ? '&#x2716; Exit full screen' : '&#x26F6; Full screen'}</button><span class="dbl who" data-skwho hidden></span>${inner}${camBox(h)}</div>${extra}</div>`;
 
 /* ---------- THE FRONT: the one screen off the regions ---------- */
 function frontHTML() {
