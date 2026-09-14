@@ -226,7 +226,8 @@ body.sk-pick .pk-dot{width:calc(11 * var(--u));height:calc(11 * var(--u))}
 .yg-bk{font:800 calc(17 * var(--u))/1.3 'Barlow Condensed','Arial Narrow',sans-serif;letter-spacing:.14em;text-transform:uppercase;color:#3B3226}
 .yg-bk b{color:#9E1B32}
 .yg-go{margin-left:auto;white-space:nowrap;font-size:calc(17 * var(--u))!important;padding:calc(14 * var(--u)) calc(22 * var(--u))!important}
-body.sk-pick .yg-chip{display:inline-block;margin:0 0 calc(10 * var(--u)) 0;padding:calc(8 * var(--u)) calc(14 * var(--u));background:rgba(246,238,220,.12);border:1px solid rgba(246,238,220,.3);color:#F6EEDC;font:800 calc(12 * var(--u))/1 'Barlow Condensed','Arial Narrow',sans-serif;letter-spacing:.2em;text-transform:uppercase;cursor:pointer}
-body.sk-pick .yg-chip:hover{background:#F5A623;color:#17130E;border-color:#F5A623}
+body.sk-pick .yg-chip{display:inline-block;margin:0 0 calc(12 * var(--u)) 0;padding:calc(11 * var(--u)) calc(18 * var(--u));background:#F5A623;border:0;color:#17130E;font:800 calc(14 * var(--u))/1 'Barlow Condensed','Arial Narrow',sans-serif;letter-spacing:.18em;text-transform:uppercase;cursor:pointer;box-shadow:0 6px 16px rgba(0,0,0,.4)}
+body.sk-pick .yg-chip:hover{background:#F6EEDC}
+@media (max-width:759px){body.sk-pick .yg-chip{font-size:14px;padding:13px 18px;margin-bottom:12px}}
 /* a phone: the card fills the screen and reads at phone sizes, the quarterbacks in one row, the copy in one column */
 @media (max-width:760px){.yg-pop{--u:1}.yg-box{width:100vw;max-width:100vw;max-height:100vh;padding:20px 16px 18px;clip-path:none}.yg-x{right:10px;top:10px;width:40px;height:40px;font-size:26px}.yg-k{font-size:12px}.yg-slab span{font-size:36px;padding:8px 14px}.yg-qbs{gap:8px;margin-top:16px}.yg-cut{height:140px}.yg-qb b{font-size:17px}.yg-qb i{font-size:10px;letter-spacing:.12em}.yg-copy{columns:1;margin-top:14px}.yg-copy p{font-size:16px}.yg-foot{flex-wrap:wrap;gap:12px}.yg-book{width:44px;height:58px}.yg-bk{font-size:12px}.yg-go{margin-left:0;width:100%;font-size:14px!important;padding:14px!important}}

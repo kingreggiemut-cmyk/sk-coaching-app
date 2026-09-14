@@ -407,7 +407,8 @@ function pkBook(sc){ const b=sc.home&&sc.home.book; if(!b) return '';
 /* THE SERIES POP-UP (his note 2026-09-14): the first time the picker opens it
    says what these installs are together, over the picker, and has to be
    closed. It comes back from the chip beside the installs eyebrow. */
-const SERIES_SEEN=()=>{ try{ return !!(typeof SERIES!=='undefined'&&SERIES&&localStorage.getItem('sk_series_seen_'+SERIES.key)); }catch(e){ return true; } };
+/* once per SESSION, not once ever (his call 2026-09-14): every new visit opens it again, and the gold button under the installs brings it back any time */
+const SERIES_SEEN=()=>{ try{ return !!(typeof SERIES!=='undefined'&&SERIES&&sessionStorage.getItem('sk_series_seen_'+SERIES.key)); }catch(e){ return true; } };
 function seriesPop(){
   if(typeof SERIES==='undefined'||!SERIES) return; seriesClose();
   const S=SERIES;
@@ -421,7 +422,7 @@ function seriesPop(){
   </div>`;
   document.body.appendChild(el); document.body.classList.add('yg-on');
   el.addEventListener('click',(e)=>{ if(e.target.closest('[data-ygclose]')) seriesClose(); });
-  try{ localStorage.setItem('sk_series_seen_'+S.key,'1'); }catch(e){}
+  try{ sessionStorage.setItem('sk_series_seen_'+S.key,'1'); }catch(e){}
 }
 function seriesClose(){ const el=document.getElementById('ygpop'); if(el) el.remove(); document.body.classList.remove('yg-on'); }
 document.addEventListener('keydown',(e)=>{ if(e.key==='Escape'&&document.getElementById('ygpop')) seriesClose(); });
@@ -444,7 +445,7 @@ function renderPicker(){
       `<button class="pk-chip${i===INSTALL?' on':''}" data-pk="${i}" style="--tc:${s.c1||'#1E3A6E'};--tc2:${s.c2||'#F5B935'}" title="${esc(s.name)}">
         ${pkCrest(s)}<span>${esc(pkShort(s.name))}</span></button>`).join('')}</div>
     <div class="pk-stage">
-      <div class="pk-eyebrow eyebrow">Your Installs</div>${typeof SERIES!=='undefined'&&SERIES?`<button class="yg-chip" data-ygopen="1">${esc(SERIES.title)} &middot; what these are together</button>`:''}
+      <div class="pk-eyebrow eyebrow">Your Installs</div>${typeof SERIES!=='undefined'&&SERIES?`<button class="yg-chip" data-ygopen="1">&#9733; Learn about ${esc(SERIES.title)}</button>`:''}
       <div class="pk-deck" id="pkdeck">
         ${N>1?`<button class="pk-arrow prev" data-step="-1" aria-label="Previous scheme">&lsaquo;</button>`:''}
         ${DECK.map((s,i)=>{ const o=off(i);
