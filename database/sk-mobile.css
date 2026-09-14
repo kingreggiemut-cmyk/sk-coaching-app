@@ -17,7 +17,7 @@
   .brand b{font-size:22px}
   .brand span{display:none}
   /* the brand owns the first row (room on the right for the pinned full screen button); the switch and the who share the second */
-  .brand{flex:0 0 100%;padding-right:52px}
+  .brand{flex:0 0 100%}
   .sidebox{position:static;order:9;transform:none;margin-left:auto;padding:6px 8px 7px;z-index:auto}
   .skwho{order:8}
   .sidecap{display:none}
@@ -25,12 +25,8 @@
   /* no map on a phone */
   .vrail .vw[data-v="map"]{display:none}
   .live{display:none}
-  /* the full screen button: a round one pinned top right, the way the playbooks do it */
-  .fsr2{display:grid;place-items:center;position:fixed;right:12px;top:12px;left:auto;width:44px;height:44px;padding:0;border-radius:50%;font-size:0;transform:none;background:rgba(10,8,10,.72);border:2px solid var(--skgold);box-shadow:0 6px 16px rgba(0,0,0,.5);z-index:40;-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
-  .fsr2::before{content:"\26F6";font-size:20px;line-height:1;color:var(--skgold)}
-  .fsr2.on::before{content:"\2716";font-size:18px}
-  .fsr2:hover{background:rgba(10,8,10,.72);color:var(--skgold)}
-  body:has(#playpop.on) .fsr2{display:none}
+  /* no full screen on a phone (his call 2026-09-14: it misbehaves inside the frame); the desktop keeps its button */
+  .fsr2{display:none!important}
   .skwho{position:static;transform:none;margin-left:6px}
   .skwho-name{max-width:70px;font-size:10px}
   .skwho-btn{height:30px;padding:0 9px;font-size:10px}
