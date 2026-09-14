@@ -29,6 +29,8 @@ const esc = (s) => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</
 const slug = (s) => String(s || '').toLowerCase().replace(/[^a-z0-9]+/g, '');
 const SIDEWORD = (sc) => sc.side === 'D' ? 'defense' : 'offense';
 const RDWORD = (sc) => sc.side === 'D' ? 'key' : 'read';
+/* a defense lines up in fronts, an offense in formations */
+const FRONTWORD = (sc) => sc.side === 'D' ? 'front' : 'formation';
 
 let SC = null, FORMS = null, GEO = {}, SEC = 'front', AT = 0, DIR = 'fwd', RD = 0;
 const ADJ = new Map();                 // play id -> Set of switched-on adjustment indices
@@ -58,15 +60,21 @@ function blankPlan(sc) {
 const sheetSecs = (sc) => (sc.sheet && sc.sheet.sections) || [];
 /* the script rack's pockets: the moments a coordinator scripts. sec ties a
    pocket to a call-sheet section so the paperclip can hang on that block. */
+/* THE POCKETS (his call 2026-09-14): four to start, every one renameable, and
+   the coach makes as many more as he wants. The names of the four and the
+   pockets he adds live in the plan (pocketNames, pockets), so they travel
+   with the account. Backed Up and Shot Drive went; anyone who wants them
+   makes them. */
 const DRIVE_SLOTS = [
   { id: 'opening',   label: 'Opening Drive', sec: null,        c: '#2e7d43' },
   { id: 'redZone',   label: 'Red Zone',      sec: 'redZone',   c: '#c2554e' },
   { id: 'thirdLong', label: '3rd & Long',    sec: 'thirdLong', c: '#7a5cc2' },
   { id: 'twoMinute', label: 'Two-Minute',    sec: null,        c: '#1E54B7' },
-  { id: 'backedUp',  label: 'Backed Up',     sec: null,        c: '#8a6b4a' },
-  { id: 'shot',      label: 'Shot Drive',    sec: 'bombs',     c: '#b98a1c' },
 ];
-const slotOf = (id) => DRIVE_SLOTS.find((s) => s.id === id);
+const POCKET_COLORS = ['#b98a1c', '#8a6b4a', '#1f8a8a', '#a8407a', '#4b6b2e', '#5c5c8a'];
+function driveSlots() { const p = PLAN || planRead(); const names = p.pocketNames || {};
+  return DRIVE_SLOTS.map((s) => Object.assign({}, s, { label: names[s.id] || s.label })).concat((p.pockets || []).map((q) => ({ id: q.id, label: q.label, sec: null, c: q.c, own: true }))); }
+const slotOf = (id) => driveSlots().find((s) => s.id === id);
 /* no pocket is ever empty on first open: two scripts off the coach's own sheet */
 function seedDrives(sc, plan) {
   const calls = (id) => ((sheetSecs(sc).find((s) => s.id === id) || {}).calls || []);
@@ -141,6 +149,8 @@ const DEF_TOKENS = {
 };
 function keyMen(g) { if (!g || g._keyed) return g;
   g.men.filter((m) => !m.b && !m.qb).sort((a, b) => a.x - b.x).forEach((m, i) => { m._k = 'e' + i; });
+  /* a blocker who is not a lineman (a blocking tight end, a receiver kept in) is k0.. so an adjustment can hand him a route and a read can light him */
+  g.men.filter((m) => m.b && !m.qb && (Math.abs(m.x) > 3.6 || m.y < -2.6)).sort((a, b) => a.x - b.x).forEach((m, i) => { m._k = 'k' + i; });
   const q = g.men.find((m) => m.qb); if (q) q._k = 'qb'; g._keyed = true; return g; }
 function defPick(g, t) {
   if (DEF_TOKENS[t]) return g.men.filter(DEF_TOKENS[t]);
@@ -153,7 +163,7 @@ function anchors(g, tokens) {
   for (const t of tokens) {
     if (Array.isArray(t)) { out.push([px(t[0]), py(t[1])]); continue; }
     if (g.def) { for (const m of defPick(g, t)) out.push([px(m.x), py(m.y)]); continue; }
-    const m = g.men.find((x) => x._k === t); if (m) out.push([px(m.x), py(m.y)]);
+    const m = t === 'mot' ? g.men.find((x) => x.mot) : g.men.find((x) => x._k === t); if (m) { const L = m.mpath && m.mpath.length ? m.mpath[m.mpath.length - 1] : [m.x, m.y]; out.push([px(L[0]), py(L[1])]); }
   }
   return out;
 }
@@ -163,16 +173,22 @@ function adjustGeo(g, ops) {
   for (const op of ops || []) { if (!op) continue;
     if (op.zone) { const kinds = [].concat(op.zone.kind); for (const m of c.men) { if (m.zone && kinds.some((k) => DEF_TOKENS[k] && DEF_TOKENS[k](m))) m.zone[1] += op.zone.dy; } continue; }
     if (op.align) { for (const m of defPick(c, op.align.who)) { const dy = op.align.y - m.y; m.y = op.align.y; if (m.zone) m.zone[1] -= dy; } continue; }
-    if (op.flip) { c._flip = !c._flip; c.men.forEach((m) => { m.x = -m.x; if (m.pts) m.pts = m.pts.map(([dx, dy]) => [-dx, dy]); }); continue; }
+    if (op.flip) { c._flip = !c._flip; c.men.forEach((m) => { m.x = -m.x; if (m.pts) m.pts = m.pts.map(([dx, dy]) => [-dx, dy]); if (m.mpath) m.mpath = m.mpath.map(([x, y]) => [-x, y]); }); continue; }
     const m = c.men.find((x) => x._k === op.man); if (!m) continue;
     if (op.mirror) { m.x = -m.x; if (m.pts) m.pts = m.pts.map(([dx, dy]) => [-dx, dy]); }
     if (op.mirrorPts && m.pts) m.pts = m.pts.map(([dx, dy]) => [-dx, dy]);
-    if (op.route) { m.pts = op.route.map((p) => p.slice()); if (c._flip) m.pts = m.pts.map(([dx, dy]) => [-dx, dy]); m._blk = false; }
-    if (op.block) { m.pts = null; m._blk = true; }
+    if (op.route) { m.pts = op.route.map((p) => p.slice()); if (c._flip) m.pts = m.pts.map(([dx, dy]) => [-dx, dy]); m._blk = false; delete m.b; delete m.bk; }
+    if (op.block) { m.pts = null; m._blk = true; m.b = 1; }
+    /* motion: the path he takes before the snap, absolute field spots; his route starts at its end */
+    if (op.mpath) { m.mpath = op.mpath.map((p) => p.slice()); if (c._flip) m.mpath = m.mpath.map(([x, y]) => [-x, y]); m.mot = 1; }
+    /* an option route forks from its own stem, so his stored path goes */
+    if (op.opt) { m.opt = op.opt; if (op.stem) m.stem = op.stem; if (op.dd) m.dd = c._flip ? -op.dd : op.dd; m.pts = null; delete m.b; delete m.bk; m._blk = false; }
   }
   return c;
 }
-const geoOf = (p) => { const g = GEO[p.slug]; if (!g) return null;
+/* a play may carry a FIX: route ops applied every time it is drawn, where the game's art is not what he teaches */
+const geoOf = (p) => { let g = GEO[p.slug]; if (!g) return null;
+  if (p.fix && p.fix.length) g = adjustGeo(g, p.fix);
   const on = ADJ.get(p.id); if (!on || !on.size || !p.adjustOps) return g;
   return adjustGeo(g, [...on].sort().map((i) => p.adjustOps[i])); };
 /* the drawing, with the rings for whatever the current key points at */
@@ -188,7 +204,7 @@ function cardHTML(p, rd) {
     style = `--ox:${(((cx - b[0]) / b[2]) * 100).toFixed(1)}%;--oy:${(((cy - b[1]) / b[3]) * 100).toFixed(1)}%`; }
   return `<div class="art${pts.length ? ' lit' : ''}" style="${style}">${svg}</div>`;
 }
-const plainArt = (p) => GEO[p.slug] ? `<div class="art">${drawCard(GEO[p.slug])}</div>` : p.formation ? tileHTML(p.formation) : '<div class="art"></div>';
+const plainArt = (p) => GEO[p.slug] ? `<div class="art">${drawCard(p.fix ? geoOf(p) : GEO[p.slug])}</div>` : p.formation ? tileHTML(p.formation) : '<div class="art"></div>';
 /* a front tile cropped to the men */
 function fitTile(svg) {
   const pts = [...svg.matchAll(/<circle cx="([-\d.]+)" cy="([-\d.]+)"/g)].map((m) => [+m[1], +m[2]]);
@@ -199,7 +215,8 @@ function fitTile(svg) {
   if (bw / bh > R) { const nh = bw / R; y0 -= (nh - bh) / 2; bh = nh; } else { const nw = bh * R; x0 -= (nw - bw) / 2; bw = nw; }
   return svg.replace(/viewBox="[^"]*"/, `viewBox="${x0.toFixed(1)} ${y0.toFixed(1)} ${bw.toFixed(1)} ${bh.toFixed(1)}"`);
 }
-const tileHTML = (name) => { const fm = (SC.formations || []).find((x) => x.name === name); const key = fm && fm.lib ? slug(fm.lib[0]) + '__' + slug(fm.lib[1]) : slug(SC.family && SC.family.family ? SC.family.family : '4-2-5') + '__' + slug(String(name).replace(/^4-?2-?5\s*/i, '')); const f = FORMS && FORMS[key]; return f ? `<div class="art">${fitTile(drawFormation(f))}</div>` : '<div class="art"></div>'; };
+/* a play out of a set that is not one of the scheme's formations (the Bears bubble out of Bunch TE) draws its tile from the play's own library set */
+const tileHTML = (name) => { const fm = (SC.formations || []).find((x) => x.name === name) || (() => { const q = SC.plays.find((p) => p.formation === name && p.libFamily && p.libSet); return q ? { lib: [q.libFamily, q.libSet] } : null; })(); const key = fm && fm.lib ? slug(fm.lib[0]) + '__' + slug(fm.lib[1]) : slug(SC.family && SC.family.family ? SC.family.family : '4-2-5') + '__' + slug(String(name).replace(/^4-?2-?5\s*/i, '')); const f = FORMS && FORMS[key]; return f ? `<div class="art">${fitTile(drawFormation(f))}</div>` : '<div class="art"></div>'; };
 /* the clip: its YouTube id, its thumbnail, and the frame it plays in */
 const ytId = (u) => { const m = String(u || '').match(/(?:youtu\.be\/|[?&]v=|embed\/)([\w-]{6,})/); return m ? m[1] : ''; };
 
@@ -216,9 +233,11 @@ const ICON = {
 };
 const ico = (k) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${ICON[k]}</svg>`;
 const AREAS_ALL = [['intro', 'Intro'], ['install', 'Install'], ['coverages', 'Coverages'], ['plays', 'All plays'], ['sheet', 'Call sheet'], ['drives', 'Drives'], ['board', 'Board'], ['personnel', 'Personnel']];
+/* an offense's last door is History & Personnel (his call 2026-09-14); a defense keeps Personnel */
+const HIST = () => !!(SC && SC.side !== 'D' && (SC.personnel && SC.personnel.players || []).some((p) => p.player));
 /* a scheme of coverages (mode: 'coverages') has no install: the coverages are its section */
 const COV = () => !!(SC && SC.mode === 'coverages');
-const AREAS_OF = () => AREAS_ALL.filter(([k]) => COV() ? !['install', 'sheet', 'board'].includes(k) : k !== 'coverages');
+const AREAS_OF = () => AREAS_ALL.filter(([k]) => COV() ? !['install', 'sheet', 'board'].includes(k) : k !== 'coverages').map(([k, a]) => [k, k === 'personnel' && HIST() ? 'History & Personnel' : a]);
 let AREAS = AREAS_ALL;
 const OLD = (sec) => `${SC.side === 'D' ? 'defense' : 'index'}.html?scheme=${encodeURIComponent(KEY)}&sec=${sec}`;
 /* THE DOCK: the crest, the areas, the count. Chrome only; never a button. */
@@ -247,7 +266,8 @@ function scale() {
   document.documentElement.style.setProperty('--s', s.toFixed(4));
   document.documentElement.style.setProperty('--s2', MOB ? '1' : Math.min(0.8 * innerWidth / 1600, 0.82 * innerHeight / 900).toFixed(4));
 }
-addEventListener('resize', () => { const h = stageH(); scale(); if (h !== STAGE_H) render(); });
+/* the builder keeps the drive being built through a resize: only the scale changes under it */
+addEventListener('resize', () => { const h = stageH(); scale(); if (h !== STAGE_H && !(SEC === 'drives' && DRIVEB)) render(); });
 /* THE LAYOUT for a stage of height H: the regions, in stage units */
 function L(H = STAGE_H) {
   const footY = H - 160, camH = Math.round(H * 0.26);
@@ -354,19 +374,32 @@ function introStage() {
   const by = Math.max(236, lay.camH + 24), bh = 156, fy = by + bh + 24, /* the papers hold their writing; an opened one grows over the fronts */ fh = Math.min(268, lay.H - 80 - 100 - fy), fw = Math.round(fh * 1.8235), hy = fy + fh + 8; /* two rows of chips fit under a front */
   const note = COV() && SC.about && SC.about.rulesNote ? `<div class="paper t3 rules" style="${at(X(5), fy, CW(8), fh)}"><span class="tape" style="left:300px;top:-14px"></span><div class="in"><div class="h26">The rules travel</div><div class="t">${esc(SC.about.rulesNote)}</div><div class="k team" style="margin-top:14px">Lines up in ${esc((fr[0] && fr[0].name) || '')} here &middot; ${SC.plays.length} coverages</div></div></div>` : '';
   const beliefs = pr.slice(0, 3).map((p, i) => `<button class="paper t${i + 1} belief${OPEN.has(i) ? ' open' : ''}" style="${at(X(1 + i * 4), by, 488, bh)}" data-belief="${i}"><span class="tape" style="left:40%;top:-14px"></span><span class="more"></span><div class="in"><div class="bd"><div class="h26"><b>0${i + 1}</b>${esc(p.title)}</div><div class="t">${esc(p.blurb || '')}</div><div class="hint">${points(p).map((s, k) => `<span><b>${k + 1}</b><i>${esc(s.split(' ').slice(0, 3).join(' '))}</i></span>`).join('')}</div><ol class="pts">${points(p).map((s, k) => `<li style="--d:${k * 140}ms"><b>${k + 1}</b><span>${esc(s)}</span></li>`).join('')}</ol></div></div></button>`).join('');
-  const fronts = (COV() ? fr.slice(0, 1) : fr.slice(0, 3)).map((f, i) => { const x = X(1 + i * 4), tags = f.tags || [], tags2 = COV() ? SC.plays.filter((q) => q.formation === f.name) : tags.map((t) => SC.plays.find((q) => q.name === t) || { name: t }), chips = tags2.map((p) => `<a class="chip${p.id && ink.has(p.id) ? ' ink' : ''}" href="${p.id ? (COV() ? '#coverage/' : '#play/') + esc(p.id) : '#plays'}">${esc(COV() && p.id ? covShort(p) : p.name)}</a>`).join('');
-    return `<div class="front-c" style="${at(x, fy, fw, fh)}"><div class="tv"><div class="plate">${esc(f.name)}</div>${tileHTML(f.name)}</div></div>${tags2.length ? `<div class="hang row" style="left:${x}px;top:${hy}px;width:${COV() ? 1000 : 488}px"><span class="tag">${tags2.length} ${tags2.length === 1 ? (COV() ? 'coverage' : 'play') : (COV() ? 'coverages' : 'plays')}</span>${chips}</div>` : ''}`; }).join('');
+  /* FOUR FORMATIONS (the Bears) sit at three columns each, the frames and their chip rows narrower; three stay at four columns */
+  const four = !COV() && fr.length >= 4, span = four ? 3 : 4, fw4 = four ? CW(3) : 488, fh4 = four ? Math.round(CW(3) / 1.8235) : fh;
+  const fronts = (COV() ? fr.slice(0, 1) : fr.slice(0, four ? 4 : 3)).map((f, i) => { const x = X(1 + i * span), tags = f.tags || [], tags2 = COV() ? SC.plays.filter((q) => q.formation === f.name) : tags.map((t) => SC.plays.find((q) => q.name === t) || { name: t }), chips = tags2.map((p) => `<a class="chip${p.id && ink.has(p.id) ? ' ink' : ''}" href="${p.id ? (COV() ? '#coverage/' : '#play/') + esc(p.id) : '#plays'}">${esc(COV() && p.id ? covShort(p) : p.name)}</a>`).join('');
+    return `<div class="front-c" style="${at(x, fy, four ? fw4 : fw, four ? fh4 : fh)}"><div class="tv"><div class="plate">${esc(f.name)}</div>${tileHTML(f.name)}</div></div>${tags2.length ? `<div class="hang row${tags2.length > 6 ? ' dense' : ''}" style="left:${x}px;top:${four ? fy + fh4 + 8 : hy}px;width:${COV() ? 1000 : fw4}px"><span class="tag">${tags2.length} ${tags2.length === 1 ? (COV() ? 'coverage' : 'play') : (COV() ? 'coverages' : 'plays')}</span>${chips}</div>` : ''}`; }).join('');
   return `${head('The intro', `${esc(whose())} ${esc(shortName())}`, esc(SC.tagline || ''), headRight(`<a class="btn sm" href="${COV() ? '#coverages' : '#install/0'}">${COV() ? 'Start the coverages' : 'Start the install'} <em>&rarr;</em></a>`))}${beliefs}${fronts}${note}`;
 }
 
 /* ---------- THE INSTALL: a deck of stages ---------- */
 /* the calls of a section as frames across the frame region, centred */
 function callsHTML(plays, chipsOf, lay) {
-  const n = plays.length, f = lay.frame, cw = Math.min((1000 - (n - 1) * 24) / n, f.h * 1.8235), ch = cw / 1.8235, y = f.y + (f.h - ch) / 2;
-  return `<div class="calls">${plays.map((p, j) => `<button class="fr" style="${at(44 + j * (cw + 24), y, cw, ch)}" data-go="${j + 1}"><div class="tv"><div class="plate">${esc(p.name)}</div>${plainArt(p)}</div>${chipsOf ? `<div class="hang" style="position:absolute;left:14px;top:100%;margin-top:8px"><div class="chips">${chipsOf(p)}</div></div>` : ''}</button>`).join('')}</div>`;
+  /* more than seven calls (the Scheme Kings sections on the Madden offenses) go two rows deep so no frame gets tiny */
+  const n = plays.length, f = lay.frame, rows = n > 7 ? 2 : 1, per = Math.ceil(n / rows), cw = Math.min((1000 - (per - 1) * 24) / per, f.h * 1.8235), ch = cw / 1.8235, gap = rows > 1 ? 64 : 0, y = f.y + (f.h - rows * ch - gap * (rows - 1)) / 2;
+  return `<div class="calls${rows > 1 ? ' many' : ''}">${plays.map((p, j) => `<button class="fr" style="${at(44 + (j % per) * (cw + 24), y + Math.floor(j / per) * (ch + gap), cw, ch)}" data-go="${j + 1}"><div class="tv"><div class="plate">${esc(p.name)}</div>${plainArt(p)}</div>${chipsOf ? `<div class="hang" style="position:absolute;left:14px;top:100%;margin-top:8px"><div class="chips">${chipsOf(p)}</div></div>` : ''}</button>`).join('')}</div>`;
 }
 function installSlides() {
   const out = []; const pls = SC.install.pillars || [];
+  /* THE FORMATIONS FIRST (his call 2026-09-14): on an offense the install opens
+     with the looks it lines up in, each drawn with its write-up, before the
+     first section. The next stop is section one. */
+  const fr = (SC.formations || []).filter((f) => f.desc);
+  if (SC.side !== 'D' && fr.length) out.push({ t: 'forms', i: -1, html: (k, tot) => { const lay = L(), n = Math.min(fr.length, 4), span = n > 3 ? 3 : 4, fw = n > 3 ? CW(3) : 488, fh = Math.min(Math.round(fw / 1.8235), lay.H - 80 - 176 - 16 - 24 - 236), py = 176 + fh + 24, ph = lay.H - 80 - py - 16;
+    const first = pls[0];
+    return `${head('The install', 'The formations', `${n} look${n !== 1 ? 's' : ''}, the whole offense`, headRight(first ? `<button class="btn sm" data-go="1">Start with ${esc(first.name)} <em>&rarr;</em></button>` : '', arrowsHTML(k + 1, tot)))}
+      ${fr.slice(0, n).map((f, i) => { const x = X(1 + i * span), calls = SC.plays.filter((p) => p.formation === f.name).length;
+        return `<div class="front-c" style="${at(x, 176, fw, fh)}"><div class="tv"><div class="plate">${esc(f.name)}</div>${tileHTML(f.name)}</div></div>
+          <div class="paper t${(i % 3) + 1} formpaper" style="${at(x, py, fw, ph)}"><span class="tape" style="left:40%;top:-14px"></span><div class="in"><div class="h26">${esc(f.name)}</div><div class="t">${esc(f.desc || '')}</div></div></div>`; }).join('')}`; } });
   pls.forEach((pl, i) => {
     const plays = pl.plays.map(byId).filter(Boolean);
     /* the title card is a chapter card: the section is introduced with the
@@ -379,11 +412,11 @@ function installSlides() {
       const fronts = [...new Set(plays.map((q) => q.formation).filter(Boolean))], done = plays.filter((q) => ink.has(q.id)).length;
       const film = FILM === 'title' && ytId(pl.video);
       const chap = film ? `<div class="film"><iframe src="https://www.youtube-nocookie.com/embed/${encodeURIComponent(ytId(pl.video))}?autoplay=1&rel=0&modestbranding=1" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe></div><button class="btn gh" data-film="off" style="position:absolute;right:12px;top:12px;height:40px;padding:0 14px;font-size:13px;z-index:3">Back to the card &times;</button>`
-        : `<span class="chap">0${i + 1}</span><span class="chapc"><img src="logos/${esc(SC.logo)}.png" alt=""></span><div class="chapl"><span class="plate2">${esc(pl.name)}</span><span class="k">${plays.length} call${plays.length !== 1 ? 's' : ''} &middot; ${fronts.length} front${fronts.length !== 1 ? 's' : ''} &middot; ${done} inked</span></div>`;
+        : `<span class="chap">0${i + 1}</span><span class="chapc"><img src="logos/${esc(SC.logo)}.png" alt=""></span><div class="chapl"><span class="plate2">${esc(pl.name)}</span><span class="k">${plays.length} call${plays.length !== 1 ? 's' : ''} &middot; ${fronts.length} ${FRONTWORD(SC)}${fronts.length !== 1 ? 's' : ''} &middot; ${done} inked</span></div>`;
       const watch = ytId(pl.video) ? `<a class="watch" href="${esc(pl.video)}" data-film="title"><span class="thumb"><img src="https://img.youtube.com/vi/${esc(ytId(pl.video))}/mqdefault.jpg" alt=""><i></i></span><span><span class="k">Watch the ${esc(pl.name.replace(/^The /, ''))} install</span><div class="t">King Reggie walks the section</div></span></a>` : '';
       return `${head(`Section ${i + 1} of ${pls.length}`, esc(pl.name), esc(pl.eyebrow || ''), headRight(`<button class="btn sm" data-go="1">Start with ${esc(plays[0] ? plays[0].name : 'the first call')} <em>&rarr;</em></button>`, arrowsHTML(k + 1, tot)))}
         <div class="frame" style="${at(44, 176, 488, fh)}"><div class="tv chapter">${chap}</div></div>
-        <div class="paper t3 chapter" style="${at(556, 176, 1000, fh)}"><span class="tape" style="left:300px;top:-14px"></span><div class="in">
+        <div class="paper t3 chapter${plays.length > 7 ? ' many' : plays.length > 3 ? ' four' : ''}" style="${at(556, 176, 1000, fh)}"><span class="tape" style="left:300px;top:-14px"></span><div class="in">
           <div><div class="h26">${esc(pl.eyebrow || 'This section')}</div><div class="t">${esc(pl.line || '')}</div>${game.length ? `<div class="rule"></div><div class="k team">You know it is in when</div><div class="checks">${game.map((x, kk) => `<div class="adj"><b>${kk + 1}</b><span>${esc(x)}</span></div>`).join('')}</div>` : ''}</div>
           <div><div class="k team">The calls in this section</div>${plays.map((q, kk) => `<div class="callrow"><b>${kk + 1}</b><div><div class="h26">${esc(q.name)}</div><div class="k team" style="margin-top:6px">${esc(q.formation || '')}${q.libType ? ' &middot; ' + esc(q.libType) : ''}</div></div><a class="go" href="#install/${k + 1 + kk}" aria-label="Open ${esc(q.name)}">&rsaquo;</a></div>`).join('')}
             ${fronts.length ? `<div class="rule"></div><div class="k team">Lines up in</div><div class="ftiles">${fronts.map((f) => `<div class="ftile">${tileHTML(f)}<span class="cap">${esc(f)}</span></div>`).join('')}</div>` : ''}</div>
@@ -391,7 +424,7 @@ function installSlides() {
         ${foot(watch, '', lay)}`; } });
     plays.forEach((p, j) => out.push({ t: 'play', pl, i, p, j, n: plays.length, html: (k, tot) => playStage(p, 'install', k, tot, pl) }));
     out.push({ t: 'bucket', pl, i, html: (k, tot) => { const lay = L(), ink = inkedSet(), next = pls[i + 1], done = plays.filter((p) => ink.has(p.id)).length;
-      return `${head('On the sheet', `${esc(pl.name.replace(/^The /, ''))} calls`, done === plays.length ? `${esc(pl.name)} is installed` : `${done} of ${plays.length} inked`, headRight(next ? `<button class="btn sm" data-next="1">Next section: ${esc(next.name)} <em>&rarr;</em></button>` : `<a class="btn sm" href="#sheet">Open the call sheet <em>&rarr;</em></a>`, arrowsHTML(k + 1, tot)))}${callsHTML(plays, (p) => ink.has(p.id) ? '<span class="chip ink">On the sheet</span>' : '<span class="chip">Not yet</span>', lay)}${rail('', { html: `<div class="k team">${esc(pl.name.replace(/^The /, ''))} calls &middot; ${done} of ${plays.length}</div>${plays.map((p) => `<div class="slot${ink.has(p.id) ? ' on' : ''}"><div class="h26">${ink.has(p.id) ? esc(p.name) : '&nbsp;'}</div></div>`).join('')}<div class="rule"></div><div class="t" style="font-size:15px">${done === plays.length ? 'Every call landed in the bucket it belongs to.' : 'The rest are waiting on you. Go back with the arrows.'}</div>` }, lay)}`; } });
+      return `${head('On the sheet', `${esc(pl.name.replace(/^The /, ''))} calls`, done === plays.length ? `${esc(pl.name)} is installed` : `${done} of ${plays.length} inked`, headRight(next ? `<button class="btn sm" data-next="1">Next section: ${esc(next.name)} <em>&rarr;</em></button>` : `<a class="btn sm" href="#sheet">Open the call sheet <em>&rarr;</em></a>`, arrowsHTML(k + 1, tot)))}${callsHTML(plays, (p) => ink.has(p.id) ? '<span class="chip ink">On the sheet</span>' : '<span class="chip">Not yet</span>', lay)}${rail('', { html: `<div class="k team">${esc(pl.name.replace(/^The /, ''))} calls &middot; ${done} of ${plays.length}</div>${plays.map((p) => `<div class="slot${ink.has(p.id) ? ' on' : ''}"><div class="h26">${ink.has(p.id) ? esc(p.name) : '&nbsp;'}</div></div>`).join('')}<div class="rule"></div><div class="t" style="font-size:15px">${done === plays.length ? 'Every call landed in the bucket it belongs to.' : 'The rest are waiting on you. Go back with the arrows.'}</div>`, cls: plays.length > 7 ? 'many' : '' }, lay)}`; } });
   });
   return out;
 }
@@ -406,11 +439,14 @@ function addedPlays() {
 }
 /* ---------- ALL PLAYS: the picked play up top, the rows below ---------- */
 const fronts = () => [...new Set(SC.plays.map((p) => p.formation).filter(Boolean))];
+/* the type tabs: a defense splits blitzes from coverages; an offense splits run from pass by the coach's own type (an RPO is run), then the library's */
+const isRunPlay = (p) => p.type === 'Run Game' || (p.type !== 'Pass Game' && /run|rpo/i.test(p.libType || ''));
+const typeOk = (p, k) => k === 'all' || (k === 'blitz' ? p.libType === 'Blitz' : k === 'cover' ? p.libType !== 'Blitz' : k === 'run' ? isRunPlay(p) : k === 'pass' ? !isRunPlay(p) : true);
 function listOf() {
   const tp = FILT.type, fr = FILT.front;
   const added = addedPlays();
   const all = own().concat(added);
-  return { all, list: all.filter((p) => (tp === 'all' || (tp === 'blitz' ? p.libType === 'Blitz' : p.libType !== 'Blitz')) && (fr === 'all' || p.formation === fr)) };
+  return { all, list: all.filter((p) => typeOk(p, tp) && (fr === 'all' || p.formation === fr)) };
 }
 /* the rows: chips at y0, three across from y0 + 60, each four columns */
 function rowsHTML(list, y0, chips) {
@@ -420,8 +456,8 @@ function rowsHTML(list, y0, chips) {
 function playsPage() {
   const { all, list } = listOf(); PICKLIST = list; if (PICK >= list.length) PICK = 0;
   const tabs = SC.side === 'D' ? [['all', 'Everything'], ['cover', 'Coverages'], ['blitz', 'Blitzes']] : [['all', 'Everything'], ['run', 'Run'], ['pass', 'Pass']];
-  const count = (k) => all.filter((p) => k === 'all' || (k === 'blitz' ? p.libType === 'Blitz' : k === 'cover' ? p.libType !== 'Blitz' : true)).length;
-  const chips = `${tabs.map(([k, t]) => `<button class="chip${FILT.type === k ? ' on' : ''}" data-type="${k}">${t} &middot; ${count(k)}</button>`).join('')}<span class="k">Front</span><button class="chip${FILT.front === 'all' ? ' on' : ''}" data-front="all">All</button>${fronts().map((x) => `<button class="chip${FILT.front === x ? ' on' : ''}" data-front="${esc(x)}">${esc(x.replace(/^425 /, ''))} &middot; ${all.filter((p) => p.formation === x).length}</button>`).join('')}<a class="chip door" href="#book">+ Add from the ${esc((SC.about && SC.about.playbook && (SC.about.playbook.cap || SC.about.playbook.title)) || 'book')}</a>`;
+  const count = (k) => all.filter((p) => typeOk(p, k)).length;
+  const chips = `${tabs.map(([k, t]) => `<button class="chip${FILT.type === k ? ' on' : ''}" data-type="${k}">${t} &middot; ${count(k)}</button>`).join('')}<span class="k">${FRONTWORD(SC) === 'front' ? 'Front' : 'Formation'}</span><button class="chip${FILT.front === 'all' ? ' on' : ''}" data-front="all">All</button>${fronts().map((x) => `<button class="chip${FILT.front === x ? ' on' : ''}" data-front="${esc(x)}">${esc(x.replace(/^425 /, ''))} &middot; ${all.filter((p) => p.formation === x).length}</button>`).join('')}<a class="chip door" href="#book">+ Add from the ${esc((SC.about && SC.about.playbook && (SC.about.playbook.cap || SC.about.playbook.title)) || 'book')}</a>`;
   const p = list[PICK];
   const top = p ? playStage(p, 'focus', PICK, list.length) : head('All plays', 'No calls here', `${all.length} in all`);
   const rows = rowsHTML(list, STAGE_H + 40, chips);
@@ -440,9 +476,9 @@ function bookStage() {
   const tabs = fronts.map((f) => `<button class="chip${f === on ? ' on' : ''}" data-set="${esc(f.name)}">${esc(f.name)} &middot; ${rowsOf(f).length}</button>`).join('');
   const cards = rows.map(({ p, sl }) => { const has = added.has(sl), is = mine.has(sl), g = GEO[sl];
     return `<div class="card${is ? ' is' : has ? ' added' : ''}"><div class="tv"><div class="plate">${esc(p.name)}</div><div class="art">${g ? drawCard(g) : ''}</div></div><div class="hang"><div class="chips"><span class="chip">${esc(p.type)}</span>${is ? '<span class="chip ink">In the scheme</span>' : `<button class="chip add${has ? ' ink' : ''}" data-add="${esc(sl)}">${has ? 'Added &#10003;' : '+ Add it'}</button>`}</div></div></div>`; }).join('');
-  return `${head(`Add from the ${esc(nice(bk, true))}`, esc(on.name), `${rows.length} in the library out of this front &middot; ${[...added].length} added to your plays`)}
-    <div class="filt" style="${at(44, 176, 1512, 44)}"><span class="k">Front</span>${tabs}<span class="k" style="margin-left:auto">tap a call to add it, tap again to take it back</span></div>
-    <div class="bookgrid">${cards || '<div class="t" style="grid-column:1/-1">Nothing in the book out of this front.</div>'}</div>`;
+  return `${head(`Add from the ${esc(nice(bk, true))}`, esc(on.name), `${rows.length} in the library out of this ${FRONTWORD(SC)} &middot; ${[...added].length} added to your plays`)}
+    <div class="filt" style="${at(44, 176, 1512, 44)}"><span class="k">${FRONTWORD(SC) === 'front' ? 'Front' : 'Formation'}</span>${tabs}<span class="k" style="margin-left:auto">tap a call to add it, tap again to take it back</span></div>
+    <div class="bookgrid">${cards || '<div class="t" style="grid-column:1/-1">Nothing in the book out of this ' + FRONTWORD(SC) + '.</div>'}</div>`;
 }
 function openBook() { closeModal(); app.insertAdjacentHTML('beforeend', `<div class="modal book"><div class="scrim" data-close></div><div class="box"><div class="stage" style="--h:900">${bookStage()}</div><a class="x" href="#plays" aria-label="Close">&times;</a></div></div>`);
   const w = $('.stagewrap'); if (w) w.classList.add('blurred'); document.body.classList.add('lock'); if (!INDEX) loadIndex(); return true; }
@@ -453,9 +489,12 @@ async function loadIndex() { try { const I = await (await fetch('play-index.json
 let GP = null;
 function sheetMount() {
   const host = $('#gpHost'); if (!host || typeof mountGpSheet !== 'function') return;
-  const secs = (SC.gpSections || []).map((s) => Object.assign({}, s, { tag: s.tag || (s.kind === 'plays' ? () => true : undefined) }));
+  /* a section whose picker was a function in the playbook travels as the ids it let through (s.ids) */
+  const secs = (SC.gpSections || []).map((s) => Object.assign({}, s, { tag: s.tag || (s.ids ? (p) => s.ids.includes(p.id) : s.kind === 'plays' ? () => true : undefined) }));
   GP = mountGpSheet({
-    plays: [...SC.plays, ...addedPlays()], formations: SC.formations || [], personnel: SC.personnel, schemeKey: SC.schemeKey || SC.key,
+    /* an offense's sheet picks its X-Factor from real players (gpPersonnel), while the personnel section groups them by position */
+    plays: [...SC.plays, ...addedPlays()], formations: SC.formations || [], personnel: SC.gpPersonnel || SC.personnel, schemeKey: SC.schemeKey || SC.key,
+    logo: (SC.about && SC.about.logo) || `logos/${SC.logo}.png`,
     auth: (typeof SK_AUTH !== 'undefined') ? SK_AUTH : null, requireLogin: (typeof skRequireLogin === 'function') ? skRequireLogin : (async () => false),
     principles: (SC.about && SC.about.principles) || [], gp: SC.gp, gpSections: secs,
     isOpen: () => SEC === 'sheet',
@@ -562,6 +601,60 @@ function scriptRows(sc, d) {
     || `<div class="script-row"><span class="script-empty">Empty script</span></div>`;
 }
 const secLabel = (id) => { const s = (SC.gpSections || []).find((x) => x.id === id) || sheetSecs(SC).find((x) => x.id === id); return s ? s.label : ''; };
+/* THE DRIVE BUILDER (the Madden offenses, 2026-09-13): where the page loads
+   drive-builder.js (the Oregon original, lifted whole) and the scheme carries
+   its drive data, Drives IS the builder: the stage keeps its head, the builder
+   fills the box between the head and the dock with its call sheet docked on the
+   left. Its two bridges are here: the sheet it mirrors is the call sheet
+   module's own store, and Save writes the member's saved_drives the way the
+   Oregon playbook did, plus a copy in the plan. */
+let DRIVEB = null;
+/* HIS CALL 2026-09-14: Drives is the script rack, the way the coaching app and the college pages
+   do it (create drives, tag them to a pocket, save), not the Oregon builder full screen. The Oregon
+   builder stays wired: a scheme asks for it with drive.mode = 'oregon'. */
+const hasBuilder = () => typeof mountDriveBuilder === 'function' && !!(SC && SC.drive && SC.drive.mode === 'oregon');
+function builderStage() {
+  return { html: head('Drives &middot; the drive builder', 'Drive builder', 'script your drive, branch it, save it'), host: '<div id="dbHost"></div>' };
+}
+function builderMount() {
+  const host = $('#dbHost'); if (!host || !hasBuilder()) return;
+  const byIdP = new Map(SC.plays.map((p) => [p.id, p]));
+  const playSecs = (SC.gpSections || []).filter((x) => x.kind === 'plays');
+  const wrap = (p) => ({ name: p.name, formation: p.formation || '', star: p.type === 'Star Play' });
+  const sv = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--s')) || 1;
+  DRIVEB = mountDriveBuilder({
+    plays: SC.plays.map((p) => ({ id: p.id, name: p.name, type: p.type, formation: p.formation || '', tags: p.tags || [] })),
+    recommended: SC.drive.recommended, sections: SC.drive.sections, video: SC.drive.video,
+    logo: (SC.about && SC.about.logo) || `logos/${SC.logo}.png`, skLogo: SC.drive.skLogo || '', sheetTitle: `${SC.nick || shortName()} Call Sheet`,
+    padL: Math.round(44 * sv + 334), padR: Math.round(44 * sv + 310),
+    openPlay: (id) => { location.hash = '#play/' + encodeURIComponent(id); },
+    bridge: {
+      callSheet(mode) {
+        if (mode === 'empty') return { mode: 'empty', total: 0, cap: 24, sections: playSecs.map((x) => ({ id: x.id, label: x.label, cap: x.n, plays: [] })) };
+        let sh = null; try { sh = JSON.parse(localStorage.getItem('gp-sheet-' + (SC.schemeKey || SC.key)) || 'null'); } catch (e) {}
+        let total = 0;
+        const sections = playSecs.map((x) => { const plays = ((sh && sh[x.id]) || []).map((id) => byIdP.get(id)).filter(Boolean).map(wrap); total += plays.length; return { id: x.id, label: x.label, cap: x.n, plays }; }).filter((x) => x.plays.length);
+        return { mode: 'normal', total, cap: 24, sections };
+      },
+      signedIn() { try { return !!(typeof SK_AUTH !== 'undefined' && SK_AUTH.signedIn); } catch (e) { return false; } },
+      async saveDrive(snapshot, meta) {
+        meta = meta || {};
+        const title = meta.title || `Drive · ${new Date().toLocaleDateString()}`;
+        const plan = planRead(); plan.drives.push({ id: 'dr' + Date.now().toString(36), title, slot: null, main: snapshot.main, updated: new Date().toISOString() }); planWrite(plan);
+        try {
+          if (typeof skRequireLogin !== 'function' || typeof SK_AUTH === 'undefined') return { ok: true, title };
+          const ok = await skRequireLogin(meta.reason || 'save this drive');
+          if (!ok) return { ok: false, reason: 'cancelled' };
+          const { error } = await SK_AUTH.client.from('saved_drives').insert({ member_id: SK_AUTH.memberId, scheme_key: SC.schemeKey || SC.key, title, data: snapshot });
+          if (error) throw error;
+          toast('Drive saved to your coaching app');
+          return { ok: true, title };
+        } catch (e) { toast('Could not save the drive, try again'); return { ok: false, reason: 'error', message: e && e.message }; }
+      },
+    },
+  }, host);
+}
+function builderExit() { if (DRIVEB) { try { DRIVEB.exit(); } catch (e) {} DRIVEB = null; } }
 function drivesStage() {
   const sc = SC, plan = planRead(), H = STAGE_H;
   const card = (d) => { const slot = slotOf(d.slot);
@@ -572,19 +665,23 @@ function drivesStage() {
       ${scriptRows(sc, d)}</div>`; };
   const pocketH = H - 80 - 176 - 16;
   const pocket = (slot, i) => { const mine = plan.drives.filter((d) => d.slot === slot.id); const sec = slot.sec && secLabel(slot.sec);
-    return `<div class="pocket" style="${at(X(1 + i * 2), 176, 232, pocketH)};--sc:${slot.c}"><div class="pocket-l">${esc(slot.label)}</div>
+    return `<div class="pocket" style="--sc:${slot.c}" data-pocketid="${esc(slot.id)}"><button class="pocket-l" data-pocket="${esc(slot.id)}" title="Rename this pocket"><span>${esc(slot.label)}</span><i>&#9998;</i></button>
       ${sec ? `<span class="pocket-clip">clips to ${esc(sec)} on the sheet</span>` : ''}
       <div class="pocket-in">${mine.length ? mine.map(card).join('') + `<button class="ghost sm" data-new="${slot.id}"><b>+ another ${esc(slot.label)} script</b></button>`
         : `<button class="ghost" data-new="${slot.id}"><b>+ script this</b><span>counters branch left, fallbacks right</span></button>`}</div></div>`; };
   const un = plan.drives.filter((d) => !slotOf(d.slot));
   const unHTML = un.length ? `<div class="pocket wide" style="${at(44, 176 + pocketH + 24, 1512, 240)};--sc:#8a6b4a"><div class="pocket-l">Unassigned</div><div class="pocket-in">${un.map(card).join('')}</div></div>` : '';
   const n = plan.drives.length;
-  return { html: `${head(`Drives &middot; the script rack &middot; ${n} script${n !== 1 ? 's' : ''}`, 'Drives', 'script the moment', headRight(`<button class="btn sm" data-new="">+ Script a drive</button>`))}${DRIVE_SLOTS.map(pocket).join('')}${unHTML}`,
+  /* the last pocket on the row makes pockets: as many as the coach wants, the row scrolls */
+  const maker = `<div class="pocket new" style="--sc:#8a6b4a"><div class="pocket-l"><span>Create your own</span></div><div class="pocket-in"><button class="ghost" data-newpocket="1"><b>+ New pocket</b><span>name it what you like: goal line, backed up, a shot drive, whatever the moment is</span></button></div></div>`;
+  return { html: `${head(`Drives &middot; the script rack &middot; ${n} script${n !== 1 ? 's' : ''}`, 'Drives', 'script the moment, create your own pockets', headRight(`<button class="btn sm" data-new="">+ Script a drive</button>`))}<div class="rack" style="${at(44, 176, 1512, pocketH)}">${driveSlots().map(pocket).join('')}${maker}</div>${unHTML}`,
     h: un.length ? 176 + pocketH + 24 + 240 + 100 : H };
 }
 /* the pocket menu on a script */
 let POP = null;
-function popClose() { if (POP) { POP.remove(); POP = null; } }
+/* the outside click that closes a pop is dropped when the pop closes any other way (Enter, Save), or it would close the NEXT pop the moment it opens */
+let POPONCE = null;
+function popClose() { if (POP) { POP.remove(); POP = null; } if (POPONCE) { document.removeEventListener('click', POPONCE); POPONCE = null; } }
 function popOpen(anchor, html) {
   popClose();
   const host = anchor.closest('.pocket') || app;
@@ -596,16 +693,32 @@ function popOpen(anchor, html) {
   if (left + pop.offsetWidth > h.width / s - 8) left = Math.max(4, h.width / s - 8 - pop.offsetWidth);
   pop.style.left = left + 'px'; pop.style.top = top + 'px';
   pop.addEventListener('click', (e) => e.stopPropagation());
-  setTimeout(() => document.addEventListener('click', function once() { popClose(); document.removeEventListener('click', once); }, { once: true }), 0);
+  const once = () => { if (POPONCE === once) popClose(); };
+  setTimeout(() => { if (POP === pop) { POPONCE = once; document.addEventListener('click', once, { once: true }); } }, 0);
   return pop;
 }
 function slotMenu(sc, anchor, driveId, done) {
   const plan = planRead();
-  const pop = popOpen(anchor, DRIVE_SLOTS.map((s) => `<button class="skpop-opt" data-v="${s.id}" style="--sc:${s.c}"><i></i>${esc(s.label)}</button>`).join('')
+  const pop = popOpen(anchor, driveSlots().map((s) => `<button class="skpop-opt" data-v="${s.id}" style="--sc:${s.c}"><i></i>${esc(s.label)}</button>`).join('')
     + `<button class="skpop-opt" data-v="" style="--sc:transparent"><i style="border:1.5px dashed #8A7F6A"></i>Unassigned</button>`);
   pop.querySelectorAll('.skpop-opt').forEach((b) => b.addEventListener('click', () => {
     const d = plan.drives.find((x) => x.id === driveId); if (d) { d.slot = b.dataset.v || null; savePlan(); } popClose(); done(); }));
 }
+
+/* THE POCKET EDITOR: the name, and Delete on a pocket the coach made (its scripts go to Unassigned) */
+function pocketMenu(anchor, id) {
+  const plan = planRead(), slot = slotOf(id); if (!slot) return;
+  const pop = popOpen(anchor, `<div class="skpop-edit"><label>Pocket name</label><input maxlength="24" value="${esc(slot.label)}"><div class="row"><button class="btn sm" data-pksave>Save</button>${slot.own ? '<button class="btn sm gh" data-pkdel>Delete pocket</button>' : ''}</div></div>`);
+  const inp = pop.querySelector('input'); inp.focus(); inp.select();
+  const save = () => { const v = inp.value.trim(); if (!v) return; if (slot.own) { const q = (plan.pockets || []).find((x) => x.id === id); if (q) q.label = v; } else { plan.pocketNames = plan.pocketNames || {}; plan.pocketNames[id] = v; } savePlan(); popClose(); render(); };
+  pop.querySelector('[data-pksave]').addEventListener('click', save);
+  inp.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); save(); } if (e.key === 'Escape') popClose(); });
+  const del = pop.querySelector('[data-pkdel]'); if (del) del.addEventListener('click', () => { plan.pockets = (plan.pockets || []).filter((x) => x.id !== id); plan.drives.forEach((d) => { if (d.slot === id) d.slot = null; }); savePlan(); popClose(); render(); toast('Pocket removed, its scripts are unassigned'); });
+}
+function newPocket() { const plan = planRead(); plan.pockets = plan.pockets || []; const id = 'pk' + Date.now().toString(36);
+  plan.pockets.push({ id, label: 'New pocket', c: POCKET_COLORS[plan.pockets.length % POCKET_COLORS.length] }); savePlan(); render();
+  const rack = $('.rack'); if (rack) rack.scrollLeft = rack.scrollWidth;
+  const lb = $(`[data-pocket="${id}"]`); if (lb) pocketMenu(lb, id); }
 
 /* ---- THE BUILDER, a takeover: the plays on paper, the web in a frame, the
    script on paper, Save in the head. The spine layout is the playbooks',
@@ -619,6 +732,7 @@ function dbxEnsure() {
   el.innerHTML = `<div class="scrim" id="dbxscrim"></div><div class="box">
     <div class="bhead"><div><div class="k" id="dbxeye">The builder</div><div class="slab"><input class="dbx-title" id="dbxtitle" maxlength="48" placeholder="Name this script"></div></div>
       <div class="right"><button class="btn sm" id="dbxsave">Save to the rack</button><button class="btn sm gh" id="dbxclose">Close</button></div></div>
+    <div class="dbx-tabs" id="dbxtabs"><button class="on" data-tab="rail">The plays</button><button data-tab="side">The script</button></div>
     <div class="paper t3 dbx-rail"><span class="tape" style="left:120px;top:-14px"></span><div class="in"><div class="dbx-rail-h"><b>The plays</b><span>tap + to drop one in</span></div>
       <div class="dbx-cats" id="dbxcats"></div><div class="dbx-list" id="dbxlist"></div></div></div>
     <div class="dbx-stage" id="dbxstage">
@@ -635,6 +749,7 @@ function dbxEnsure() {
     list: $('#dbxlist'), cats: $('#dbxcats'), title: $('#dbxtitle'), slots: $('#dbxslots'), sum: $('#dbxsum'), eye: $('#dbxeye') };
   E.title.addEventListener('input', () => { DBX.drive.title = E.title.value; DBX.dirty = true; });
   $('#dbxsave').addEventListener('click', dbxSave);
+  $('#dbxtabs').addEventListener('click', (e) => { const b = e.target.closest('[data-tab]'); if (b) dbxTab(b.dataset.tab); });
   $('#dbxclose').addEventListener('click', () => dbxClose(false));
   $('#dbxx').addEventListener('click', () => dbxClose(false));
   $('#dbxscrim').addEventListener('click', () => dbxClose(false));
@@ -646,21 +761,29 @@ function dbxEnsure() {
     const m = e.target.closest('[data-mode]'); if (m) { DBX.mode = m.dataset.mode; DBX.needsFit = true; dbxRenderWeb(); return; }
     if (e.target.closest('[data-fit]')) { DBX.needsFit = true; dbxRenderWeb(); }
   });
-  /* pan and zoom on the stage */
-  let st = null;
+  /* pan and zoom on the stage: one finger or the mouse pans, two fingers pinch, the wheel zooms */
+  let st = null; const ptrs = new Map(); let pinch = null;
+  const zoomAt = (mx, my, z1) => { const z0 = DBX.pan.z; z1 = Math.max(.3, Math.min(1.6, z1));
+    DBX.pan.x = mx - (mx - DBX.pan.x) * (z1 / z0); DBX.pan.y = my - (my - DBX.pan.y) * (z1 / z0); DBX.pan.z = z1; dbxApply(); };
   E.stage.addEventListener('pointerdown', (e) => { if (e.target.closest('.tn,.tadd,.tact,.dbx-modes')) return;
-    st = { x: e.clientX, y: e.clientY, px: DBX.pan.x, py: DBX.pan.y, moved: false }; DBX.was = false; E.stage.setPointerCapture(e.pointerId); });
-  E.stage.addEventListener('pointermove', (e) => { if (!st) return; const dx = e.clientX - st.x, dy = e.clientY - st.y;
+    ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY }); E.stage.setPointerCapture(e.pointerId);
+    if (ptrs.size === 2) { const [a, b] = [...ptrs.values()]; pinch = { d: Math.hypot(a.x - b.x, a.y - b.y) || 1, z: DBX.pan.z }; st = null; DBX.was = true; return; }
+    st = { x: e.clientX, y: e.clientY, px: DBX.pan.x, py: DBX.pan.y, moved: false }; DBX.was = false; });
+  E.stage.addEventListener('pointermove', (e) => { if (!ptrs.has(e.pointerId)) return; ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (pinch && ptrs.size === 2) { const [a, b] = [...ptrs.values()], r = E.stage.getBoundingClientRect(), d = Math.hypot(a.x - b.x, a.y - b.y) || 1;
+      zoomAt((a.x + b.x) / 2 - r.left, (a.y + b.y) / 2 - r.top, pinch.z * d / pinch.d); pinch.z = DBX.pan.z; pinch.d = d; return; }
+    if (!st) return; const dx = e.clientX - st.x, dy = e.clientY - st.y;
     if (Math.abs(dx) + Math.abs(dy) > 4) { st.moved = true; DBX.was = true; }
     DBX.pan.x = st.px + dx; DBX.pan.y = st.py + dy; dbxApply(); });
-  E.stage.addEventListener('pointerup', () => { if (st && !st.moved) { DBX.menuKey = null; DBX.armed = null; dbxRenderWeb(); } st = null; });
-  E.stage.addEventListener('wheel', (e) => { e.preventDefault();
-    const r = E.stage.getBoundingClientRect(), mx = e.clientX - r.left, my = e.clientY - r.top;
-    const z0 = DBX.pan.z, z1 = Math.max(.3, Math.min(1.6, z0 * (e.deltaY < 0 ? 1.1 : .9)));
-    DBX.pan.x = mx - (mx - DBX.pan.x) * (z1 / z0); DBX.pan.y = my - (my - DBX.pan.y) * (z1 / z0); DBX.pan.z = z1; dbxApply(); }, { passive: false });
+  const up = (e) => { ptrs.delete(e.pointerId); if (ptrs.size < 2) pinch = null; if (st && !st.moved) { DBX.menuKey = null; DBX.armed = null; dbxRenderWeb(); } st = null; };
+  E.stage.addEventListener('pointerup', up); E.stage.addEventListener('pointercancel', up);
+  E.stage.addEventListener('wheel', (e) => { e.preventDefault(); const r = E.stage.getBoundingClientRect();
+    zoomAt(e.clientX - r.left, e.clientY - r.top, DBX.pan.z * (e.deltaY < 0 ? 1.1 : .9)); }, { passive: false });
   return E;
 }
 const dbxIsOpen = () => !!(DBX.els && DBX.els.root.classList.contains('open'));
+/* on a phone the plays and the script share the room under the web; the tab picks which shows */
+function dbxTab(t) { DBX.tab = t; const E = DBX.els; E.root.dataset.tab = t; E.root.querySelectorAll('#dbxtabs [data-tab]').forEach((b) => b.classList.toggle('on', b.dataset.tab === t)); }
 function dbxOpen(sc, drive, slot) {
   const E = dbxEnsure();
   DBX.sc = sc;
@@ -668,7 +791,7 @@ function dbxOpen(sc, drive, slot) {
                     : { id: 'dr' + Date.now().toString(36), title: '', slot: slot || null, main: [] };
   DBX.armed = drive ? null : { chainPath: [] }; DBX.menuKey = null; DBX.needsFit = true; DBX.mode = 'build'; DBX.cat = 'all'; DBX.dirty = false;
   E.root.classList.add('open'); document.body.classList.add('lock'); const w = $('.stagewrap'); if (w) w.classList.add('blurred');
-  dbxRenderSide(); dbxRenderRail(); dbxRenderWeb();
+  dbxTab('rail'); dbxRenderSide(); dbxRenderRail(); dbxRenderWeb();
 }
 function dbxClose(silent) {
   if (!dbxIsOpen()) return;
@@ -689,7 +812,7 @@ function dbxRenderSide() {
   const E = DBX.els, sc = DBX.sc, d = DBX.drive, sl = slotOf(d.slot);
   E.title.value = d.title;
   E.eye.innerHTML = `The builder${sl ? ' &middot; ' + esc(sl.label) : ''}`;
-  E.slots.innerHTML = DRIVE_SLOTS.map((s) => `<button class="dbx-slot${d.slot === s.id ? ' on' : ''}" style="--sc:${s.c}" data-slot="${s.id}">${esc(s.label)}</button>`).join('');
+  E.slots.innerHTML = driveSlots().map((s) => `<button class="dbx-slot${d.slot === s.id ? ' on' : ''}" style="--sc:${s.c}" data-slot="${s.id}">${esc(s.label)}</button>`).join('');
   E.sum.innerHTML = `<div class="k team">${d.main.length} call${d.main.length !== 1 ? 's' : ''} on the spine</div>${scriptRows(sc, d)}`;
 }
 function dbxRenderRail() {
@@ -750,7 +873,8 @@ function dbxFit(ctx) {
   pts.forEach((p) => { minX = Math.min(minX, p.x); maxX = Math.max(maxX, p.x); minY = Math.min(minY, p.y); maxY = Math.max(maxY, p.y); });
   minX -= 180; maxX += 180; minY -= 80; maxY += 100;
   const W = r.width, H = r.height, tw = Math.max(1, maxX - minX), th = Math.max(1, maxY - minY);
-  DBX.pan.z = Math.max(.3, Math.min(1.1, Math.min((W * .86) / tw, (H * .8) / th)));
+  /* a phone keeps the chips readable (a floor of .65) and lets him pan the rest */
+  DBX.pan.z = Math.max(document.body.classList.contains('mob') ? .65 : .3, Math.min(1.1, Math.min((W * .86) / tw, (H * .8) / th)));
   DBX.pan.x = W / 2 - ((minX + maxX) / 2) * DBX.pan.z;
   DBX.pan.y = (DBX.mode === 'field' ? H * .62 : H / 2) - ((minY + maxY) / 2) * DBX.pan.z;
   dbxApply();
@@ -772,16 +896,16 @@ function dbxRenderWeb() {
   html += ctx.addSlots.map((sl) => { const ck = dbxCKey(sl.chainPath), armed = DBX.armed && dbxCKey(DBX.armed.chainPath) === ck;
     const label = (!sl.chainPath.length && !main.length) ? '+ Add the first call' : '+ Add call';
     return `<button class="tadd${armed ? ' armed' : ''}" data-chain="${ck}" style="left:${sl.x.toFixed(1)}px;top:${sl.y.toFixed(1)}px">${label}</button>`; }).join('');
-  if (!main.length) html += `<div class="tempty" style="left:0px;top:${-DB_ROW * 2}px">Pick a play on the left and tap + to drop it in. Every call after that can branch a counter or a fallback.</div>`;
+  if (!main.length) html += `<div class="tempty" style="left:0px;top:${-DB_ROW * 2}px">Pick a play from the list and tap + to drop it in. Every call after that can branch a counter or a fallback.</div>`;
   E.nodes.innerHTML = html;
   E.nodes.querySelectorAll('.tadd').forEach((b) => b.addEventListener('click', (e) => { e.stopPropagation();
     const cp = dbxParse(b.dataset.chain);
-    DBX.armed = (DBX.armed && dbxCKey(DBX.armed.chainPath) === dbxCKey(cp)) ? null : { chainPath: cp }; DBX.menuKey = null; dbxRenderWeb(); dbxRenderRail(); }));
+    DBX.armed = (DBX.armed && dbxCKey(DBX.armed.chainPath) === dbxCKey(cp)) ? null : { chainPath: cp }; DBX.menuKey = null; if (DBX.armed) dbxTab('rail'); dbxRenderWeb(); dbxRenderRail(); }));
   E.nodes.querySelectorAll('.tn').forEach((n) => n.addEventListener('click', (e) => { if (e.target.closest('.tact') || DBX.was) return;
     const key = n.dataset.key; DBX.menuKey = DBX.menuKey === key ? null : key; DBX.armed = null; dbxRenderWeb(); dbxRenderRail(); }));
   E.nodes.querySelectorAll('.tact').forEach((b) => b.addEventListener('click', (e) => { e.stopPropagation();
     const path = dbxParse(b.dataset.key), act = b.dataset.act;
-    if (act === 'left' || act === 'right') { DBX.armed = { chainPath: [...path, act] }; DBX.menuKey = null; dbxRenderWeb(); dbxRenderRail(); }
+    if (act === 'left' || act === 'right') { DBX.armed = { chainPath: [...path, act] }; DBX.menuKey = null; dbxTab('rail'); dbxRenderWeb(); dbxRenderRail(); }
     else if (act === 'open') { const nd = dbxNode(d, path); DBX.menuKey = null; dbxRenderWeb(); if (nd) playDrawer(DBX.sc, nd.play); }
     else if (act === 'rm') { dbxChain(d, path.slice(0, -1)).splice(path[path.length - 1], 1); DBX.menuKey = null; DBX.armed = null; DBX.dirty = true; dbxRenderWeb(); dbxRenderSide(); }
   }));
@@ -789,7 +913,7 @@ function dbxRenderWeb() {
     ? (DBX.armed.chainPath.length && DBX.armed.chainPath[DBX.armed.chainPath.length - 1] === 'left' ? 'Adding a counter (if they bite): tap + on a play'
       : DBX.armed.chainPath.length && DBX.armed.chainPath[DBX.armed.chainPath.length - 1] === 'right' ? 'Adding a fallback (it stalled): tap + on a play'
       : 'Adding the next call: tap + on a play')
-    : (main.length ? 'Tap a call to branch it. Drag to pan, scroll to zoom.' : 'Empty script. Pick a play and tap + to start.');
+    : (main.length ? (document.body.classList.contains('mob') ? 'Tap a call to branch it. Drag to pan, pinch to zoom.' : 'Tap a call to branch it. Drag to pan, scroll to zoom.') : 'Empty script. Pick a play and tap + to start.');
   if (DBX.needsFit) { dbxFit(ctx); DBX.needsFit = false; } else dbxApply();
 }
 function dbxAdd(playId) {
@@ -797,6 +921,7 @@ function dbxAdd(playId) {
   const c = { play: playId, sit: (p && p.formation) || '', left: [], right: [] };
   const path = (DBX.armed && DBX.armed.chainPath) || [];
   dbxChain(d, path).push(c); DBX.armed = null; DBX.dirty = true;
+  if (document.body.classList.contains('mob')) DBX.needsFit = true;
   dbxRenderWeb(); dbxRenderSide(); dbxRenderRail();
 }
 
@@ -1069,8 +1194,48 @@ const posShort = (pl) => { const s = String(pl.name || ''); for (const [re, k] o
 /* one cap height on the main screen; the role's letters fill the frame's width */
 const posSize = (k, big) => big ? (k.length <= 1 ? 320 : k.length === 2 ? 270 : k.length === 3 ? 210 : 180) : 100;
 const crestHTML = () => `<span class="crest"><img src="logos/${esc(SC.logo)}.png" alt=""></span>`;
-const whoBuilt = () => { const t = String((SC.about && SC.about.team) || SC.name).replace(/^THE\s+/i, '').split(/\s+/)[0]; return `${tcase(t)} built them`; };
+const placeName = () => { const team = String((SC.about && SC.about.team) || SC.name).replace(/^THE\s+/i, ''); const nick = String(SC.nick || '').trim();
+  const t = (nick && team.toUpperCase().endsWith(nick.toUpperCase()) ? team.slice(0, team.length - nick.length).trim() : team.split(/\s+/)[0]) || team.split(/\s+/)[0]; return tcase(t); };
+const whoBuilt = () => { const team = String((SC.about && SC.about.team) || SC.name).replace(/^THE\s+/i, ''); const nick = String(SC.nick || '').trim();
+  /* the place is the team name with the nickname taken off (New England, Alabama); the first word only when there is no nickname to take off */
+  const t = (nick && team.toUpperCase().endsWith(nick.toUpperCase()) ? team.slice(0, team.length - nick.length).trim() : team.split(/\s+/)[0]) || team.split(/\s+/)[0]; return `${tcase(t)} built them`; };
+/* ---------- HISTORY & PERSONNEL (the offenses, built to the board 2026-09-14):
+   the story of the offense on eight columns (what they do, what they like to
+   do, the numbers, what we take from it), the players as a rail of five rows
+   with a big position and the number, no pictures; a row opens the player. ---------- */
+const POSNAME = { QB: 'Quarterback', WR: 'Wide receiver', TE: 'Tight end', RB: 'Running back', OL: 'Offensive line' };
+const stampify = (t) => esc(t).replace(/\{(\w+)\|([^}]+)\}/g, '<span class="stamp">$2</span>');
+function historyStage() {
+  const P = SC.personnel || {}, players = P.players || [], ab = SC.about || {}, lay = L();
+  const stats = (ab.stats || []).slice(0, 5), quote = (ab.extras || []).find((x) => x.kind === 'quote'), pr = (ab.principles || []).slice(0, 3);
+  const paper = `<div class="h26">What ${esc(placeName())} does</div>${(ab.copy || []).map((t) => `<div class="t">${stampify(t)}</div>`).join('')}
+    <div class="rule"></div><div class="nums n${stats.length}">${stats.map((x) => `<div class="num"><b>${esc(String(x.value))}${x.id === 'winpct' ? '%' : ''}</b><u>${esc(x.label)}</u></div>`).join('')}</div>
+    ${pr.length ? `<div class="rule"></div><div class="k team">What we take from it</div><div class="take">${pr.map((p) => `<div><div class="h26 s22">${esc(tcase(p.title))}</div><div class="t s15">${esc(p.blurb || '')}</div></div>`).join('')}</div>` : ''}
+    ${quote ? `<div class="quote">&ldquo;${esc(quote.text)}&rdquo;</div>` : ''}`;
+  const rows = players.map((g, i) => { const pl = g.player || {}; const pos = pl.pos || posShort(g);
+    return `<a class="prow" href="#role/${i}"><span class="posbox"><b>${esc(pos)}</b>${pl.number ? `<i>#${esc(String(pl.number))}</i>` : ''}</span><span class="pt"><span class="nm">${esc(nice(pl.name || g.name, true))}</span><span class="pos">${esc(POSNAME[pos] || nice(g.name, true))}</span><span class="ln">${esc(pl.line || '')}</span></span><span class="go">&rsaquo;</span></a>`; }).join('');
+  return `${head('History &amp; Personnel', `The ${esc(SC.nick || shortName())} Offense`, esc(tcase(String(ab.era || '').toLowerCase())))}
+    <div class="paper t3 hist2" style="${at(X(1), 176, CW(8), lay.H - 80 - 176 - 16)}"><span class="tape" style="left:300px;top:-14px"></span><div class="in">${paper}</div></div>
+    <div class="frame roster" style="${at(X(9), 176, CW(4), lay.H - 80 - 176 - 16)}"><div class="rh">The players &middot; tap one</div>${rows}</div>`;
+}
+/* the player: a big position and the number in the frame, who he is and what
+   he is good at on one paper, what the role is built for on the other */
+function playerStage(i, H = 900) {
+  const P = SC.personnel || {}, players = P.players || [], g = players[i]; if (!g) return '';
+  const pl = g.player || {}, pos = pl.pos || posShort(g), ab = SC.about || {}, n = players.length;
+  const era = pl.era ? tcase(String(pl.era).toLowerCase()) : '';
+  const good = (pl.goodAt || []).map((x) => `<div class="quote tight">${esc(x)}</div>`).join('');
+  const nums = (pl.nums || []).slice(0, 3);
+  return `${head(`History &amp; Personnel &middot; player ${i + 1} of ${n}`, esc(nice(pl.name || g.name, true)), esc(POSNAME[pos] || nice(g.name, true)) + (era ? ' &middot; ' + esc(era) : ''), headRight('', arrowsHTML(i + 1, n)))}
+    <div class="frame" style="${at(X(1), 176, CW(4), 644)}"><div class="tv locker big"><img class="wm" src="logos/${esc(SC.logo)}.png" alt=""><span class="k">The position</span><span class="pos" style="font-size:${posSize(pos, true)}px">${esc(pos)}</span>${pl.number ? `<span class="jersey">#${esc(String(pl.number))}</span>` : ''}<span class="plate2">${esc(POSNAME[pos] || nice(g.name, true))}</span></div></div>
+    <div class="paper t3 pp" style="${at(X(5), 176, CW(4), 644)}"><span class="tape" style="left:150px;top:-14px"></span><div class="in"><div class="h26">Who he is</div><div class="t">${stampify(pl.bio || '')}</div>
+      ${good ? `<div class="rule"></div><div class="k team">What he is good at</div>${good}` : ''}
+      ${nums.length ? `<div class="rule"></div><div class="nums n3">${nums.map(([v, l]) => `<div class="num"><b>${esc(v)}</b><u>${esc(l)}</u></div>`).join('')}</div>` : ''}</div></div>
+    <div class="paper t2 pp" style="${at(X(9), 176, CW(4), 644)}"><span class="tape" style="left:150px;top:-14px"></span><div class="in"><div class="h26">What the role is built for</div>${(pl.roleFor || []).map((t) => `<div class="t">${esc(t)}</div>`).join('')}
+      ${pl.oneLine ? `<div class="rule"></div><div class="k team">In one line</div><div class="quote">${esc(pl.oneLine)}</div>` : ''}</div></div>`;
+}
 function personnelStage() {
+  if (HIST()) return historyStage();
   const P = SC.personnel || {}, players = P.players || [], ab = SC.about || {}, lay = L(), fh = lay.frame.h;
   if (!players.length) return head('Personnel', 'Nobody yet', 'no personnel authored for this scheme');
   const cw = Math.floor(1000 / players.length);
@@ -1092,6 +1257,7 @@ function personnelStage() {
 /* the role: the frame holds the position, the crest as a watermark and the
    vitals; the two papers take the height their writing needs */
 function roleStage(i, H = 900) {
+  if (HIST()) return playerStage(i, H);
   const P = SC.personnel || {}, players = P.players || [], roles = P.roles || {};
   const pl = players[i]; if (!pl) return '';
   const r = roles[pl.roleRef] || {}, k = posShort(pl), men = pl.lineage || [];
@@ -1177,17 +1343,19 @@ function render() {
   const { sec, at: a, id } = parseHash(); const prev = SEC, prevAt = AT, prevId = PLAYID;
   /* the takeover opens and closes over the rows without rebuilding them */
   /* the takeover opens over All Plays or the intro without rebuilding them; closing over All Plays keeps the scroll, closing over the intro repaints it (a chip may have been inked) */
-  if (sec === 'play' && (prev === 'plays' || prev === 'intro') && $('.stagewrap') && !$('.modal')) { UNDER = prev; SEC = 'play'; PLAYID = id; RD = 0; FILM = null; if (openModal()) { const d = $('.dock'); if (d) d.outerHTML = dockHTML(); document.title = `${SC.name} · Play`; return; } }
+  if (sec === 'play' && (prev === 'plays' || prev === 'intro' || (prev === 'drives' && DRIVEB)) && $('.stagewrap') && !$('.modal')) { UNDER = prev; SEC = 'play'; PLAYID = id; RD = 0; FILM = null; if (openModal()) { const d = $('.dock'); if (d) d.outerHTML = dockHTML(); document.title = `${SC.name} · Play`; return; } }
   if (sec === 'book' && prev === 'plays' && $('.stagewrap') && !$('.modal')) { UNDER = 'plays'; SEC = 'book'; if (openBook()) { const d = $('.dock'); if (d) d.outerHTML = dockHTML(); document.title = `${SC.name} · The book`; return; } }
   if (sec === 'plays' && prev === 'book' && $('.modal') && $('.stagewrap')) { closeModal(); SEC = 'plays'; }
+  if (sec === 'drives' && prev === 'play' && UNDER === 'drives' && DRIVEB && $('.modal') && $('.stagewrap')) { closeModal(); SEC = 'drives'; PLAYID = ''; RD = 0; FILM = null; const d = $('.dock'); if (d) d.outerHTML = dockHTML(); document.title = `${SC.name} · Drives`; return; }
   if (sec === 'plays' && prev === 'play' && UNDER === 'plays' && $('.modal') && $('.stagewrap')) { closeModal(); SEC = 'plays'; PLAYID = ''; RD = 0; FILM = null; const d = $('.dock'); if (d) d.outerHTML = dockHTML(); document.title = `${SC.name} · All plays`; return; }
   if (sec === 'role' && prev === 'personnel' && $('.stagewrap') && !$('.modal')) { SEC = 'role'; AT = a; if (openRole()) { const d = $('.dock'); if (d) d.outerHTML = dockHTML(); document.title = `${SC.name} · Personnel`; return; } }
   if (sec === 'personnel' && prev === 'role' && $('.modal') && $('.stagewrap')) { closeModal(); SEC = 'personnel'; const d = $('.dock'); if (d) d.outerHTML = dockHTML(); document.title = `${SC.name} · Personnel`; return; }
-  popClose(); if (sec !== prev) { drawerClose(); dbxClose(true); closeLineup(); }
+  popClose(); if (sec !== prev) { drawerClose(); dbxClose(true); closeLineup(); builderExit(); }
   if (sec !== 'play') UNDER = 'plays';
   if (sec === 'coverage' && (prev !== 'coverage' || id !== prevId)) { SPOT = null; FILM = null; COVVIEW = 'shot'; }
   SEC = sec; AT = a; PLAYID = id; if (SEC !== prev || (SEC === 'play' && id !== prevId)) { RD = 0; FILM = null; } if (AT !== prevAt || SEC !== prev) TSEL = 0;
   STAGE_H = stageH(); scale();
+  AREAS = AREAS_OF();
   document.title = `${SC.name} · ${(AREAS.find((x) => x[0] === SEC) || ['', SEC === 'play' ? 'Play' : SEC === 'book' ? 'The book' : SEC === 'role' ? 'Personnel' : SEC === 'coverage' ? 'Coverages' : 'The front'])[1]}`;
   let body = '';
   if (SEC === 'front') body = frontHTML();
@@ -1196,6 +1364,7 @@ function render() {
   else if (SEC === 'plays' || SEC === 'play') { const pg = playsPage(); body = stagewrap(pg.html, pg.h); }
   else if (SEC === 'book') { const pg = playsPage(); body = stagewrap(pg.html, pg.h); }
   else if (SEC === 'sheet') { const sh = sheetStage(); body = stagewrap(sh.html, STAGE_H, 'in', sh.live); }
+  else if (SEC === 'drives' && hasBuilder()) { builderExit(); const bs = builderStage(); body = stagewrap(bs.html, STAGE_H, 'in') + bs.host; }
   else if (SEC === 'drives') { const dr = drivesStage(); body = stagewrap(dr.html, dr.h, 'in'); }
   else if (SEC === 'board') { BOARD = boardStage(); body = stagewrap(BOARD.html, STAGE_H, 'in', BOARD.live); }
   else if (SEC === 'personnel' || SEC === 'role') body = stagewrap(personnelStage(), STAGE_H, 'in');
@@ -1203,11 +1372,12 @@ function render() {
   else if (SEC === 'coverage') { const c = curPlay(); if (!c) { location.hash = '#coverages'; return; } body = stagewrap(covStage(c.p, 'screen', c.j, c.n, STAGE_H), STAGE_H, 'in'); }
   else body = stagewrap(`${head((AREAS.find((x) => x[0] === SEC) || ['', SEC])[1], 'Re-housed next', '')}<div class="later"><div class="t">This area keeps its page in the old room for now and moves onto the stage after the front, the intro, the install and All Plays.</div><a class="btn" href="${OLD(SEC)}">Open it there <em>&rarr;</em></a></div>`);
   if (typeof skWhoRender === 'function') setTimeout(skWhoRender, 0);
-  app.innerHTML = `<div class="bg" style="--room:url('${esc(SC.about && SC.about.room || '')}')"><i class="p1"></i><i class="veil"></i><i class="grain"></i></div><div class="hound"></div>${body}${dockHTML()}`;
+  app.innerHTML = `<div class="bg" style="--room:url('${esc((() => { const a = SC.about || {}; const pic = (SEC === 'front' && a.front) || a.room; return pic ? new URL(pic, location.href).href : ''; })())}')"><i class="p1"></i><i class="veil"></i><i class="grain"></i></div><div class="hound"></div>${body}${dockHTML()}`;
   parallax();
   if (SEC === 'book') openBook();
   if (SEC === 'front') wireFront();
   if (SEC === 'sheet') sheetMount();
+  if (SEC === 'drives' && hasBuilder()) builderMount();
   if (SEC === 'board') boardWire(SC, BOARD.model);
   if (SEC === 'role') { if (!openRole()) location.hash = '#personnel'; }
   document.body.classList.toggle('lock', false);
@@ -1295,6 +1465,8 @@ app.addEventListener('click', (e) => {
   if (e.target.closest('[data-lineup]')) { openLineup(); return; }
   const nw = e.target.closest('[data-new]'); if (nw) { dbxOpen(SC, null, nw.dataset.new || null); return; }
   const sm = e.target.closest('[data-slotmenu]'); if (sm) { e.stopPropagation(); slotMenu(SC, sm, sm.dataset.slotmenu, () => render()); return; }
+  if (e.target.closest('[data-newpocket]')) { newPocket(); return; }
+  const pk = e.target.closest('[data-pocket]'); if (pk) { e.stopPropagation(); pocketMenu(pk, pk.dataset.pocket); return; }
   const del = e.target.closest('[data-del]'); if (del) { e.stopPropagation(); const plan = planRead(); plan.drives = plan.drives.filter((d) => d.id !== del.dataset.del); planWrite(); render(); toast('Script torn up'); return; }
   const dr = e.target.closest('[data-drive]'); if (dr) { const d = planRead().drives.find((x) => x.id === dr.dataset.drive); if (d) dbxOpen(SC, d, null); return; }
   if (e.target.closest('[data-newcase]')) { newCaseDrawer(SC); return; }
@@ -1330,6 +1502,7 @@ app.addEventListener('click', (e) => {
   SC = one;
   await skPlanPull(); /* the account's plan, if it is newer than this browser's */
   if (!SC) { app.innerHTML = `<div class="sk-boot">No scheme called ${esc(KEY)}</div>`; return; }
+  if (window.SK_GAME) document.body.classList.add('g-' + window.SK_GAME);
   document.documentElement.style.setProperty('--team', SC.c1 || '#9E1B32');
   document.documentElement.style.setProperty('--team2', SC.c2 || '#828A8F');
   const sets = [...new Set(SC.plays.filter((p) => p.libFamily && p.libSet).map((p) => slug(p.libFamily) + '__' + slug(p.libSet)))];

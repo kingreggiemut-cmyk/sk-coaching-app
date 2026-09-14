@@ -158,3 +158,13 @@
   for = "/database/logos/*"
   [headers.values]
     Cache-Control = "public, max-age=604800"
+
+# THE MADDEN 27 DATABASE (/database/madden/): its drawn cards and crests, cached like the college ones.
+[[headers]]
+  for = "/database/madden/cards/*"
+  [headers.values]
+    Cache-Control = "public, max-age=604800"
+[[headers]]
+  for = "/database/madden/logos/*"
+  [headers.values]
+    Cache-Control = "public, max-age=604800"

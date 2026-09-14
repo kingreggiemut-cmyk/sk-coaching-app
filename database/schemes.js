@@ -352,7 +352,7 @@ function pkCardStyle(o,sc){
   const s=ab===0?1:ab===1?.5:.4, op=!vis?0:ab===0?1:ab===1?.5:0;
   const lay=ab===0?0:1, gray=ab===0?0:.65;
   return `--o:${o};--s:${s};--op:${op};--lay:${lay};--gray:${gray};--z:${20-ab};`
-    +`--tc:${sc.c1||'#1E3A6E'};--tc2:${sc.c2||'#F5B935'};--pe:${vis?'auto':'none'}`+(sc.home&&sc.home.card?`;--face:url('${sc.home.card}')`:'');
+    +`--tc:${sc.c1||'#1E3A6E'};--tc2:${sc.c2||'#F5B935'};--pe:${vis?'auto':'none'}`+(sc.home&&sc.home.card?`;--face:url('${new URL(sc.home.card,location.href).href}')`:'');
 }
 function pkState(sc){ const n=installedSet(sc).size, t=((sc.install&&sc.install.pillars)||[]).length||3;
   return n>=t?['ready','Game Ready']:n?['prog',`In Progress · ${n} of ${t} sections`]:['open','Open It']; }
@@ -392,7 +392,7 @@ const pkInked=(sc)=>{ const p=planOf(sc); return Array.isArray(p.inked)?p.inked.
 function pkDossier(sc){
   const h=sc.home||{}, st=pkState(sc), pls=(sc.install&&sc.install.pillars)||[], cov=sc.mode==='coverages';
   const films=(sc.counts&&sc.counts.films!=null)?sc.counts.films:(sc.plays||[]).filter(p=>p.videoUrl).length, fr=(sc.formations||[]).slice(0,3);
-  const tiles=fr.length?`<div class="pd-lab">The ${fr.length===1?'front':'fronts'}</div><div class="pd-tiles">${fr.map(f=>`<div class="tl">${pkTile(f)}</div>`).join('')}</div><div class="pd-tlab">${fr.map(f=>`<span>${esc(f.name)}</span>`).join('')}</div>`:'';
+  const tiles=fr.length?`<div class="pd-lab">The ${sc.side==='D'?(fr.length===1?'front':'fronts'):(fr.length===1?'formation':'formations')}</div><div class="pd-tiles">${fr.map(f=>`<div class="tl">${pkTile(f)}</div>`).join('')}</div><div class="pd-tlab">${fr.map(f=>`<span>${esc(f.name)}</span>`).join('')}</div>`:'';
   const rows=cov?[['Coverages',pkN(sc)],['Films',films],['Fronts','any, the rules travel']]
     :[['Plays',pkN(sc)],['Sections',pls.length?(()=>{ const full=pls.map(p=>String(p.name).replace(/^The\s+/i,'')); const names=full.join(' · ').length>36?pls.map(p=>p.key):full; return names.map(esc).join(' · '); })():'3'],['Films',films],['Inked',`${pkInked(sc)} of ${pkN(sc)}`]];
   return `<span class="pd-tape"></span><div class="pd-k">${cov?'The rules under both':'The standing card'}</div><div class="pd-name" id="pkname">${esc(pkShort(sc.name))}</div>
@@ -403,7 +403,28 @@ function pkDossier(sc){
 }
 /* the book in game, along the bottom */
 function pkBook(sc){ const b=sc.home&&sc.home.book; if(!b) return '';
-  return `${b.thumb?`<img src="${esc(b.thumb)}" alt="" loading="lazy" decoding="async">`:''}<div><div class="h">In game, this runs out of the <i>${esc(b.team)}</i> defensive playbook</div><div class="k7">${esc(b.note||'')}</div></div>${(b.copies||[]).length?`<div class="cuts"><u>Same book in Ultimate Team</u>${b.copies.map(t=>`<span>${esc(t)}</span>`).join('')}</div>`:''}`; }
+  return `${b.thumb?`<img src="${esc(b.thumb)}" alt="" loading="lazy" decoding="async">`:''}<div><div class="h">In game, this runs out of the <i>${esc(b.team)}</i> ${sc.side==='D'?'defensive':'offensive'} playbook</div><div class="k7">${esc(b.note||'')}</div></div>${(b.copies||[]).length?`<div class="cuts"><u>Same book in Ultimate Team</u>${b.copies.map(t=>`<span>${esc(t)}</span>`).join('')}</div>`:''}`; }
+/* THE SERIES POP-UP (his note 2026-09-14): the first time the picker opens it
+   says what these installs are together, over the picker, and has to be
+   closed. It comes back from the chip beside the installs eyebrow. */
+const SERIES_SEEN=()=>{ try{ return !!(typeof SERIES!=='undefined'&&SERIES&&localStorage.getItem('sk_series_seen_'+SERIES.key)); }catch(e){ return true; } };
+function seriesPop(){
+  if(typeof SERIES==='undefined'||!SERIES) return; seriesClose();
+  const S=SERIES;
+  const el=document.createElement('div'); el.className='yg-pop'; el.id='ygpop';
+  el.innerHTML=`<div class="yg-scrim" data-ygclose></div><div class="yg-box">
+    <a class="yg-x" data-ygclose aria-label="Close">&times;</a>
+    <div class="yg-k">${esc(S.kicker||'')}</div><div class="yg-slab"><span>${esc(S.title)}</span></div>
+    <div class="yg-qbs">${(S.qbs||[]).map(q=>`<div class="yg-qb"><div class="yg-cut">${q.cut?`<img src="${esc(q.cut)}" alt="">`:''}</div><b>${esc(q.name)}</b><i>${esc(q.team)}</i></div>`).join('')}</div>
+    <div class="yg-copy">${(S.copy||[]).map(t=>`<p>${esc(t)}</p>`).join('')}</div>
+    <div class="yg-foot">${S.book&&S.book.thumb?`<img class="yg-book" src="${esc(S.book.thumb)}" alt="">`:''}<span class="yg-bk">In game, all three run out of the <b>${esc((S.book||{}).team||'')}</b> playbook</span><button class="skb gold yg-go" data-ygclose>Got it, show me the schemes &rarr;</button></div>
+  </div>`;
+  document.body.appendChild(el); document.body.classList.add('yg-on');
+  el.addEventListener('click',(e)=>{ if(e.target.closest('[data-ygclose]')) seriesClose(); });
+  try{ localStorage.setItem('sk_series_seen_'+S.key,'1'); }catch(e){}
+}
+function seriesClose(){ const el=document.getElementById('ygpop'); if(el) el.remove(); document.body.classList.remove('yg-on'); }
+document.addEventListener('keydown',(e)=>{ if(e.key==='Escape'&&document.getElementById('ygpop')) seriesClose(); });
 function renderPicker(){
   const main=$('#main'); document.body.classList.add('sk-pick');
   const DECK=deckOf();
@@ -423,7 +444,7 @@ function renderPicker(){
       `<button class="pk-chip${i===INSTALL?' on':''}" data-pk="${i}" style="--tc:${s.c1||'#1E3A6E'};--tc2:${s.c2||'#F5B935'}" title="${esc(s.name)}">
         ${pkCrest(s)}<span>${esc(pkShort(s.name))}</span></button>`).join('')}</div>
     <div class="pk-stage">
-      <div class="pk-eyebrow eyebrow">Your Installs</div>
+      <div class="pk-eyebrow eyebrow">Your Installs</div>${typeof SERIES!=='undefined'&&SERIES?`<button class="yg-chip" data-ygopen="1">${esc(SERIES.title)} &middot; what these are together</button>`:''}
       <div class="pk-deck" id="pkdeck">
         ${N>1?`<button class="pk-arrow prev" data-step="-1" aria-label="Previous scheme">&lsaquo;</button>`:''}
         ${DECK.map((s,i)=>{ const o=off(i);
@@ -449,7 +470,7 @@ function renderPicker(){
   const open=async(i)=>{ const s=DECK[i]; if(s.skin==='warroom'){ location.href=`scheme.html?key=${encodeURIComponent(s.key)}`; return; }
     if(typeof ensureScheme==='function') await ensureScheme(s.key); if(!IDX&&typeof ensureIndex==='function') await ensureIndex();
     navPush(); SCHEME=s.key; SEC='home'; CH=-1; OPENPLAY=null; buildRail(); render(); scrollTo(0,0); };
-  main.onclick=e=>{
+  main.onclick=e=>{ if(e.target.closest('[data-ygopen]')){ seriesPop(); return; }
     const st2=e.target.closest('[data-step]'); if(st2){ go(INSTALL + +st2.dataset.step); return; }
     if(e.target.closest('[data-open]')){ open(INSTALL); return; }
     const pk=e.target.closest('[data-pk]');
@@ -459,6 +480,7 @@ function renderPicker(){
   };
   /* the foil: the standing card tilts toward the pointer and the holo sweep
      follows it. Nothing on the flat cards, nothing under reduced motion. */
+  if(!SERIES_SEEN()) seriesPop();
   const deck=$('#pkdeck');
   if(!REDUCED.matches){
     let raf=0, ev=null;

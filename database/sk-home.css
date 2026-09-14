@@ -201,3 +201,32 @@ body.sk-pick .pk-dot{width:calc(11 * var(--u));height:calc(11 * var(--u))}
 .skwho-btn:hover{border-color:var(--skgold);color:var(--skgold)}
 .skwho-btn.on{background:var(--skgold);color:#17130E;border-color:var(--skgold)}
 .skwho-btn.on:hover{background:#ffb84d;color:#17130E}
+
+/* THE SERIES POP-UP (2026-09-14): what the installs are together, over the picker.
+   Sized in stage units (--u = one 1600x900 stage unit on this screen) so it is the
+   same card on every screen; 40 percent up on his note. */
+.yg-pop{--u:min(calc(100vw / 1600),calc(100vh / 900));position:fixed;inset:0;z-index:80;display:grid;place-items:center;font-family:Barlow,Arial,sans-serif}
+.yg-scrim{position:absolute;inset:0;background:rgba(6,6,10,.72);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+.yg-box{position:relative;width:calc(1440 * var(--u));max-width:96vw;max-height:96vh;overflow:auto;background:#F6EEDC;color:#17130E;padding:calc(40 * var(--u)) calc(52 * var(--u)) calc(36 * var(--u));box-shadow:0 40px 120px rgba(0,0,0,.7);clip-path:polygon(0 2%,2% 0,98% 1%,100% 3%,99% 98%,97% 100%,3% 99%,0 97%);animation:ygIn .28s cubic-bezier(.2,.75,.2,1) both}
+@keyframes ygIn{from{opacity:0;transform:translateY(18px) scale(.98)}to{opacity:1;transform:none}}
+.yg-x{position:absolute;right:calc(22 * var(--u));top:calc(18 * var(--u));width:calc(52 * var(--u));height:calc(52 * var(--u));border-radius:50%;display:grid;place-items:center;background:rgba(23,19,14,.08);color:#17130E;font:400 calc(34 * var(--u))/1 Anton,Impact,sans-serif;cursor:pointer;text-decoration:none}
+.yg-x:hover{background:#F5A623}
+.yg-k{font:800 calc(16 * var(--u))/1 'Barlow Condensed','Arial Narrow',sans-serif;letter-spacing:.3em;text-transform:uppercase;color:#9E1B32}
+.yg-slab{margin-top:calc(12 * var(--u))}.yg-slab span{display:inline-block;padding:calc(10 * var(--u)) calc(26 * var(--u));background:#9E1B32;color:#fff;font:400 calc(80 * var(--u))/.9 Anton,Impact,sans-serif;text-transform:uppercase;clip-path:polygon(0 8%,3% 0,97% 4%,100% 12%,99% 90%,96% 100%,4% 97%,0 88%)}
+.yg-qbs{display:grid;grid-template-columns:repeat(3,1fr);gap:calc(28 * var(--u));margin-top:calc(26 * var(--u))}
+.yg-qb{text-align:center}
+.yg-cut{height:calc(290 * var(--u));display:flex;align-items:flex-end;justify-content:center;background:radial-gradient(70% 60% at 50% 100%,rgba(158,27,50,.25),transparent 70%)}
+.yg-cut img{height:100%;object-fit:contain;filter:drop-shadow(0 14px 18px rgba(0,0,0,.35))}
+.yg-qb b{display:block;margin-top:calc(10 * var(--u));font:400 calc(32 * var(--u))/1 Anton,Impact,sans-serif;text-transform:uppercase}
+.yg-qb i{display:block;margin-top:calc(6 * var(--u));font:800 calc(15 * var(--u))/1 'Barlow Condensed','Arial Narrow',sans-serif;letter-spacing:.2em;text-transform:uppercase;color:#8A7F6A;font-style:normal}
+.yg-copy{margin-top:calc(24 * var(--u));columns:2;column-gap:calc(40 * var(--u))}
+.yg-copy p{margin:0 0 calc(12 * var(--u));font:500 calc(22 * var(--u))/1.45 Barlow,Arial,sans-serif;color:#3B3226;break-inside:avoid}
+.yg-foot{display:flex;align-items:center;gap:calc(20 * var(--u));margin-top:calc(20 * var(--u));padding-top:calc(18 * var(--u));border-top:1px solid rgba(23,19,14,.18)}
+.yg-book{width:calc(70 * var(--u));height:calc(94 * var(--u));object-fit:cover;border:3px solid #fff;box-shadow:0 6px 12px rgba(0,0,0,.3)}
+.yg-bk{font:800 calc(17 * var(--u))/1.3 'Barlow Condensed','Arial Narrow',sans-serif;letter-spacing:.14em;text-transform:uppercase;color:#3B3226}
+.yg-bk b{color:#9E1B32}
+.yg-go{margin-left:auto;white-space:nowrap;font-size:calc(17 * var(--u))!important;padding:calc(14 * var(--u)) calc(22 * var(--u))!important}
+body.sk-pick .yg-chip{display:inline-block;margin:0 0 calc(10 * var(--u)) 0;padding:calc(8 * var(--u)) calc(14 * var(--u));background:rgba(246,238,220,.12);border:1px solid rgba(246,238,220,.3);color:#F6EEDC;font:800 calc(12 * var(--u))/1 'Barlow Condensed','Arial Narrow',sans-serif;letter-spacing:.2em;text-transform:uppercase;cursor:pointer}
+body.sk-pick .yg-chip:hover{background:#F5A623;color:#17130E;border-color:#F5A623}
+/* a phone: the card fills the screen and reads at phone sizes, the quarterbacks in one row, the copy in one column */
+@media (max-width:760px){.yg-pop{--u:1}.yg-box{width:100vw;max-width:100vw;max-height:100vh;padding:20px 16px 18px;clip-path:none}.yg-x{right:10px;top:10px;width:40px;height:40px;font-size:26px}.yg-k{font-size:12px}.yg-slab span{font-size:36px;padding:8px 14px}.yg-qbs{gap:8px;margin-top:16px}.yg-cut{height:140px}.yg-qb b{font-size:17px}.yg-qb i{font-size:10px;letter-spacing:.12em}.yg-copy{columns:1;margin-top:14px}.yg-copy p{font-size:16px}.yg-foot{flex-wrap:wrap;gap:12px}.yg-book{width:44px;height:58px}.yg-bk{font-size:12px}.yg-go{margin-left:0;width:100%;font-size:14px!important;padding:14px!important}}

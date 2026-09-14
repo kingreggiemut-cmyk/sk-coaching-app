@@ -897,3 +897,133 @@ body.mob .foot [data-lineup]{width:100%;justify-content:center}
 .dbl.who .skwho-btn.on{background:var(--gold);color:var(--gold-ink);border-color:var(--gold)}
 body.mob .stage > .dbl.who{display:inline-flex;margin:0 0 10px 8px}
 html.faux-fs .dock{position:fixed}
+
+/* A SECTION WITH MORE THAN SEVEN CALLS (the Scheme Kings sections on the
+   Madden offenses, 2026-09-13): the title card's call list and the bucket's
+   slots go one size down so every call fits the paper. Seven or fewer are
+   untouched. */
+.paper.chapter.many .callrow{padding:2px 0}
+.paper.chapter.many .callrow > b,.paper.chapter.many .callrow .h26{font-size:17px}
+.paper.chapter.many .callrow .k.team{display:none}
+.paper.chapter.many .callrow .go{width:26px;height:26px;font-size:17px}
+.paper.chapter.many .ftile{width:104px;height:57px;border-width:3px}
+.rail .paper.many .slot{min-height:0;padding:6px 12px;margin-top:6px}
+.rail .paper.many .slot .h26{font-size:17px;line-height:22px}
+/* the front's tagline is cream words over the office; the generic cream .tag
+   label (the hang's count tag) was painting a cream strip behind it on the
+   desktop, so the words disappeared. Phones keep their cream plate. */
+body:not(.mob) .front .tag{background:none;box-shadow:none;padding:0}
+.calls.many .plate{font-size:15px;padding:5px 8px;max-width:calc(100% - 16px);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* THE RACK (2026-09-14): the pockets on one scrolling row, 232 wide each, a
+   real scrollbar along the bottom so the coach knows there is more; the last
+   pocket makes pockets; a pocket's label is a button that renames it */
+.rack{display:flex;gap:24px;align-items:stretch;overflow-x:auto;overflow-y:hidden;padding-bottom:14px;scrollbar-color:var(--gold) rgba(246,238,220,.18);scrollbar-width:thin}
+.rack::-webkit-scrollbar{height:10px}.rack::-webkit-scrollbar-track{background:rgba(246,238,220,.18)}.rack::-webkit-scrollbar-thumb{background:var(--gold)}
+.rack .pocket{flex:none;width:232px;position:relative}
+.pocket-l span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+button.pocket-l{width:100%;cursor:pointer;justify-content:space-between;gap:8px;text-align:left}
+button.pocket-l i{font-style:normal;opacity:0;transition:opacity .15s;flex:none}
+button.pocket-l:hover i{opacity:1}
+.pocket.new{background:transparent;border:2px dashed rgba(246,238,220,.35);box-shadow:none;color:var(--cream)}
+.pocket.new .pocket-l{background:transparent;color:var(--cream);border-bottom:2px dashed rgba(246,238,220,.35)}
+.pocket.new .ghost{border-color:rgba(246,238,220,.4);color:var(--cream)}.pocket.new .ghost span{color:rgba(246,238,220,.7)}
+.pocket.new .ghost:hover{background:rgba(245,166,35,.18);border-color:var(--gold)}
+.skpop-edit{display:flex;flex-direction:column;gap:8px;min-width:240px}
+.skpop-edit label{font:800 11px/1 var(--fc);letter-spacing:.2em;text-transform:uppercase;color:var(--gray)}
+.skpop-edit input{font:400 20px/1.2 var(--fd);text-transform:uppercase;padding:8px 10px;border:2px solid rgba(23,19,14,.25);background:#fff;color:var(--ink)}
+.skpop-edit input:focus{outline:none;border-color:var(--gold)}
+.skpop-edit .row{display:flex;gap:8px}
+body.mob .rack{flex-direction:column;overflow:visible;position:relative!important;left:auto!important;top:auto!important;width:auto!important;height:auto!important;margin:0 12px}
+body.mob .rack .pocket{width:auto;height:auto;min-height:0}
+
+/* the formations screen (2026-09-14): a paper under each look, the writing sized to fit four columns */
+.formpaper .in{overflow:hidden;height:100%}
+.formpaper .t{margin-top:10px;font-size:17px;line-height:1.5}
+/* a title card with four calls: the rows one size down so the formations at the foot stay on the paper */
+.paper.chapter.four .callrow{padding:6px 0}
+.paper.chapter.four .callrow .h26{font-size:22px}
+.paper.chapter.four .ftile{width:150px;height:82px}
+/* the intro hang with more than six calls under one look */
+.hang.row.dense .chip,.hang.row.dense .tag{padding:7px 8px;font-size:11px;letter-spacing:.12em}
+
+/* HISTORY & PERSONNEL (2026-09-14, built to the board) */
+.paper.hist2 .in{overflow:hidden;height:100%}
+.hist2 .t,.pp .t{margin-top:8px}
+.stamp{background:var(--gold);padding:0 4px;font-weight:700;color:var(--ink)}
+.nums{display:grid;gap:0 16px}.nums.n5{grid-template-columns:repeat(5,1fr)}.nums.n4{grid-template-columns:repeat(4,1fr)}.nums.n3{grid-template-columns:repeat(3,1fr)}.nums.n2{grid-template-columns:repeat(2,1fr)}
+.num b{display:block;font:400 30px/1 var(--fd);color:var(--team)}.num u{display:block;text-decoration:none;font:800 13px/1.3 var(--fc);letter-spacing:.14em;text-transform:uppercase;color:var(--gray);margin-top:4px}
+.take{display:grid;grid-template-columns:repeat(3,1fr);gap:0 16px;margin-top:10px}
+.h26.s22{font-size:22px}
+.hist2 .quote,.pp .quote{font-size:22px;line-height:1.3}
+.quote.tight{margin-top:6px}
+.frame.roster{display:flex;flex-direction:column;background:#0B0D12}
+.roster .rh{padding:14px 16px 10px;font:800 13px/1 var(--fc);letter-spacing:.3em;text-transform:uppercase;color:#C9BFA8;border-bottom:1px solid rgba(246,238,220,.1);flex:none}
+.prow{display:flex;align-items:center;gap:14px;padding:10px 16px;border-bottom:1px solid rgba(246,238,220,.08);flex:1;min-height:0;text-decoration:none;color:var(--cream);transition:background .15s}
+.prow:last-child{border-bottom:0}
+.prow:hover{background:rgba(246,238,220,.06);box-shadow:inset 3px 0 0 var(--gold)}
+.posbox{width:80px;height:80px;flex:none;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(246,238,220,.05);border:1px solid rgba(246,238,220,.14)}
+.posbox b{font:400 40px/1 var(--fd);color:var(--team);text-shadow:0 8px 14px rgba(0,0,0,.5)}
+.posbox i{font:800 13px/1 var(--fc);letter-spacing:.12em;color:#C9BFA8;margin-top:4px;font-style:normal}
+.prow:hover .posbox b{color:var(--gold)}
+.prow .pt{display:flex;flex-direction:column;min-width:0}
+.prow .nm{font:400 22px/1 var(--fd);text-transform:uppercase;color:var(--cream)}
+.prow .pos{display:inline-block;align-self:flex-start;margin-top:5px;padding:4px 7px;background:var(--team);color:#fff;font:800 11px/1 var(--fc);letter-spacing:.18em;text-transform:uppercase}
+.prow .ln{font:500 14px/1.3 var(--fb);color:#C9BFA8;margin-top:5px}
+.prow .go{margin-left:auto;width:36px;height:36px;border-radius:50%;background:rgba(246,238,220,.1);display:grid;place-items:center;font:400 24px/1 var(--fd);color:var(--cream);flex:none}
+.locker.big{padding:22px 24px 24px;display:flex;flex-direction:column;align-items:flex-start}
+.locker.big .wm{position:absolute;left:50%;top:44%;width:92%;transform:translate(-50%,-50%);opacity:.09;pointer-events:none}
+.locker.big .k{position:relative;color:#C9BFA8}
+.locker.big .pos{position:relative;margin-top:6px;font-family:var(--fd);line-height:.86;color:var(--team);text-shadow:0 16px 24px rgba(0,0,0,.6);white-space:nowrap}
+.locker.big .jersey{position:relative;font:400 64px/1 var(--fd);color:var(--cream);margin-top:14px;opacity:.9}
+.locker.big .plate2{position:relative;margin-top:auto;white-space:normal;font-size:22px;line-height:1.05;text-align:left}
+.paper.pp .in{overflow:hidden;height:100%}
+body.mob .prow{flex:none}
+
+/* the sheet's formations tab on Madden: one big picture of the look, not two (his note 2026-09-14) */
+.g-madden27 .gp-room .gpf-diagram{display:none}
+/* PHONE PASS on the Madden offenses (2026-09-14): the head's way-on wraps under
+   the slab instead of running off the right edge; the numbers grid goes two
+   across; the player frame's position letters fit the phone; the sheet's
+   principle keys wrap */
+body.mob .head .right{flex-wrap:wrap;justify-content:flex-start;max-width:100%;gap:8px}
+body.mob .head .right .btn.sm{max-width:100%;white-space:normal;line-height:1.2;height:auto;padding:10px 14px}
+body.mob .nums{grid-template-columns:1fr 1fr!important}
+body.mob .take{grid-template-columns:1fr}
+body.mob .locker.big .pos{font-size:120px!important}
+body.mob .locker.big .jersey{font-size:40px}
+body.mob .locker.big .plate2{max-width:100%}
+body.mob .gp-room .gp-keys{flex-wrap:wrap}
+body.mob .roster{height:auto!important}
+/* the sheet's title block is 56px tall; the three principle keys printed across
+   it cannot fit a phone, so on a phone the title block is the crest and the
+   name (the principles are on the intro) */
+body.mob .gp-room .gp-keys{display:none}
+
+/* THE BUILDER ON A PHONE (his note 2026-09-14): one column. The name up top, the web in its frame,
+   then The plays and The script as two tabs sharing the room under it, Save at the thumb, the X pinned. */
+.dbx-tabs{display:none}
+body.mob #skdb .box{display:flex;flex-direction:column;overflow:hidden!important;padding:0 12px;box-sizing:border-box;border:0}
+body.mob #skdb .bhead{display:contents}
+body.mob #skdb .bhead > div:first-child{order:1;position:relative;padding:12px 60px 4px 0;flex:none}
+body.mob #skdb .bhead .k{margin-bottom:6px;font-size:11px}
+body.mob #skdb .bhead .slab{display:block}
+body.mob .dbx-title{width:100%;box-sizing:border-box;padding:6px 10px;font-size:34px}
+body.mob #skdb .bhead .right{order:5;margin:0;padding:10px 0 12px;flex:none;display:flex}
+body.mob #skdb .bhead .right .btn{flex:1;height:auto;padding:14px;font-size:14px;white-space:normal}
+body.mob #skdb #dbxclose{display:none}
+body.mob .dbx-stage{order:2;position:relative;left:auto;top:auto;width:100%;height:31vh;min-height:220px;box-sizing:border-box;border-width:6px;flex:none}
+body.mob .dbx-modes{left:8px;top:8px}
+body.mob .dbx-mode{padding:8px 9px;font-size:10px;letter-spacing:.1em}
+body.mob .dbx-cap{left:8px;right:8px;bottom:8px;font-size:12px}
+body.mob .dbx-tabs{order:3;display:flex;gap:6px;margin-top:10px;flex:none}
+body.mob .dbx-tabs button{flex:1;padding:12px 8px;background:rgba(246,238,220,.12);border:1px solid rgba(246,238,220,.3);color:var(--cream);font:800 13px/1 var(--fc);letter-spacing:.16em;text-transform:uppercase}
+body.mob .dbx-tabs button.on{background:var(--gold);color:var(--gold-ink);border-color:var(--gold)}
+body.mob #skdb .paper{order:4;position:relative;left:auto!important;top:auto;width:auto!important;height:auto;flex:1 1 auto;min-height:0;margin-top:12px;display:none}
+body.mob #skdb .paper .tape{display:none}
+body.mob #skdb[data-tab="rail"] .dbx-rail,body.mob #skdb[data-tab="side"] .dbx-side{display:flex}
+body.mob #skdb .paper .in{overflow:hidden!important;display:flex;flex-direction:column;min-height:0;height:100%}
+body.mob .dbx-list,body.mob .dbx-sum{overflow-y:auto;-webkit-overflow-scrolling:touch}
+body.mob #skdb .x{position:fixed;right:10px;top:10px;width:48px;height:48px;background:var(--gold);color:var(--gold-ink);border:0;z-index:30}
+body.mob .dbx-play{padding:8px 0}
+body.mob .dbx-play u{width:40px;height:40px}

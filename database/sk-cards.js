@@ -183,6 +183,8 @@ const OPTION_SHAPES={
   Juke:           (s,o)=>({stem:s||7,  main:[[o*4,1]],        alt:[[-o*4,1]]}),
   Route:          (s,o)=>({stem:s||5,  main:[[o*5,0]],        alt:[[-o*5,0]]}),
   HB_Choice_In_Out:(s,o)=>({stem:0,    pre:[[o*3,s||5]],      main:[[o*5,0]],  alt:[[-o*3,0]]}),
+  /* a back's option route the way it is coached (his note 2026-09-14): a hook to three or four yards, then he breaks either way */
+  HB_Option:      (s,o)=>({stem:s||8,   pre:[[o*2,2]],         main:[[-o*0.4,-1.4]], alts:[[[o*5,0]],[[-o*5,0]]]}),
   HB_Choice_Out:  (s,o)=>({stem:0,     pre:[[o*3,s||5]],      main:[[o*5,0]],  alt:null}),
   HB_Choice_In:   (s,o)=>({stem:0,     pre:[[o*3,s||5]],      main:[[-o*5,0]], alt:null}),
   /* the run-and-shoot / veer-and-shoot family. The decision is named, the

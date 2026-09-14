@@ -1,0 +1,466 @@
+/* drive-builder.css: the Drive Builder's own styling, lifted from war_room_test.html (lines 570-1022)
+   by extract-drive-builder.js. DO NOT EDIT the lifted part; the host glue is at the end. */
+  .db-web{ --gold:#F5A623; --cream:#f3ecd8; --font-display:'Arial Narrow', Arial, sans-serif; --font-body:Arial, sans-serif;
+    position:absolute; inset:0; z-index:24; pointer-events:none; overflow:hidden;
+    opacity:0; transition:opacity .35s ease; }
+  .db-web.open{ opacity:1; pointer-events:auto; cursor:grab; }
+  .db-web.open .db-tnode, .db-web.open .db-tadd{ pointer-events:auto; }
+  .db-web.grabbing{ cursor:grabbing; }
+  #dbCanvas{ position:absolute; left:0; top:0; width:0; height:0; transform-origin:0 0; will-change:transform; }
+  #dbStrands{ position:absolute; left:0; top:0; width:10px; height:10px; overflow:visible; pointer-events:none; }
+  #dbNodes{ position:absolute; left:0; top:0; }
+  @keyframes dbPulse{ to{ stroke-dashoffset:-100; } }
+  .db-tstrand{ fill:none; stroke:#F5A623; stroke-width:5; opacity:.85; stroke-linecap:round;
+    filter:drop-shadow(0 0 5px rgba(245,166,35,.5)); }
+  .db-tstrand.br-left{ stroke:#4fbf72; opacity:.8; filter:drop-shadow(0 0 5px rgba(79,191,114,.55)); }
+  .db-tstrand.br-right{ stroke:#6f93ff; opacity:.8; filter:drop-shadow(0 0 5px rgba(111,147,255,.55)); }
+  .db-tpulse{ fill:none; stroke:#ffe8a8; stroke-width:5.5; stroke-linecap:round;
+    stroke-dasharray:5 95; filter:drop-shadow(0 0 6px #F5A623); animation:dbPulse 2.6s linear infinite; }
+  .db-tpulse.br-left{ stroke:#cdf6d8; filter:drop-shadow(0 0 6px #4fbf72); }
+  .db-tpulse.br-right{ stroke:#dbe6ff; filter:drop-shadow(0 0 6px #6f93ff); }
+  .db-tnode{ position:absolute; transform:translate(-50%,-50%); cursor:pointer;
+    display:flex; flex-direction:column; align-items:center; gap:2px; min-width:150px; max-width:208px;
+    padding:11px 18px 12px; border-radius:14px; text-align:center;
+    background:#f3ecd8; border:3px solid #16285c; box-shadow:0 9px 22px rgba(0,0,0,.5);
+    transition:box-shadow .14s, filter .14s;
+    font-family:'Arial Narrow', Arial, sans-serif; }
+  .db-tnode:hover{ filter:brightness(1.03); box-shadow:0 13px 30px rgba(0,0,0,.6), 0 0 0 3px rgba(245,166,35,.5); }
+  .db-tnode.goal{ background:linear-gradient(180deg,#ffe08a,#F5A623 60%,#bd7d18); border-color:#fff0c4; }
+  .db-tnode.menu-open{ box-shadow:0 14px 32px rgba(0,0,0,.7), 0 0 0 4px #F5A623; z-index:8; }
+  .db-tnode.br-left{ border-color:#2e7d46; }
+  .db-tnode.br-right{ border-color:#3a5bbf; }
+  .db-tnum{ position:absolute; top:-12px; left:-12px; width:27px; height:27px; border-radius:50%;
+    display:flex; align-items:center; justify-content:center; font-weight:900;
+    font-size:13px; color:#f3ecd8; background:radial-gradient(circle at 35% 30%, #27439a, #16285c);
+    border:2px solid #F5A623; box-shadow:0 3px 7px rgba(0,0,0,.5); z-index:3; }
+  .db-tnode.goal .db-tnum{ color:#2a1605; }
+  .db-tnum.br-left{ background:radial-gradient(circle at 35% 30%,#4fbf72,#22773f); border-color:#c8f0d4; color:#fff; }
+  .db-tnum.br-right{ background:radial-gradient(circle at 35% 30%,#6f93ff,#2c4aa0); border-color:#cfe0ff; color:#fff; }
+  .db-tnm{ font-weight:900; font-size:18px; letter-spacing:.3px; line-height:1.04;
+    text-transform:uppercase; color:#16285c; }
+  .db-tsub{ font-weight:700; font-size:11.5px; letter-spacing:.07em;
+    text-transform:uppercase; color:#9a6b15; }
+  .db-tnode.goal .db-tnm{ color:#2a1605; } .db-tnode.goal .db-tsub{ color:#6e3f08; }
+  .db-tnode.br-left .db-tsub{ color:#2e7d46; } .db-tnode.br-right .db-tsub{ color:#3a5bbf; }
+  .db-tadd{ position:absolute; transform:translate(-50%,-50%); cursor:pointer; white-space:nowrap;
+    font:800 13px/1 'Arial Narrow', Arial, sans-serif; letter-spacing:.09em; text-transform:uppercase;
+    color:#ffe9b8; padding:10px 19px; border-radius:30px;
+    background:rgba(20,32,70,.8); border:2.5px dashed rgba(245,166,35,.6);
+    transition:border-color .14s, color .14s, border-style .14s; }
+  .db-tadd:hover, .db-tadd.armed{ border-color:#F5A623; color:#fff; border-style:solid; }
+  .db-tempty{ position:absolute; transform:translate(-50%,-50%); pointer-events:none; text-align:center; width:270px;
+    font:600 13px/1.5 Arial, sans-serif; color:#eaf0ff;
+    background:linear-gradient(180deg, rgba(40,62,128,.92), rgba(14,22,48,.94)); border:2px solid rgba(245,166,35,.55);
+    border-radius:12px; padding:14px 18px; box-shadow:0 12px 30px rgba(0,0,0,.55); }
+  .db-tactions{ position:absolute; top:calc(100% + 12px); left:50%; transform:translateX(-50%); z-index:9;
+    display:none; gap:7px; padding:9px; border-radius:14px; white-space:nowrap;
+    background:linear-gradient(180deg,#0c1330,#070c20); border:2px solid rgba(245,166,35,.5); box-shadow:0 18px 40px rgba(0,0,0,.65); }
+  .db-tnode.menu-open .db-tactions{ display:flex; }
+  .db-tact{ font:800 13px/1 'Arial Narrow', Arial, sans-serif; letter-spacing:.05em; text-transform:uppercase;
+    color:#eaf0ff; cursor:pointer; padding:9px 13px; border-radius:9px; background:rgba(255,255,255,.07);
+    border:1.5px solid rgba(255,255,255,.16); transition:background .12s, border-color .12s; }
+  .db-tact:hover{ background:rgba(245,166,35,.2); border-color:#F5A623; }
+  .db-tact.pos:hover{ background:rgba(46,125,70,.32); border-color:#3fa463; }
+  .db-tact.neg:hover{ background:rgba(58,91,191,.32); border-color:#5a82e0; }
+  .db-tact.rm:hover{ background:rgba(200,60,60,.3); border-color:#e06464; }
+  .db-ttag{ position:absolute; pointer-events:none; z-index:2;
+    font:800 8.5px/1 'Arial Narrow', Arial, sans-serif; letter-spacing:.05em; text-transform:uppercase;
+    color:#2a1605; padding:3px 9px; white-space:nowrap;
+    background:linear-gradient(180deg,#ffe08a,#F5A623 60%,#bd7d18); border:1.5px solid #fff0c4;
+    box-shadow:2px 2px 6px rgba(0,0,0,.4); }
+  .db-ttag.pos-0{ top:4px; left:100%; margin-left:-2px; border-radius:0 20px 20px 0; border-left:none; }
+  .db-ttag.pos-1{ top:50%; right:100%; margin-right:-2px; transform:translateY(-50%); border-radius:20px 0 0 20px; border-right:none; }
+  .db-ttag.pos-2{ bottom:4px; left:100%; margin-left:-2px; border-radius:0 20px 20px 0; border-left:none; }
+  .db-tagpicker{ position:absolute; top:calc(100% + 12px); left:50%; transform:translateX(-50%); z-index:9;
+    display:none; flex-wrap:wrap; gap:6px; width:230px; padding:10px; border-radius:14px;
+    background:linear-gradient(180deg,#0c1330,#070c20); border:2px solid rgba(245,166,35,.5); box-shadow:0 18px 40px rgba(0,0,0,.65); }
+  .db-tnode.tags-open .db-tagpicker{ display:flex; }
+  .db-tagopt{ font:700 11px/1 'Arial Narrow', Arial, sans-serif; letter-spacing:.02em;
+    color:#eaf0ff; cursor:pointer; padding:6px 10px; border-radius:20px; background:rgba(255,255,255,.07);
+    border:1.5px solid rgba(255,255,255,.16); transition:background .12s, border-color .12s, color .12s; }
+  .db-tagopt:hover{ border-color:#F5A623; }
+  .db-tagopt.on{ background:linear-gradient(180deg,#ffe08a,#F5A623 60%,#bd7d18); color:#2a1605; border-color:#fff0c4; }
+
+  /* play picker panel (build mode) */
+  /* ===== DRIVE BUILDER — collage reskin: taped paper, sticky notes, kraft tabs.
+     Same physical-artifact language as the Game Plan call sheet + Full Offense
+     cutouts. No glass, no neon; cream paper, athletic tape, printed ink. ===== */
+  /* the play rail is a real piece of paper taped to the field, not a glass panel */
+  #dbPlays{ position:absolute; right:18px; top:8%; bottom:13%; width:298px; z-index:25; display:none;
+    flex-direction:column; gap:11px; padding:21px 15px 15px; border-radius:5px; transform:rotate(.45deg);
+    background:
+      radial-gradient(120% 80% at 30% 6%, rgba(255,255,252,.6), rgba(0,0,0,0) 55%),
+      repeating-linear-gradient(0deg, rgba(120,100,58,.03) 0 2px, rgba(0,0,0,0) 2px 5px),
+      linear-gradient(165deg, #f6f1de 0%, #efe8d0 55%, #e7dec2 100%);
+    box-shadow:0 6px 14px rgba(0,0,0,.32), 0 28px 60px rgba(0,0,0,.55), inset 0 0 50px rgba(122,98,52,.08); }
+  body.dbBuild #dbPlays{ display:flex; }
+  /* athletic-tape corners */
+  #dbPlays::before, #dbPlays::after{ content:''; position:absolute; top:-11px; width:82px; height:25px; z-index:6;
+    border-radius:2px; background:linear-gradient(180deg, rgba(240,230,184,.9), rgba(214,198,138,.7));
+    box-shadow:0 2px 5px rgba(0,0,0,.3); }
+  #dbPlays::before{ left:9%; transform:rotate(-3deg); }
+  #dbPlays::after{ right:9%; transform:rotate(2.6deg); }
+  /* category file-folder tabs */
+  #dbPlays .db-cats{ display:flex; gap:5px; flex-wrap:wrap; }
+  .db-cat{ font:900 10.5px/1 'Barlow Condensed','Arial Narrow',sans-serif; letter-spacing:.09em;
+    text-transform:uppercase; color:#6b5a33; cursor:pointer; padding:7px 10px 8px; border-radius:8px 8px 3px 3px;
+    background:linear-gradient(180deg,#e9dfc2,#d9cca6); border:1.5px solid rgba(120,100,58,.4); border-bottom:none;
+    box-shadow:inset 0 2px 2px rgba(255,255,255,.5), 0 2px 5px rgba(0,0,0,.2);
+    transition:transform .16s ease, filter .16s ease; }
+  .db-cat:hover{ filter:brightness(1.05); }
+  .db-cat.on{ transform:translateY(-2px); color:var(--db-ink,#14532d); background:linear-gradient(180deg,#f6efd8,#e9dfc2);
+    border-color:rgba(20,83,45,.5); }
+  /* printed ink heading */
+  #dbPlays .db-phead{ font:900 12px/1 'Barlow Condensed','Arial Narrow',sans-serif; letter-spacing:.15em;
+    text-transform:uppercase; color:var(--db-ink,#14532d); margin:1px 2px -3px; padding-bottom:6px;
+    border-bottom:2px dashed rgba(20,83,45,.32); }
+  #dbPlays .db-list{ flex:1; overflow-y:auto; display:flex; flex-direction:column; gap:12px; padding:7px 4px 4px 2px; }
+  #dbPlays .db-list::-webkit-scrollbar{ width:5px; }
+  #dbPlays .db-list::-webkit-scrollbar-thumb{ background:rgba(20,83,45,.4); border-radius:3px; }
+  /* play chips are STICKY NOTES tinted by type — the Game Plan language */
+  .db-pill{ position:relative; display:flex; align-items:center; gap:9px; width:100%; text-align:left;
+    padding:10px 13px 11px; cursor:pointer; transform:rotate(var(--r,-.6deg));
+    background:linear-gradient(180deg, rgba(255,255,255,.5), rgba(255,255,255,0) 30%), var(--stick,#e4dbc4);
+    box-shadow:0 3px 7px rgba(0,0,0,.25), 0 1px 2px rgba(0,0,0,.18);
+    transition:transform .15s ease, box-shadow .15s ease, filter .15s ease; }
+  .db-pill:nth-child(even){ --r:.7deg; }
+  .db-pill::after{ content:''; position:absolute; right:0; bottom:0; width:0; height:0; border-style:solid;
+    border-width:0 0 11px 11px; border-color:transparent transparent rgba(0,0,0,.14) transparent; }
+  .db-pill:hover{ transform:rotate(var(--r,-.6deg)) translateY(-3px) scale(1.02); box-shadow:0 8px 16px rgba(0,0,0,.3); }
+  .db-t-run{ --stick:#cfe6c4; } .db-t-pass{ --stick:#c5dcef; } .db-t-star{ --stick:#f7e08a; } .db-t-other{ --stick:#e4dbc4; }
+  .db-pdot{ display:none; }
+  .db-ptext{ display:flex; flex-direction:column; line-height:1.05; min-width:0; flex:1; }
+  .db-pname{ font:900 15px/1.02 'Barlow Condensed','Arial Narrow',sans-serif; letter-spacing:.02em;
+    text-transform:uppercase; color:#232012; }
+  .db-pform{ font:800 9px/1 'Barlow Condensed','Arial Narrow',sans-serif; letter-spacing:.12em;
+    text-transform:uppercase; color:rgba(35,32,18,.6); margin-top:3px; }
+  /* star play = money call: gold sticker corner */
+  .db-t-star::before{ content:''; position:absolute; top:0; left:0; width:0; height:0; border-style:solid;
+    border-width:14px 14px 0 0; border-color:#c9a222 transparent transparent transparent; }
+  /* the add ＋ is a small hand-drawn ink circle */
+  .db-padd{ flex:0 0 auto; width:23px; height:23px; border-radius:50%; cursor:pointer;
+    display:flex; align-items:center; justify-content:center; font-weight:900; font-size:15px; line-height:1;
+    color:#232012; background:rgba(255,255,255,.45); border:2px solid rgba(35,32,18,.5);
+    transition:background .12s, transform .12s, color .12s, border-color .12s; }
+  .db-padd:hover{ background:var(--db-ink,#14532d); color:#fff; border-color:var(--db-ink,#14532d); transform:scale(1.12) rotate(90deg); }
+  .db-padd.added{ background:var(--db-ink,#21683c); border-color:#bff0cf; color:#fff; }
+
+  /* reveal chips on the grass + Run Drive states */
+  #dbFieldWeb{ position:absolute; inset:0; width:100%; height:100%; z-index:22; pointer-events:none; overflow:visible;
+    display:none; }
+  #dbFieldNodes{ position:absolute; inset:0; z-index:23; pointer-events:none; display:none; }
+  body.dbReveal #dbFieldWeb, body.dbReveal #dbFieldNodes{ display:block; }
+  .db-strand{ fill:none; stroke:#F5A623; stroke-width:5; opacity:.9; stroke-linecap:round;
+    filter:drop-shadow(0 0 4px rgba(245,166,35,.55)); }
+  .db-strand.alt{ stroke:#5aa0ff; opacity:.72; stroke-dasharray:11 9; filter:drop-shadow(0 0 4px rgba(90,160,255,.55)); }
+  .db-strand.pos{ stroke:#4fbf72; opacity:.72; stroke-dasharray:11 9; filter:drop-shadow(0 0 4px rgba(79,191,114,.55)); }
+  .db-fpulse{ fill:none; stroke:#ffe8a8; stroke-width:5; stroke-linecap:round;
+    stroke-dasharray:5 95; filter:drop-shadow(0 0 5px #F5A623); animation:dbPulse 2.6s linear infinite; }
+  .db-fpulse.alt{ stroke:#dbe6ff; filter:drop-shadow(0 0 5px #5aa0ff); }
+  .db-fpulse.pos{ stroke:#cdf6d8; filter:drop-shadow(0 0 5px #4fbf72); }
+  .db-fnode{ position:absolute; transform:translate(-50%,-50%) scale(var(--sc,1)); transform-origin:center;
+    display:flex; flex-direction:column; align-items:center; gap:1px; min-width:120px; max-width:152px;
+    padding:7px 13px 8px; border-radius:11px; cursor:pointer; pointer-events:auto; text-align:center;
+    background:#f3ecd8; border:2px solid #16285c; box-shadow:0 7px 16px rgba(0,0,0,.55);
+    transition:box-shadow .14s, filter .14s; font-family:'Arial Narrow', Arial, sans-serif; }
+  .db-fnode:hover{ filter:brightness(1.04); box-shadow:0 11px 24px rgba(0,0,0,.65), 0 0 0 2px rgba(245,166,35,.55); }
+  .db-fnode-num{ position:absolute; top:-9px; left:-9px; width:21px; height:21px; border-radius:50%;
+    display:flex; align-items:center; justify-content:center; font-weight:900;
+    font-size:12px; color:#f3ecd8; background:radial-gradient(circle at 35% 30%, #27439a, #16285c);
+    border:2px solid #F5A623; box-shadow:0 2px 5px rgba(0,0,0,.5); }
+  .db-fnode-name{ font-weight:900; font-size:14px; letter-spacing:.2px;
+    line-height:1; text-transform:uppercase; color:#16285c; }
+  .db-fnode-tag{ font-weight:700; font-size:8.5px; letter-spacing:.1em;
+    text-transform:uppercase; color:#9a6b15; }
+  .db-fnode.goal{ background:linear-gradient(180deg,#ffe08a,#F5A623 60%,#bd7d18); border-color:#fff0c4; }
+  .db-fnode.goal .db-fnode-name{ color:#2a1605; } .db-fnode.goal .db-fnode-tag{ color:#6e3f08; }
+  .db-fnode.alt{ background:#eef3ff; border-color:#5aa0ff; }
+  .db-fnode.alt .db-fnode-name{ color:#1c3a7a; } .db-fnode.alt .db-fnode-tag{ color:#2c5aa0; }
+  .db-fnode.pos{ background:#ebfbf0; border-color:#4fbf72; }
+  .db-fnode.pos .db-fnode-name{ color:#1c5c32; } .db-fnode.pos .db-fnode-tag{ color:#2e7d46; }
+  .db-fnode.run-now{ box-shadow:0 0 0 3px #F5A623, 0 14px 30px rgba(0,0,0,.7); filter:brightness(1.08); z-index:5; }
+  #dbFieldNodes.db-running .db-fnode:not(.run-now):not(.run-done){ opacity:.38; }
+  .db-fnode.run-done .db-fnode-num{ background:radial-gradient(circle at 35% 30%,#3f9e58,#1c6b40); }
+  .db-runball{ fill:#ffe8a8; stroke:#F5A623; stroke-width:2.5; filter:drop-shadow(0 0 8px #F5A623); }
+
+  /* control bar + caption + play card */
+  /* control tray = the Game Plan tray: dark collage bench, kraft paper tabs */
+  #dbBar{ position:absolute; left:50%; bottom:4.2%; transform:translateX(-50%); z-index:26; display:none;
+    align-items:center; gap:9px; padding:11px 15px; border-radius:15px;
+    background:
+      linear-gradient(180deg, rgba(50,50,48,.4), rgba(8,8,8,.6) 40%, rgba(0,0,0,.78)), #141412;
+    border:2px solid rgba(20,20,18,.9);
+    box-shadow:inset 0 3px 5px rgba(255,255,255,.16), inset 0 -12px 22px rgba(0,0,0,.55), 0 16px 38px rgba(0,0,0,.6); }
+  body.dbOn #dbBar{ display:flex; }
+  #dbBar .ttl{ font:900 13px/1 'Barlow Condensed','Arial Narrow',sans-serif; letter-spacing:.14em;
+    text-transform:uppercase; color:#ffe98a; padding:0 8px 0 4px; }
+  .db-dtool{ font:900 11.5px/1 'Barlow Condensed','Arial Narrow',sans-serif; letter-spacing:.09em;
+    text-transform:uppercase; color:#6b5a33; cursor:pointer; padding:10px 15px; border-radius:7px;
+    background:linear-gradient(180deg,#efe6cd,#dccfa8); border:1.5px solid rgba(120,100,58,.5);
+    box-shadow:inset 0 1px 2px rgba(255,255,255,.5), 0 3px 6px rgba(0,0,0,.4); transition:transform .14s, filter .14s; }
+  .db-dtool:hover{ filter:brightness(1.06); transform:translateY(-2px); }
+  .db-dtool.on{ color:var(--db-ink,#14532d); background:linear-gradient(180deg,#f7efd6,#e9dfc2); border-color:rgba(20,83,45,.55);
+    box-shadow:inset 0 1px 2px rgba(255,255,255,.6), 0 0 0 2px rgba(201,162,34,.35), 0 3px 6px rgba(0,0,0,.4); }
+  /* Save Drive = the primary write action: green field-turf pill with a gold
+     star, so it reads as the commit, not just another tool. */
+  .db-dtool-save{ display:inline-flex; align-items:center; gap:6px; color:#f7f0d8;
+    background:linear-gradient(180deg,#1c6b40,#134d2d); border-color:rgba(201,162,34,.6);
+    box-shadow:inset 0 1px 2px rgba(255,255,255,.22), 0 0 0 1.5px rgba(201,162,34,.4), 0 3px 6px rgba(0,0,0,.4); }
+  .db-dtool-save .db-save-ico{ color:#ffdf4a; font-size:12px; line-height:1; }
+  .db-dtool-save:hover{ filter:brightness(1.08); }
+  .db-dtool-save.saving{ opacity:.75; pointer-events:none; }
+  .db-dtool-save.saved{ color:#12331f; background:linear-gradient(180deg,#ffe06a,#f4c62e); border-color:rgba(201,162,34,.9); }
+  .db-dtool-save.saved .db-save-ico{ color:#12331f; }
+  @media (prefers-reduced-motion: reduce){ .db-dtool-save{ transition:none; } }
+  #dbCap{ position:absolute; left:50%; bottom:calc(4.5% + 62px); transform:translateX(-50%); z-index:26;
+    display:none; max-width:640px; text-align:center; font:600 13px/1.5 Arial, sans-serif; color:#eaf0ff;
+    background:rgba(7,12,32,.88); border:1.5px solid rgba(245,166,35,.4); border-radius:12px; padding:10px 18px; }
+  body.dbOn #dbCap.open{ display:block; }
+  #dbCard{ position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); z-index:40; display:none;
+    width:min(440px, 90vw); padding:22px 26px; border-radius:16px; text-align:center;
+    background:linear-gradient(180deg, rgba(16,25,60,.97), rgba(8,13,34,.98));
+    border:2px solid rgba(245,166,35,.55); box-shadow:0 30px 80px rgba(0,0,0,.75); }
+  #dbCard.open{ display:block; }
+  #dbCard .nm{ font:900 24px/1.1 'Arial Narrow', Arial, sans-serif; letter-spacing:.04em;
+    text-transform:uppercase; color:#ffe9b8; }
+  #dbCard .fm{ font:700 12px/1 'Arial Narrow', Arial, sans-serif; letter-spacing:.12em;
+    text-transform:uppercase; color:#9db0e8; margin-top:7px; }
+  #dbCard .note{ font:600 12px/1.6 Arial, sans-serif; color:#c9d4f2; margin-top:12px; }
+  #dbCard button{ margin-top:16px; font:900 12px/1 'Arial Narrow', Arial, sans-serif; letter-spacing:.14em;
+    text-transform:uppercase; color:#2a1605; background:linear-gradient(180deg,#ffe08a,#F5A623 60%,#bd7d18);
+    border:1.5px solid #fff0c4; border-radius:999px; padding:11px 22px; cursor:pointer; }
+
+  /* scheme install sheet — ported 1:1 from the playbook (GoGo), Oregon-skinned */
+  .db-install{
+    --primary:var(--db-ink,#154733); --secondary:#FEE123; --cream:#F0EAD0; --gold:#F5A623;
+    --font-display:"Barlow Condensed","Oswald","Arial Narrow",sans-serif;
+    --font-body:"Barlow",system-ui,sans-serif;
+    --font-marker:"Permanent Marker",cursive;
+    --ease:cubic-bezier(.2,.75,.2,1);
+    position:absolute; left:20px; top:6%; bottom:8%; width:322px; z-index:25; display:none;
+    border-radius:5px; overflow:visible; flex-direction:column; transform:rotate(-.5deg);
+    background:
+      radial-gradient(120% 80% at 30% 6%, rgba(255,255,252,.6), rgba(0,0,0,0) 55%),
+      repeating-linear-gradient(0deg, rgba(120,100,58,.03) 0 2px, rgba(0,0,0,0) 2px 5px),
+      linear-gradient(165deg, #f6f1de 0%, #efe8d0 55%, #e7dec2 100%);
+    box-shadow:0 6px 14px rgba(0,0,0,.32), 0 28px 60px rgba(0,0,0,.55), inset 0 0 50px rgba(122,98,52,.08);
+  }
+  body.dbOn .db-install{ display:flex; }
+  /* athletic-tape corners, same as the play rail */
+  .db-install::before, .db-install::after{ content:''; position:absolute; top:-11px; width:82px; height:25px; z-index:6;
+    border-radius:2px; background:linear-gradient(180deg, rgba(240,230,184,.9), rgba(214,198,138,.7));
+    box-shadow:0 2px 5px rgba(0,0,0,.3); }
+  .db-install::before{ left:9%; transform:rotate(-2.6deg); }
+  .db-install::after{ right:9%; transform:rotate(3deg); }
+  /* printed title block on the paper — O badge + green ink, double-rule under */
+  .db-install-head{
+    position:relative; padding:16px 16px 11px; flex:0 0 auto; display:grid;
+    grid-template-columns:auto 1fr; grid-template-areas:'crest eyebrow' 'crest title'; gap:0 12px;
+    align-items:center; background:transparent; border-bottom:3px double rgba(20,83,45,.5);
+  }
+  .db-install-crest{
+    grid-area:crest; width:40px; height:40px; margin:0; border-radius:50%; overflow:hidden;
+    background:radial-gradient(circle at 50% 32%, color-mix(in srgb, var(--primary) 55%, white 15%), var(--primary) 78%);
+    border:2.5px solid var(--gold);
+    display:flex; align-items:center; justify-content:center;
+    box-shadow:0 0 0 1.5px rgba(0,0,0,.3), inset 0 2px 6px rgba(255,255,255,.25), inset 0 -4px 8px rgba(0,0,0,.35);
+    transform:rotate(-4deg);
+  }
+  .db-install-crest img{ width:72%; height:72%; object-fit:contain; }
+  .db-install-eyebrow{
+    grid-area:eyebrow; align-self:end;
+    font-family:var(--font-display); font-weight:800; font-size:10.5px; letter-spacing:.2em;
+    text-transform:uppercase; color:#9a6b15; margin-bottom:2px;
+  }
+  .db-install-title{
+    grid-area:title; align-self:start;
+    font-family:var(--font-display); font-weight:900; font-size:21px; letter-spacing:.01em;
+    text-transform:uppercase; color:var(--db-ink,#14532d); line-height:1.05;
+  }
+  .db-install-mode-btn{
+    position:absolute; top:9px; right:11px; width:9px; height:9px; margin:0; padding:0;
+    border:none; border-radius:50%; cursor:pointer;
+    background:rgba(255,255,255,.16);
+    transition:background .15s ease, transform .15s ease;
+  }
+  .db-install-mode-btn:hover{ background:rgba(255,255,255,.4); transform:scale(1.4); }
+  .db-install.presenter-mode .db-install-mode-btn{
+    background:var(--secondary);
+    box-shadow:0 0 5px color-mix(in srgb, var(--secondary) 70%, transparent);
+  }
+  .db-install-body{ flex:1; overflow-y:auto; padding:18px 20px; }
+  .db-install-notes{ display:flex; flex-direction:column; }
+  .db-install-note{ padding:13px 0; }
+  .db-install-note + .db-install-note{
+    border-top:1.5px dashed color-mix(in srgb, var(--primary) 30%, transparent);
+  }
+  .db-install-note-top{ display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:7px; }
+  .db-install-note-label{
+    font-family:var(--font-marker); font-size:19px; line-height:1.2; color:var(--primary);
+    display:inline-block; transform:rotate(-1.2deg); white-space:nowrap; overflow:hidden;
+    border-bottom:2px solid var(--secondary); padding-bottom:3px;
+    clip-path:inset(0 100% 0 0); animation:dbInstallStroke .65s steps(20) forwards;
+    animation-delay:var(--rd,0s);
+  }
+  .db-install-note-right{ flex:0 0 auto; display:flex; align-items:center; gap:8px; }
+  .db-install-note-stat{
+    font-family:var(--font-display); font-weight:800; font-size:11px; letter-spacing:.03em; white-space:nowrap;
+    color:var(--primary); background:color-mix(in srgb, var(--secondary) 20%, transparent);
+    border:1.5px solid color-mix(in srgb, var(--secondary) 55%, transparent); border-radius:20px; padding:3px 10px;
+    opacity:0; transform:translateY(3px) scale(.9);
+    animation:dbInstallFade .4s ease forwards; animation-delay:calc(var(--rd,0s) + .55s);
+  }
+  .db-install-note-check{
+    flex:0 0 auto; display:inline-flex; color:var(--secondary);
+    opacity:0; transform:scale(.5) rotate(-6deg);
+    animation:dbInstallCheckPop .4s var(--ease) forwards; animation-delay:calc(var(--rd,0s) + 1s);
+  }
+  .db-install-note-check svg{ width:34px; height:28px; overflow:visible; }
+  .dic-check{
+    fill:none; stroke:var(--secondary); stroke-width:5.5; stroke-linecap:round; stroke-linejoin:round;
+    stroke-dasharray:100; stroke-dashoffset:100;
+    filter:drop-shadow(0 2px 2px rgba(0,0,0,.28));
+    animation:dbInstallCheckDraw .4s ease forwards; animation-delay:calc(var(--rd,0s) + 1.05s);
+  }
+  .db-install-note-text{
+    font-family:var(--font-body); font-weight:600; font-size:13.5px; line-height:1.5; margin:0;
+    color:color-mix(in srgb, var(--primary) 72%, #241f0d 28%);
+    opacity:0; transform:translateY(4px);
+    animation:dbInstallFade .5s ease forwards; animation-delay:calc(var(--rd,0s) + .3s);
+  }
+  @keyframes dbInstallStroke{ from{ clip-path:inset(0 100% 0 0); } to{ clip-path:inset(0 0% 0 0); } }
+  @keyframes dbInstallFade{ from{ opacity:0; transform:translateY(4px); } to{ opacity:1; transform:translateY(0); } }
+  @keyframes dbInstallCheckPop{ 0%{ opacity:0; transform:scale(.5) rotate(-6deg); } 60%{ opacity:1; transform:scale(1.2) rotate(-6deg); } 100%{ opacity:1; transform:scale(1) rotate(-6deg); } }
+  @keyframes dbInstallCheckDraw{ to{ stroke-dashoffset:0; } }
+  .db-install.presenter-mode .db-install-note-label{ animation:none; clip-path:inset(0 100% 0 0); }
+  .db-install.presenter-mode .db-install-note-text{ animation:none; opacity:0; transform:translateY(4px); }
+  .db-install.presenter-mode .db-install-note-stat{ animation:none; opacity:0; transform:translateY(3px) scale(.9); }
+  .db-install.presenter-mode .db-install-note-check{ animation:none; opacity:0; transform:scale(.5) rotate(-6deg); }
+  .db-install.presenter-mode .dic-check{ animation:none; stroke-dashoffset:100; }
+  .db-install.presenter-mode .db-install-note{ cursor:pointer; border-radius:8px; transition:background .15s ease; }
+  .db-install.presenter-mode .db-install-note:hover{ background:color-mix(in srgb, var(--secondary) 10%, transparent); }
+  .db-install.presenter-mode .db-install-note.revealed{ cursor:default; }
+  .db-install.presenter-mode .db-install-note.revealed:hover{ background:none; }
+  .db-install.presenter-mode .db-install-note.revealed .db-install-note-label{
+    animation:dbInstallStroke .5s steps(20) forwards; animation-delay:0s;
+  }
+  .db-install.presenter-mode .db-install-note.revealed .db-install-note-text{
+    animation:dbInstallFade .45s ease forwards; animation-delay:.2s;
+  }
+  .db-install.presenter-mode .db-install-note.revealed .db-install-note-stat{
+    animation:dbInstallFade .35s ease forwards; animation-delay:.4s;
+  }
+  .db-install.presenter-mode .db-install-note.revealed .db-install-note-check{
+    animation:dbInstallCheckPop .4s var(--ease) forwards; animation-delay:.55s;
+  }
+  .db-install-foot{
+    flex:0 0 auto; padding:14px 20px 18px;
+    border-top:3px solid var(--secondary);
+    background:linear-gradient(0deg, color-mix(in srgb, var(--primary) 12%, var(--cream)), var(--cream));
+  }
+  .db-install-meter-label{ display:flex; align-items:baseline; justify-content:space-between; margin-bottom:8px; }
+  .db-install-meter-eyebrow{
+    font-family:var(--font-display); font-weight:800; font-size:11px; letter-spacing:.2em;
+    text-transform:uppercase; color:var(--primary); opacity:.75;
+  }
+  .db-install-meter-count{ font-family:var(--font-marker); font-size:15px; color:var(--primary); }
+  .db-install-meter-track{
+    height:14px; border-radius:8px; overflow:hidden; position:relative;
+    background:color-mix(in srgb, var(--primary) 16%, transparent);
+    border:2px solid color-mix(in srgb, var(--primary) 40%, transparent);
+  }
+  .db-install-meter-fill{
+    height:100%; width:100%; border-radius:6px;
+    background:linear-gradient(90deg, var(--secondary), color-mix(in srgb, var(--secondary) 70%, white 30%));
+    box-shadow:0 0 10px color-mix(in srgb, var(--secondary) 60%, transparent);
+    transition:width .4s var(--ease);
+  }
+
+  /* left panel, Drive Builder mode: a skinny read-only mirror of the saved
+     Oregon call sheet (Scheme DNA). Just the play calls — no formations,
+     x-factor, tags, or tempo header. Click a call to drop it on the drive. */
+  .db-cs-body{ padding:15px 15px; display:flex; flex-direction:column; gap:16px; }
+  .db-cs-sec{ display:flex; flex-direction:column; gap:8px; }
+  /* printed ink section header, like a real call sheet's section box */
+  .db-cs-lbl{ align-self:flex-start; padding:4px 12px 5px; border-radius:0 0 4px 0;
+    font-family:var(--font-display); font-weight:900; font-size:10.5px; letter-spacing:.13em;
+    text-transform:uppercase; color:#f6f1de; background:var(--db-ink,#21683c); box-shadow:0 2px 5px rgba(0,0,0,.22); }
+  /* each saved call is a mini sticky note */
+  .db-cs-play{ position:relative; display:flex; align-items:center; gap:9px; width:100%; text-align:left;
+    padding:8px 12px 9px; transform:rotate(var(--r,-.5deg));
+    background:linear-gradient(180deg, rgba(255,255,255,.5), rgba(255,255,255,0) 30%), #e6dcc0;
+    box-shadow:0 2px 6px rgba(0,0,0,.22), 0 1px 2px rgba(0,0,0,.16); }
+  .db-cs-play:nth-child(even){ --r:.6deg; }
+  .db-cs-play::after{ content:''; position:absolute; right:0; bottom:0; width:0; height:0; border-style:solid;
+    border-width:0 0 9px 9px; border-color:transparent transparent rgba(0,0,0,.13) transparent; }
+  .db-cs-dot{ width:11px; height:11px; border-radius:50%; flex:0 0 auto;
+    background:radial-gradient(circle at 35% 30%, #2f7a48, var(--db-ink,#14532d)); border:1.5px solid rgba(20,83,45,.5); }
+  .db-cs-dot.star{ background:radial-gradient(circle at 35% 30%, #ffe08a, #c9a222); border-color:#c9a222; }
+  .db-cs-txt{ display:flex; flex-direction:column; line-height:1.05; min-width:0; }
+  .db-cs-txt b{ font-family:var(--font-display); font-weight:900; font-size:12.5px; letter-spacing:.02em;
+    text-transform:uppercase; color:#232012; }
+  .db-cs-txt i{ font-family:var(--font-display); font-weight:800; font-size:8.5px; font-style:normal;
+    letter-spacing:.1em; text-transform:uppercase; color:rgba(35,32,18,.58); margin-top:2px; }
+  .db-cs-empty{ font-family:var(--font-body); font-weight:600; font-size:12.5px; line-height:1.55;
+    color:#4a4633; text-align:center; padding:26px 12px; }
+  .db-cs-empty b{ color:var(--db-ink,#14532d); }
+  /* printed tally footer */
+  .db-cs-foot{ display:flex; align-items:baseline; justify-content:space-between;
+    padding:12px 16px; border-top:3px double rgba(20,83,45,.5); background:transparent; }
+  .db-cs-foot-lbl{ font-family:var(--font-display); font-weight:800; font-size:11px; letter-spacing:.18em;
+    text-transform:uppercase; color:var(--db-ink,#14532d); opacity:.8; }
+  .db-cs-foot-count{ font-family:var(--font-marker,'Permanent Marker'),cursive; font-size:15px; color:var(--db-ink,#14532d); }
+  /* presenter states: the Scheme Kings unlock CTA, ghost prompts, presenter chip */
+  .db-cs-cta{ position:relative; display:flex; align-items:center; gap:12px; margin:2px 2px 10px;
+    padding:12px 13px; transform:rotate(-.6deg);
+    background:linear-gradient(180deg, rgba(255,255,255,.55), rgba(255,255,255,0) 40%), #eef3ff;
+    border:2px solid #2b4f76; box-shadow:0 3px 9px rgba(0,0,0,.28); }
+  .db-cs-cta::before{ content:''; position:absolute; top:-10px; left:16px; width:64px; height:22px; transform:rotate(-6deg);
+    background:linear-gradient(180deg, rgba(96,134,222,.85), rgba(58,98,188,.72)); box-shadow:0 2px 4px rgba(0,0,0,.25); }
+  .db-cs-cta-logo{ flex:0 0 auto; width:54px; height:54px; object-fit:contain; transform:rotate(-3deg);
+    filter:drop-shadow(0 2px 4px rgba(0,0,0,.3)); }
+  .db-cs-cta-txt{ display:flex; flex-direction:column; gap:3px; min-width:0; }
+  .db-cs-cta-txt > b{ font:900 14px/1.02 'Barlow Condensed','Arial Narrow',sans-serif; letter-spacing:.02em;
+    text-transform:uppercase; color:var(--db-ink,#14532d); }
+  .db-cs-cta-txt span{ font:600 11px/1.38 'Barlow',system-ui,sans-serif; color:#3a4636; }
+  .db-cs-cta-txt span b{ color:#2b4f76; font-weight:800; }
+  .db-cs-ghost{ align-self:flex-start; padding:6px 12px; border:2px dashed rgba(20,83,45,.4); border-radius:3px;
+    background:rgba(255,255,255,.25); font:900 9.5px/1 'Barlow Condensed','Arial Narrow',sans-serif;
+    letter-spacing:.09em; text-transform:uppercase; color:#5c6b4f; }
+  /* presenter video sheet: calls hidden until revealed, then a quick pop-in */
+  .db-cs-play.db-cs-hide{ display:none; }
+  .db-cs-play.db-cs-reveal{ animation:dbCsReveal .4s cubic-bezier(.2,.9,.3,1.15) both; }
+  @keyframes dbCsReveal{ from{ opacity:0; transform:translateY(12px) scale(.9) rotate(var(--r,-.5deg)); }
+    to{ opacity:1; transform:rotate(var(--r,-.5deg)); } }
+  @media (prefers-reduced-motion: reduce){ .db-cs-play.db-cs-reveal{ animation:none; } }
+  .db-cs-mode-chip{ position:absolute; top:-11px; right:16px; z-index:7; padding:4px 11px 5px; border-radius:3px;
+    background:#a0342e; color:#fff; font:900 8.5px/1 'Barlow Condensed','Arial Narrow',sans-serif;
+    letter-spacing:.13em; text-transform:uppercase; box-shadow:0 2px 6px rgba(0,0,0,.3); transform:rotate(2deg); }
+  /* Run Drive is retired for now */
+  #dbBtnRun{ display:none !important; }
+  /* clean scrolling: no classic bars, never a horizontal bar; a soft paper fade
+     at the bottom edge signals there's more below */
+  .db-install-body, #dbPlays .db-list{ overflow-x:hidden !important; scrollbar-width:none; -ms-overflow-style:none;
+    -webkit-mask-image:linear-gradient(180deg,#000 0,#000 calc(100% - 24px),transparent 100%);
+            mask-image:linear-gradient(180deg,#000 0,#000 calc(100% - 24px),transparent 100%); }
+  .db-install-body::-webkit-scrollbar, #dbPlays .db-list::-webkit-scrollbar{ width:0 !important; height:0 !important; display:none; }
+  /* a little hand-inked "more below" chevron on the call sheet, only while scrollable */
+  .db-cs-more{ position:absolute; left:50%; bottom:54px; transform:translateX(-50%); z-index:7;
+    pointer-events:none; font:900 15px/1 'Barlow Condensed','Arial Narrow',sans-serif; color:var(--db-ink,#21683c);
+    opacity:.72; animation:dbcsBob 1.5s ease-in-out infinite; transition:opacity .25s ease; }
+  .db-cs-more.hide{ opacity:0; }
+  @keyframes dbcsBob{ 0%,100%{ transform:translateX(-50%) translateY(0); } 50%{ transform:translateX(-50%) translateY(3px); } }
+  @media (prefers-reduced-motion: reduce){ .db-cs-more{ animation:none; } }
+
+
+/* ---- the host (not Oregon code): the builder lives between the stage's
+   head and the dock instead of over the whole window ---- */
+#dbHost{position:fixed;left:0;right:0;top:calc(160px * var(--s));bottom:calc(84px * var(--s));z-index:5;--db-ink:var(--team)}
+#dbHost .db-install{--primary:var(--team);--secondary:#F5A623;left:calc(44px * var(--s));top:14px;bottom:14px;transform:none}
+#dbHost #dbPlays{right:calc(44px * var(--s));top:14px;bottom:86px;transform:none}
+#dbHost #dbBar{bottom:12px}
+#dbHost #dbCap{bottom:76px}
+#dbHost #dbBtnField,#dbHost #dbBtnRun,#dbHost #dbFieldWeb,#dbHost #dbFieldNodes{display:none!important}
+#dbHost .db-web{border-radius:6px;inset:0 0 96px 0}   /* the web fits above the caption and the bar */
+/* a play opened from the builder pops up over it; the builder goes soft behind it like the stage */
+.stagewrap.blurred ~ #dbHost{filter:blur(12px) brightness(.6);pointer-events:none}

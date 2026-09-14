@@ -11,28 +11,42 @@ const $ = (s) => document.querySelector(s);
 let LIVEBOOKS = [], CONF = null;
 /* the installs, and which one is open */
 let SCHEMES = null, INSTALL = 0, SCHEME = null, SEC = 'install';
+let SERIES = null;   /* what the schemes are together (Madden: the Young Gun offense), from schemes/index.json */
+/* WHICH GAME THIS PAGE IS (2026-09-11). College Football pages set nothing;
+   the Madden pages (madden/index.html, madden/defense.html, built by
+   Madden27 Engine Reference/build-madden-pages.js) set window.SK_GAME. The data
+   files are relative, so the Madden folder's own play index, cards and crests
+   load; this flag only keeps a game's saves to itself and turns off what only
+   the college side has (the Schemes section). A play slug like
+   snag-shotgun-normalyoff exists in both games, so Madden's stars carry a
+   "madden27:" prefix on the account and their own browser keys. */
+const SK_GAMEKEY = (typeof window !== 'undefined' && window.SK_GAME) || '';
+const SKG = SK_GAMEKEY ? '_' + SK_GAMEKEY : '', SKPRE = SK_GAMEKEY ? SK_GAMEKEY + ':' : '';
 const PAGE = 200; let SHOWN = PAGE; let SORT = 'az';
  let FAMPICK = null, CONCEPT = null, SIDE = (typeof SK_SIDE !== 'undefined' ? SK_SIDE : 'O');
-let IDX = null, VIEW = (window.SK_SIDE==='D') ? 'schemes' : 'books', FAM = null, SET = null, TYPE = 'all', Q = '', BOOK = null;
+let IDX = null, VIEW = (window.SK_SIDE==='D' && !SK_GAMEKEY) ? 'schemes' : 'books', FAM = null, SET = null, TYPE = 'all', Q = '', BOOK = null;
 const CARDS = new Map();                    // setKey -> geometry
-const SAVED = new Set(JSON.parse(localStorage.getItem('sk_saved') || '[]'));
-const saveStars = () => { try { localStorage.setItem('sk_saved', JSON.stringify([...SAVED])); localStorage.setItem('sk_saved_meta', JSON.stringify(SAVEDMETA)); } catch(e){} };
+const SAVED = new Set(JSON.parse(localStorage.getItem('sk_saved' + SKG) || '[]'));
+const saveStars = () => { try { localStorage.setItem('sk_saved' + SKG, JSON.stringify([...SAVED])); localStorage.setItem('sk_saved_meta' + SKG, JSON.stringify(SAVEDMETA)); } catch(e){} };
 /* a star remembers where it was pressed (the playbook open at the time) and when, so Saved can group by them */
-let SAVEDMETA = {}; try { SAVEDMETA = JSON.parse(localStorage.getItem('sk_saved_meta') || '{}') || {}; } catch(e){ SAVEDMETA = {}; }
+let SAVEDMETA = {}; try { SAVEDMETA = JSON.parse(localStorage.getItem('sk_saved_meta' + SKG) || '{}') || {}; } catch(e){ SAVEDMETA = {}; }
 let SAVEDBY = 'book'; try { SAVEDBY = localStorage.getItem('sk_savedby') || 'book'; } catch(e){}
 const starAdd = (k) => { SAVED.add(k); SAVEDMETA[k] = { book: (typeof BOOK !== 'undefined' && BOOK) || null, t: Date.now() };
-  if (skOnline()) SKDB.stars.set(k, true, SAVEDMETA[k].book); else if (!SK_ASKED) { SK_ASKED = true; skRequireLogin('save plays to your account'); } };
-const starDrop = (k) => { SAVED.delete(k); delete SAVEDMETA[k]; if (skOnline()) SKDB.stars.set(k, false); };
+  if (skOnline()) SKDB.stars.set(SKPRE + k, true, SAVEDMETA[k].book); else if (!SK_ASKED) { SK_ASKED = true; skRequireLogin('save plays to your account'); } };
+const starDrop = (k) => { SAVED.delete(k); delete SAVEDMETA[k]; if (skOnline()) SKDB.stars.set(SKPRE + k, false); };
 /* THE ACCOUNT. Signed in, the stars live on it: what the account has comes
    down and joins the browser's, what the browser had goes up. Signed out,
    the first star asks once and keeps working in the browser either way. */
 let SK_ASKED = false;
 const skOnline = () => typeof SKDB !== 'undefined' && SKDB.ok();
 async function skPullStars(){
-  const rows = await SKDB.stars.load(); if (!rows) return;
+  const all = await SKDB.stars.load(); if (!all) return;
+  /* only this game's stars: Madden's carry the prefix, college's carry none */
+  const rows = all.filter(r => SKPRE ? String(r.slug).startsWith(SKPRE) : !String(r.slug).includes(':'))
+    .map(r => Object.assign({}, r, { slug: SKPRE ? String(r.slug).slice(SKPRE.length) : r.slug }));
   const remote = new Set(rows.map(r => r.slug));
   for (const r of rows) { SAVED.add(r.slug); if (!SAVEDMETA[r.slug]) SAVEDMETA[r.slug] = { book: r.book || null, t: Date.parse(r.created_at) || Date.now() }; }
-  for (const k of [...SAVED]) if (!remote.has(k)) SKDB.stars.set(k, true, (SAVEDMETA[k] || {}).book || null);
+  for (const k of [...SAVED]) if (!remote.has(k)) SKDB.stars.set(SKPRE + k, true, (SAVEDMETA[k] || {}).book || null);
   saveStars();
   document.querySelectorAll('[data-star]').forEach(b => b.classList.toggle('on', SAVED.has(b.dataset.star)));
   if (VIEW === 'saved') render();
@@ -136,7 +150,7 @@ async function ensureIndex(){
     for(const p of IDX.plays) p._s = (p.name+' '+p.family+' '+p.set+' '+p.kind).toLowerCase();
     const live = IDX.plays.filter(p=>!p.drill).length;
     $('#live').innerHTML = `<i>LIBRARY</i><b>${live.toLocaleString()}</b><u>${LIVEBOOKS.length} playbooks</u>`;
-    $('#q').placeholder = `Search ${live.toLocaleString()} plays, every playbook and formation — mesh, alabama, trips…`;
+    $('#q').placeholder = `Search ${live.toLocaleString()} plays, every playbook and formation: mesh, ${SK_GAMEKEY?'chiefs':'alabama'}, trips…`;
     fetch('book-order.json').then(r=>r.ok?r.json():null).then(j=>{ ORDER=j; if(VIEW!=='books') render(); }).catch(()=>{});
     return IDX; })();
   return IDXP;
@@ -150,9 +164,9 @@ async function boot(){
     fetch('formations.json').then(r=>r.json()).catch(()=>({})),
     fetch('formation-names.json').then(r=>r.json()).catch(()=>({})),
     fetch('schemes/index.json').then(r=>r.json()).catch(()=>({schemes:[],library:null}))]);
-  FORMS=forms; SETNAMES=names; SCHEMES=idx.schemes||[]; LIBN=idx.library||null;
+  FORMS=forms; SETNAMES=names; SCHEMES=idx.schemes||[]; LIBN=idx.library||null; SERIES=idx.series||null;
   if(LIBN){ $('#live').innerHTML = `<i>LIBRARY</i><b>${LIBN.plays.toLocaleString()}</b><u>${LIBN.books} playbooks</u>`;
-    $('#q').placeholder = `Search ${LIBN.plays.toLocaleString()} plays, every playbook and formation — mesh, alabama, trips…`; }
+    $('#q').placeholder = `Search ${LIBN.plays.toLocaleString()} plays, every playbook and formation: mesh, ${SK_GAMEKEY?'chiefs':'alabama'}, trips…`; }
   /* the new scheme page (scheme.html) keeps drives and the board here until
      they are re-housed, and lands on them by ?scheme=<key>&sec=<section> */
   { const q=new URLSearchParams(location.search), k=q.get('scheme');
@@ -195,7 +209,8 @@ const bookOf = (k) => IDX.books.find(b=>b.key===k);
 const ALL_SECTIONS=[['schemes','SCHEMES','your installs'],
                 ['library','PLAYBOOKS','the play database'],
                 ['saved','SAVED','starred plays']];
-const SECTIONS=(window.SK_SIDE==='D')?ALL_SECTIONS:ALL_SECTIONS.filter(([k])=>k!=='schemes');
+/* Madden's schemes are offenses (the Young Gun installs, 2026-09-13), so on the Madden pages the section rides the offense bar instead */
+const SECTIONS=((window.SK_SIDE==='D' && !SK_GAMEKEY) || (SK_GAMEKEY && window.SK_SIDE!=='D'))?ALL_SECTIONS:ALL_SECTIONS.filter(([k])=>k!=='schemes');
 const VIEWS={library:[['books','TEAM BOOKS','the playbooks'],
                       ['map','THE MAP','by geography'],
                       ['formations','FORMATIONS','by personnel'],
@@ -298,7 +313,7 @@ function render(){
                   :`<span class="glyph">${esc(b.team[0])}</span>`}</span>
         </span>
         <span class="idplate"><u>RUNS AS</u><b>${esc(b.identity||'Multiple')}</b></span>
-        ${b.best?`<span class="best"><em>Best in the country for</em><b>${esc(b.best.label)}</b>
+        ${b.best?`<span class="best"><em>Best in the ${SK_GAMEKEY?'league':'country'} for</em><b>${esc(b.best.label)}</b>
           <em>#${b.best.rank}</em></span>`:''}
         <span class="chips">${(SIDE==='D' ? [] : dims).map(d=>
           `<span class="cchip"><b>${esc(g[d.key]||'—')}</b><u>${esc(d.label)}</u></span>`).join('')}${SIDE==='D'?keys.map(k=>`<span class="cchip"><b>${s[k]}</b><u>${k.toUpperCase()}</u></span>`).join('')+`<span class="cchip"><b>${b.sets}</b><u>FRONTS</u></span>`:''}
