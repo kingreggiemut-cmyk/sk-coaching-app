@@ -50,7 +50,7 @@ const at = (x, y, w, h) => `left:${x}px;top:${y}px;width:${w}px;height:${h}px`;
    and notes are the rooms' (their code is the old room's, unchanged). ---------- */
 const PLAN_KEY = 'sk_plan_' + KEY;
 let PLAN = null;
-const tcase = (s) => String(s || '').toLowerCase().replace(/(^|[\s-])([a-z])/g, (m, a, b) => a + b.toUpperCase());
+const tcase = (s) => String(s || '').toLowerCase().replace(/(^|[\s-])([a-z])/g, (m, a, b) => a + b.toUpperCase()).replace(/\b(iii|ii|iv)\b/gi, (m) => m.toUpperCase());   /* Robert Griffin III stays III */
 function seedKeys(sc) { return ((sc.about && sc.about.principles) || []).slice(0, 3).map((p) => ({ t: tcase(p.title), s: p.blurb || '', edited: false })); }
 function blankPlan(sc) {
   return { creed: { keys: seedKeys(sc), feed_player: '', feed_play: '', feed_touches: '', when_stuck: '', go_to_run: '', go_to_pass: '',
@@ -177,7 +177,7 @@ function adjustGeo(g, ops) {
     const m = c.men.find((x) => x._k === op.man); if (!m) continue;
     if (op.mirror) { m.x = -m.x; if (m.pts) m.pts = m.pts.map(([dx, dy]) => [-dx, dy]); }
     if (op.mirrorPts && m.pts) m.pts = m.pts.map(([dx, dy]) => [-dx, dy]);
-    if (op.route) { m.pts = op.route.map((p) => p.slice()); if (c._flip) m.pts = m.pts.map(([dx, dy]) => [-dx, dy]); m._blk = false; delete m.b; delete m.bk; }
+    if (op.route) { m.pts = op.route.map((p) => p.slice()); if (c._flip) m.pts = m.pts.map(([dx, dy]) => [-dx, dy]); m._blk = false; delete m.b; delete m.bk; delete m.opt; delete m.stem; delete m.dd; }   /* a handed route replaces an option route (his note 2026-09-21: a drag is a drag) */
     if (op.block) { m.pts = null; m._blk = true; m.b = 1; }
     /* motion: the path he takes before the snap, absolute field spots; his route starts at its end */
     if (op.mpath) { m.mpath = op.mpath.map((p) => p.slice()); if (c._flip) m.mpath = m.mpath.map(([x, y]) => [-x, y]); m.mot = 1; }
@@ -338,7 +338,7 @@ function animateHere(btn) { const st = btn.closest('.stage') || document; const 
 /* the breakdown: the real thumbnail with a play button, in the foot */
 function watchHTML(p) {
   const id = ytId(p.videoUrl); if (!id) return '';
-  return `<a class="watch" href="${esc(p.videoUrl)}" data-film="${esc(id)}"><span class="thumb"><img src="https://img.youtube.com/vi/${esc(id)}/mqdefault.jpg" alt="" onerror="this.onerror=null;this.src='${esc(p.heroShot || '')}'"><i></i></span><span><span class="k">Watch the full breakdown</span><div class="t">King Reggie breaks down ${esc(p.name)}</div></span></a>`;
+  return `<a class="watch" href="${esc(p.videoUrl)}" target="_blank" rel="noopener" data-film="${esc(id)}"><span class="thumb"><img src="https://img.youtube.com/vi/${esc(id)}/mqdefault.jpg" alt="" onerror="this.onerror=null;this.src='${esc(p.heroShot || '')}'"><i></i></span><span><span class="k">Watch the full breakdown</span><div class="t">King Reggie breaks down ${esc(p.name)}</div></span></a>`;
 }
 /* the paper on a play: what the frame shows right now up top, then the
    keys and the adjustments side by side */
@@ -368,7 +368,22 @@ function playStage(p, mode, j, n, pl, H) {
    inside the same box), three fronts under them taking the height that is
    left, the plays from each front as chips under each, Start the install at
    the head's right end. */
+/* THE INTRO AS A MANIFESTO (his pick 2026-09-21, board C): one paper on eight columns reads like a page, each belief a
+   numbered section with its blurb on the left and its three points beside it, the quote at the foot; the star stands on
+   the plinth on the right four with the era under him. No formations here: the install's first stop is the Formations
+   screen, so the intro stops repeating it. Offenses with a hero cutout only; a defense keeps the papers-and-fronts intro. */
+function introManifesto() {
+  const pr = ((SC.about && SC.about.principles) || []).slice(0, 3), lay = L(), H = lay.H - 80 - 176 - 16;
+  const points = (p) => String(p.detail || '').split(/(?<=[.!?])\s+/).filter(Boolean).slice(0, 3);
+  const q = ((SC.about && SC.about.extras) || []).find((e) => e.kind === 'quote');
+  const star = ((SC.personnel && SC.personnel.players) || []).find((g) => g.player && g.player.name), h = SC.home || {};
+  const secs = pr.map((p, i) => `<div class="msec"><div class="mrow"><div><div class="h26"><b>0${i + 1}</b>${esc(p.title)}</div><div class="t">${esc(p.blurb || '')}</div></div><ol class="mpts">${points(p).map((s2, k) => `<li><b>${k + 1}</b><span>${esc(s2)}</span></li>`).join('')}</ol></div></div>`).join('');
+  const paper = `<div class="paper t1 manifesto" style="${at(X(1), 176, CW(8), H)}"><span class="tape" style="left:420px;top:-14px"></span><div class="in">${secs}${q ? `<div class="rule"></div><div class="mquote">&ldquo;${esc(q.text)}&rdquo;</div>` : ''}</div></div>`;
+  const plinth = `<div class="frame" style="${at(X(9), 176, CW(4), H)}"><div class="tv plinth"><img class="wm" src="logos/${esc(SC.logo)}.png" alt="">${SC.about.hero ? `<img class="man" src="${esc(SC.about.hero)}" alt="">` : ''}<div class="cap"><b>${esc(star ? nice(star.player.name, true) : (SC.about.era || ''))}</b><i>${esc([h.era, h.sub].filter(Boolean).join(' · '))}</i></div></div></div>`;
+  return `${head('The intro', `${esc(whose())} ${esc(shortName())}`, esc(SC.tagline || ''), headRight(`<a class="btn sm" href="#install/0">Start the install <em>&rarr;</em></a>`))}${paper}${plinth}`;
+}
 function introStage() {
+  if (SC.side !== 'D' && !COV() && SC.about && SC.about.hero) return introManifesto();
   const pr = (SC.about && SC.about.principles) || [], fr = SC.formations || [], ink = inkedSet(), lay = L();
   const points = (p) => String(p.detail || '').split(/(?<=[.!?])\s+/).filter(Boolean).slice(0, 3);
   const by = Math.max(236, lay.camH + 24), bh = 156, fy = by + bh + 24, /* the papers hold their writing; an opened one grows over the fronts */ fh = Math.min(268, lay.H - 80 - 100 - fy), fw = Math.round(fh * 1.8235), hy = fy + fh + 8; /* two rows of chips fit under a front */
@@ -384,9 +399,9 @@ function introStage() {
 /* ---------- THE INSTALL: a deck of stages ---------- */
 /* the calls of a section as frames across the frame region, centred */
 function callsHTML(plays, chipsOf, lay) {
-  /* more than seven calls (the Scheme Kings sections on the Madden offenses) go two rows deep so no frame gets tiny */
-  const n = plays.length, f = lay.frame, rows = n > 7 ? 2 : 1, per = Math.ceil(n / rows), cw = Math.min((1000 - (per - 1) * 24) / per, f.h * 1.8235), ch = cw / 1.8235, gap = rows > 1 ? 64 : 0, y = f.y + (f.h - rows * ch - gap * (rows - 1)) / 2;
-  return `<div class="calls${rows > 1 ? ' many' : ''}">${plays.map((p, j) => `<button class="fr" style="${at(44 + (j % per) * (cw + 24), y + Math.floor(j / per) * (ch + gap), cw, ch)}" data-go="${j + 1}"><div class="tv"><div class="plate">${esc(p.name)}</div>${plainArt(p)}</div>${chipsOf ? `<div class="hang" style="position:absolute;left:14px;top:100%;margin-top:8px"><div class="chips">${chipsOf(p)}</div></div>` : ''}</button>`).join('')}</div>`;
+  /* FOUR OR MORE CALLS GO TWO ROWS DEEP (his note 2026-09-21: four tiny frames in a row is wrong; four go in the four corners). Up to three stay one row. */
+  const n = plays.length, f = lay.frame, rows = n >= 4 ? 2 : 1, per = Math.ceil(n / rows), gap = rows > 1 ? 56 : 0, cw = Math.min((1000 - (per - 1) * 24) / per, ((f.h - gap * (rows - 1)) / rows) * 1.8235), ch = cw / 1.8235, y = f.y + (f.h - rows * ch - gap * (rows - 1)) / 2;
+  return `<div class="calls${n > 7 ? ' many' : ''}${rows > 1 ? ' grid' : ''}">${plays.map((p, j) => `<button class="fr" style="${at(44 + (j % per) * (cw + 24), y + Math.floor(j / per) * (ch + gap), cw, ch)}" data-go="${j + 1}"><div class="tv"><div class="plate">${esc(p.name)}</div>${plainArt(p)}</div>${chipsOf ? `<div class="hang" style="position:absolute;left:14px;top:100%;margin-top:8px"><div class="chips">${chipsOf(p)}</div></div>` : ''}</button>`).join('')}</div>`;
 }
 function installSlides() {
   const out = []; const pls = SC.install.pillars || [];
@@ -413,7 +428,7 @@ function installSlides() {
       const film = FILM === 'title' && ytId(pl.video);
       const chap = film ? `<div class="film"><iframe src="https://www.youtube-nocookie.com/embed/${encodeURIComponent(ytId(pl.video))}?autoplay=1&rel=0&modestbranding=1" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe></div><button class="btn gh" data-film="off" style="position:absolute;right:12px;top:12px;height:40px;padding:0 14px;font-size:13px;z-index:3">Back to the card &times;</button>`
         : `<span class="chap">0${i + 1}</span><span class="chapc"><img src="logos/${esc(SC.logo)}.png" alt=""></span><div class="chapl"><span class="plate2">${esc(pl.name)}</span><span class="k">${plays.length} call${plays.length !== 1 ? 's' : ''} &middot; ${fronts.length} ${FRONTWORD(SC)}${fronts.length !== 1 ? 's' : ''} &middot; ${done} inked</span></div>`;
-      const watch = ytId(pl.video) ? `<a class="watch" href="${esc(pl.video)}" data-film="title"><span class="thumb"><img src="https://img.youtube.com/vi/${esc(ytId(pl.video))}/mqdefault.jpg" alt=""><i></i></span><span><span class="k">Watch the ${esc(pl.name.replace(/^The /, ''))} install</span><div class="t">King Reggie walks the section</div></span></a>` : '';
+      const watch = ytId(pl.video) ? `<a class="watch" href="${esc(pl.video)}" target="_blank" rel="noopener" data-film="title"><span class="thumb"><img src="https://img.youtube.com/vi/${esc(ytId(pl.video))}/mqdefault.jpg" alt=""><i></i></span><span><span class="k">Watch the ${esc(pl.name.replace(/^The /, ''))} install</span><div class="t">King Reggie walks the section</div></span></a>` : '';
       return `${head(`Section ${i + 1} of ${pls.length}`, esc(pl.name), esc(pl.eyebrow || ''), headRight(`<button class="btn sm" data-go="1">Start with ${esc(plays[0] ? plays[0].name : 'the first call')} <em>&rarr;</em></button>`, arrowsHTML(k + 1, tot)))}
         <div class="frame" style="${at(44, 176, 488, fh)}"><div class="tv chapter">${chap}</div></div>
         <div class="paper t3 chapter${plays.length > 7 ? ' many' : plays.length > 3 ? ' four' : ''}" style="${at(556, 176, 1000, fh)}"><span class="tape" style="left:300px;top:-14px"></span><div class="in">
@@ -1213,11 +1228,20 @@ function historyStage() {
     ${pr.length ? `<div class="rule"></div><div class="k team">What we take from it</div><div class="take">${pr.map((p) => `<div><div class="h26 s22">${esc(tcase(p.title))}</div><div class="t s15">${esc(p.blurb || '')}</div></div>`).join('')}</div>` : ''}
     ${quote ? `<div class="quote">&ldquo;${esc(quote.text)}&rdquo;</div>` : ''}`;
   const rows = players.map((g, i) => { const pl = g.player || {}; const pos = pl.pos || posShort(g);
-    return `<a class="prow" href="#role/${i}"><span class="posbox"><b>${esc(pos)}</b>${pl.number ? `<i>#${esc(String(pl.number))}</i>` : ''}</span><span class="pt"><span class="nm">${esc(nice(pl.name || g.name, true))}</span><span class="pos">${esc(POSNAME[pos] || nice(g.name, true))}</span><span class="ln">${esc(pl.line || '')}</span></span><span class="go">&rsaquo;</span></a>`; }).join('');
+    return `<a class="prow" href="#role/${i}"><span class="posbox"><b>${esc(pos)}</b>${pl.number ? `<i>#${esc(String(pl.number))}</i>` : ''}</span><span class="pt"><span class="nm">${esc(nice(pl.name || g.name, true))}</span><span class="pos">${esc(g.name ? nice(g.name, true) : POSNAME[pos] || '')}</span><span class="ln">${esc(pl.line || '')}</span></span><span class="go">&rsaquo;</span></a>`; }).join('');
   return `${head('History &amp; Personnel', `The ${esc(SC.nick || shortName())} Offense`, esc(tcase(String(ab.era || '').toLowerCase())))}
     <div class="paper t3 hist2" style="${at(X(1), 176, CW(8), lay.H - 80 - 176 - 16)}"><span class="tape" style="left:300px;top:-14px"></span><div class="in">${paper}</div></div>
-    <div class="frame roster" style="${at(X(9), 176, CW(4), lay.H - 80 - 176 - 16)}"><div class="rh">The players &middot; tap one</div>${rows}</div>`;
+    <div class="frame roster" style="${at(X(9), 176, CW(4), lay.H - 80 - 176 - 16)}"><div class="rh">The players &middot; tap one${P.shot ? `<a class="rbtn" href="#" data-shot="${esc(P.shot)}">Full personnel &rarr;</a>` : ''}</div>${rows}</div>`;
 }
+/* the full personnel screenshot (his call 2026-09-21): one button on the roster frame opens it over the page */
+function shotPop(src) {
+  shotClose(); const el = document.createElement('div'); el.className = 'shotpop'; el.id = 'shotpop';
+  el.innerHTML = `<div class="shot-in"><a class="shot-x" href="#" data-shotclose aria-label="Close">&times;</a><div class="shot-k">${esc(shortName())} &middot; the full personnel</div><img src="${esc(src)}" alt="The full personnel"></div>`;
+  el.addEventListener('click', (e) => { if (e.target === el || e.target.closest('[data-shotclose]')) { e.preventDefault(); shotClose(); } });
+  document.body.appendChild(el);
+}
+function shotClose() { const el = document.getElementById('shotpop'); if (el) el.remove(); }
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && document.getElementById('shotpop')) shotClose(); });
 /* the player: a big position and the number in the frame, who he is and what
    he is good at on one paper, what the role is built for on the other */
 function playerStage(i, H = 900) {
@@ -1226,8 +1250,8 @@ function playerStage(i, H = 900) {
   const era = pl.era ? tcase(String(pl.era).toLowerCase()) : '';
   const good = (pl.goodAt || []).map((x) => `<div class="quote tight">${esc(x)}</div>`).join('');
   const nums = (pl.nums || []).slice(0, 3);
-  return `${head(`History &amp; Personnel &middot; player ${i + 1} of ${n}`, esc(nice(pl.name || g.name, true)), esc(POSNAME[pos] || nice(g.name, true)) + (era ? ' &middot; ' + esc(era) : ''), headRight('', arrowsHTML(i + 1, n)))}
-    <div class="frame" style="${at(X(1), 176, CW(4), 644)}"><div class="tv locker big"><img class="wm" src="logos/${esc(SC.logo)}.png" alt=""><span class="k">The position</span><span class="pos" style="font-size:${posSize(pos, true)}px">${esc(pos)}</span>${pl.number ? `<span class="jersey">#${esc(String(pl.number))}</span>` : ''}<span class="plate2">${esc(POSNAME[pos] || nice(g.name, true))}</span></div></div>
+  return `${head(`History &amp; Personnel &middot; player ${i + 1} of ${n}`, esc(nice(pl.name || g.name, true)), esc(g.name ? nice(g.name, true) : POSNAME[pos] || '') + (era ? ' &middot; ' + esc(era) : ''), headRight('', arrowsHTML(i + 1, n)))}
+    <div class="frame" style="${at(X(1), 176, CW(4), 644)}"><div class="tv locker big"><img class="wm" src="logos/${esc(SC.logo)}.png" alt=""><span class="k">The position</span><span class="pos" style="font-size:${posSize(pos, true)}px">${esc(pos)}</span>${pl.number ? `<span class="jersey">#${esc(String(pl.number))}</span>` : ''}<span class="plate2">${esc(g.name ? nice(g.name, true) : POSNAME[pos] || '')}</span></div></div>
     <div class="paper t3 pp" style="${at(X(5), 176, CW(4), 644)}"><span class="tape" style="left:150px;top:-14px"></span><div class="in"><div class="h26">Who he is</div><div class="t">${stampify(pl.bio || '')}</div>
       ${good ? `<div class="rule"></div><div class="k team">What he is good at</div>${good}` : ''}
       ${nums.length ? `<div class="rule"></div><div class="nums n3">${nums.map(([v, l]) => `<div class="num"><b>${esc(v)}</b><u>${esc(l)}</u></div>`).join('')}</div>` : ''}</div></div>
@@ -1482,8 +1506,10 @@ app.addEventListener('click', (e) => {
   const sp = e.target.closest('[data-spot]'); if (sp) { SPOT = SPOT === sp.dataset.spot ? null : sp.dataset.spot; repaint(); return; }
   const cv = e.target.closest('[data-covview]'); if (cv) { COVVIEW = cv.dataset.covview; FILM = null; repaint(); return; }
   const mf = e.target.closest('[data-macrofilm]'); if (mf) { e.preventDefault(); FILM = mf.dataset.macrofilm; repaint(); return; }
-  const fm = e.target.closest('[data-film]'); if (fm) { e.preventDefault(); const c = curPlay(); if (!c && !(SEC === 'install' && (fm.dataset.film === 'title' || fm.dataset.film === 'off'))) return; FILM = fm.dataset.film === 'off' ? null : c ? c.p.id : 'title'; repaint(); return; }
+  /* the breakdown opens on YouTube in a new tab (his call 2026-09-21), never inside the page; only Back closes a film */
+  const fm = e.target.closest('[data-film]'); if (fm) { if (fm.dataset.film !== 'off') return; e.preventDefault(); const c = curPlay(); if (!c && !(SEC === 'install' && (fm.dataset.film === 'title' || fm.dataset.film === 'off'))) return; FILM = fm.dataset.film === 'off' ? null : c ? c.p.id : 'title'; repaint(); return; }
   const mo = e.target.closest('[data-rows]'); if (mo) { e.preventDefault(); const r = $('.rows'); if (r) { const y = (parseFloat(r.querySelector('.filt').style.top) - 40) * parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--s')); scrollTo({ top: y, behavior: 'smooth' }); } return; }
+  const sh = e.target.closest('[data-shot]'); if (sh) { e.preventDefault(); shotPop(sh.dataset.shot); return; }
   const se = e.target.closest('[data-sel]'); if (se) { TSEL = +se.dataset.sel; repaint(); return; }
   const bl = e.target.closest('[data-belief]'); if (bl) { const i = +bl.dataset.belief; OPEN.has(i) ? OPEN.delete(i) : OPEN.add(i); bl.classList.toggle('open', OPEN.has(i)); return; }
   const rd = e.target.closest('[data-rd]'); if (rd) { RD = (+rd.dataset.rd === RD) ? 0 : +rd.dataset.rd; repaint(); return; }
@@ -1499,6 +1525,12 @@ app.addEventListener('click', (e) => {
   /* one scheme, its own file (build-schemes.js writes them); the whole book only as a fallback */
   let one = null; try { const r = await fetch('schemes/' + encodeURIComponent(KEY) + '.json'); if (r.ok) one = await r.json(); } catch (e) {}
   if (!one) { const S = await (await fetch('schemes.json')).json(); one = (S.schemes || []).find((s) => s.key === KEY); }
+  /* THE SHEET MODULE IS THE SIDE'S (2026-09-21): an offense mounts the offensive sheet (lifted from the Bears book), a defense the
+     defensive one (lifted from Alabama). The college page loads neither up front; the Madden page loads the offensive one itself. */
+  if (one && typeof mountGpSheet !== 'function') { const mod = one.side === 'D' ? 'gp-sheet' : 'gp-sheet-offense';
+    await new Promise((res) => { const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = mod + '.css'; const own = document.querySelector('link[href$="scheme.css"]'); document.head.insertBefore(l, own || null);
+      const sc = document.createElement('script'); sc.src = mod + '.js'; sc.onload = res; sc.onerror = res; document.head.appendChild(sc); }); }
+  if (one) document.body.classList.add('side-' + (one.side === 'D' ? 'D' : 'O'));
   SC = one;
   await skPlanPull(); /* the account's plan, if it is newer than this browser's */
   if (!SC) { app.innerHTML = `<div class="sk-boot">No scheme called ${esc(KEY)}</div>`; return; }

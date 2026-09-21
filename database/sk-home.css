@@ -51,7 +51,8 @@
 .title b{font-family:var(--fc6);font-weight:800}
 
 /* ---------- the picker: the field takes the standing team's colour ---------- */
-body.sk-pick{background:radial-gradient(90% 70% at 50% 62%,color-mix(in srgb,var(--tc,#1E54B7) 42%,#120a10) 0%,color-mix(in srgb,var(--tc,#1E54B7) 14%,#0a0e1a) 55%,#0a0e1a 100%) fixed,#0a0e1a;transition:background .6s ease}
+/* the Scheme Kings office behind the shelf (his call 2026-09-21), the team's colour breathing through the scrim */
+body.sk-pick{background:radial-gradient(90% 70% at 50% 62%,color-mix(in srgb,var(--tc,#1E54B7) 34%,rgba(10,8,12,.72)) 0%,color-mix(in srgb,var(--tc,#1E54B7) 12%,rgba(8,10,18,.82)) 55%,rgba(8,10,18,.9) 100%) fixed,url("art/Scheme Kings__Office.webp") center/cover fixed,#0a0e1a;transition:background .6s ease}
 body.sk-pick .wrap{grid-template-columns:0 minmax(0,1fr) 0}
 body.sk-pick .rail,body.sk-pick .vrail,body.sk-pick .hunt,body.sk-pick .tabs,body.sk-pick .filters{display:none!important}
 body.sk-pick .body{padding:0 44px 40px}
@@ -97,11 +98,16 @@ body.sk-pick #foot{display:none}
 body.sk-pick{--u:min(calc(100vw / 1600),calc(100vh / 900))}
 body.sk-pick .pk{display:grid;grid-template-columns:minmax(0,1fr) calc(560 * var(--u));grid-template-rows:minmax(0,1fr) auto;gap:0 calc(36 * var(--u));height:calc(100vh - 84px - 66px - 40px);min-height:0}
 body.sk-pick .pk-rail{top:calc(14 * var(--u));gap:calc(10 * var(--u))}
-body.sk-pick .pk-chip{width:calc(118 * var(--u));height:calc(82 * var(--u));gap:calc(6 * var(--u))}
-body.sk-pick .pk-chip img{width:calc(32 * var(--u));height:calc(32 * var(--u))}
-body.sk-pick .pk-chip span{font-size:calc(10.5 * var(--u))}
-body.sk-pick .pk-stage{grid-column:1;grid-row:1;padding-top:calc(108 * var(--u));min-height:0;justify-content:flex-start;gap:calc(8 * var(--u))}
-body.sk-pick .pk-deck{--cw:calc(440 * var(--u));--agap:calc(28 * var(--u));min-height:0}
+body.sk-pick .pk-chip{width:calc(150 * var(--u));height:calc(100 * var(--u));gap:calc(8 * var(--u))}
+/* the Learn card sits beside the installs as one more small card, in gold */
+body.sk-pick .pk-chip.learn{background:#F5A623;border-color:#F5A623;color:#17130E}
+body.sk-pick .pk-chip.learn:hover{background:#F6EEDC;border-color:#F6EEDC}
+body.sk-pick .pk-chip.learn b{font:400 calc(26 * var(--u))/1 var(--fd6);color:#17130E}
+body.sk-pick .pk-chip.learn span{color:#17130E;line-height:1.25}
+body.sk-pick .pk-chip img{width:calc(40 * var(--u));height:calc(40 * var(--u))}
+body.sk-pick .pk-chip span{font-size:calc(11.5 * var(--u));line-height:1.25}
+body.sk-pick .pk-stage{grid-column:1;grid-row:1;padding-top:calc(126 * var(--u));min-height:0;justify-content:flex-start;gap:calc(8 * var(--u))}
+body.sk-pick .pk-deck{--cw:calc(540 * var(--u));   /* bigger cards (his call 2026-09-21) */--agap:calc(28 * var(--u));min-height:0}
 body.sk-pick .pk-card{aspect-ratio:1/1;background:transparent;border:0;border-radius:0;box-shadow:none;overflow:visible}
 body.sk-pick .pk-card::before,body.sk-pick .pk-card::after{display:none}
 body.sk-pick .pk-card img.pk-pol{position:relative;z-index:1;width:100%;height:100%;aspect-ratio:auto;object-fit:contain;border-radius:0;padding:0;background:none;box-shadow:none;animation:none;filter:drop-shadow(0 calc(26 * var(--u)) calc(40 * var(--u)) rgba(0,0,0,.6))}
@@ -231,3 +237,26 @@ body.sk-pick .yg-chip:hover{background:#F6EEDC}
 @media (max-width:759px){body.sk-pick .yg-chip{font-size:14px;padding:13px 18px;margin-bottom:12px}}
 /* a phone: the card fills the screen and reads at phone sizes, the quarterbacks in one row, the copy in one column */
 @media (max-width:760px){.yg-pop{--u:1}.yg-box{width:100vw;max-width:100vw;max-height:100vh;padding:20px 16px 18px;clip-path:none}.yg-x{right:10px;top:10px;width:40px;height:40px;font-size:26px}.yg-k{font-size:12px}.yg-slab span{font-size:36px;padding:8px 14px}.yg-qbs{gap:8px;margin-top:16px}.yg-cut{height:140px}.yg-qb b{font-size:17px}.yg-qb i{font-size:10px;letter-spacing:.12em}.yg-copy{columns:1;margin-top:14px}.yg-copy p{font-size:16px}.yg-foot{flex-wrap:wrap;gap:12px}.yg-book{width:44px;height:58px}.yg-bk{font-size:12px}.yg-go{margin-left:0;width:100%;font-size:14px!important;padding:14px!important}}
+
+
+/* THE SERIES POP-UP, SECOND PASS (his notes 2026-09-21): the office behind it, each team on its own
+   coloured plinth with its crest, a tag beside each (Install ready / Coming soon), nobody grayed out. */
+.yg-scrim{background:#07070b var(--bg,none) center/cover no-repeat}
+.yg-scrim::after{content:"";position:absolute;inset:0;background:radial-gradient(80% 70% at 50% 40%,rgba(7,7,11,.45),rgba(7,7,11,.86) 100%)}
+.yg-qbs{gap:calc(22 * var(--u));margin-top:calc(20 * var(--u))}
+.yg-copy{margin-top:calc(16 * var(--u))}
+.yg-qb{position:relative;padding:0 0 calc(14 * var(--u));background:#fff;box-shadow:0 10px 24px rgba(0,0,0,.18);border-bottom:calc(8 * var(--u)) solid var(--c1)}
+.yg-cut{position:relative;height:calc(256 * var(--u));background:radial-gradient(90% 75% at 50% 100%,color-mix(in srgb,var(--c1) 55%,transparent),transparent 72%),linear-gradient(180deg,#F3EBD8 0%,#E9DFC6 100%);overflow:hidden}
+.yg-cut::before{content:"";position:absolute;inset:0;background-image:radial-gradient(rgba(0,0,0,.28) 1px,transparent 1.3px);background-size:6px 6px;opacity:.35;mix-blend-mode:multiply}
+.yg-cut img.yg-man{position:relative;height:100%;object-fit:contain;filter:drop-shadow(0 0 2px var(--c2)) drop-shadow(0 14px 18px rgba(0,0,0,.35))}
+.yg-crest{position:absolute;left:calc(14 * var(--u));top:calc(12 * var(--u));width:calc(64 * var(--u));height:calc(64 * var(--u));object-fit:contain;filter:drop-shadow(0 4px 8px rgba(0,0,0,.35))}
+.yg-tag{position:absolute;right:calc(-8 * var(--u));top:calc(18 * var(--u));padding:calc(7 * var(--u)) calc(14 * var(--u));background:#17130E;color:#F5A623;font:800 calc(12 * var(--u))/1 'Barlow Condensed','Arial Narrow',sans-serif;letter-spacing:.22em;text-transform:uppercase;transform:rotate(6deg);box-shadow:0 4px 10px rgba(0,0,0,.3)}
+.yg-tag.soon{background:#F5A623;color:#17130E}
+.yg-qb b{margin-top:calc(14 * var(--u));padding:0 calc(10 * var(--u))}
+.yg-qb i{color:#6B6150}
+@media (max-width:760px){.yg-qb{border-bottom-width:5px;padding-bottom:8px}.yg-cut{height:150px}.yg-crest{width:30px;height:30px;left:6px;top:6px}.yg-tag{font-size:9px;padding:5px 8px;right:-4px;top:8px;letter-spacing:.14em}}
+/* the shelf's coming soon card: the polaroid stands with the others, a band across it, and it opens nothing */
+body.sk-pick .pk-card.soon img.pk-pol{filter:saturate(.55) brightness(.9)}
+body.sk-pick .pk-card.soon::before{content:"Coming soon";position:absolute;left:50%;top:52%;transform:translate(-50%,-50%) rotate(-12deg);padding:calc(12 * var(--u)) calc(26 * var(--u));background:#F5A623;color:#17130E;font:400 calc(34 * var(--u))/1 Anton,Impact,sans-serif;letter-spacing:.04em;text-transform:uppercase;box-shadow:0 10px 24px rgba(0,0,0,.5);z-index:3;white-space:nowrap;pointer-events:none}
+body.sk-pick .pk-card.soon.mid{cursor:default}
+body.sk-pick .pk-state.soon i{background:#F5A623}

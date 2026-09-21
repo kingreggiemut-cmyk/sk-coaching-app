@@ -24,7 +24,8 @@ const SK_GAMEKEY = (typeof window !== 'undefined' && window.SK_GAME) || '';
 const SKG = SK_GAMEKEY ? '_' + SK_GAMEKEY : '', SKPRE = SK_GAMEKEY ? SK_GAMEKEY + ':' : '';
 const PAGE = 200; let SHOWN = PAGE; let SORT = 'az';
  let FAMPICK = null, CONCEPT = null, SIDE = (typeof SK_SIDE !== 'undefined' ? SK_SIDE : 'O');
-let IDX = null, VIEW = (window.SK_SIDE==='D' && !SK_GAMEKEY) ? 'schemes' : 'books', FAM = null, SET = null, TYPE = 'all', Q = '', BOOK = null;
+/* the college pages land on their installs (the offense got its first, the Veer N Shoot, 2026-09-21); the Madden pages land on the playbooks as before */
+let IDX = null, VIEW = SK_GAMEKEY ? 'books' : 'schemes', FAM = null, SET = null, TYPE = 'all', Q = '', BOOK = null;
 const CARDS = new Map();                    // setKey -> geometry
 const SAVED = new Set(JSON.parse(localStorage.getItem('sk_saved' + SKG) || '[]'));
 const saveStars = () => { try { localStorage.setItem('sk_saved' + SKG, JSON.stringify([...SAVED])); localStorage.setItem('sk_saved_meta' + SKG, JSON.stringify(SAVEDMETA)); } catch(e){} };
@@ -212,7 +213,7 @@ const ALL_SECTIONS=[['schemes','SCHEMES','your installs'],
                 ['library','PLAYBOOKS','the play database'],
                 ['saved','SAVED','starred plays']];
 /* Madden's schemes are offenses (the Young Gun installs, 2026-09-13), so on the Madden pages the section rides the offense bar instead */
-const SECTIONS=((window.SK_SIDE==='D' && !SK_GAMEKEY) || (SK_GAMEKEY && window.SK_SIDE!=='D'))?ALL_SECTIONS:ALL_SECTIONS.filter(([k])=>k!=='schemes');
+const SECTIONS=(SK_GAMEKEY && window.SK_SIDE==='D')?ALL_SECTIONS.filter(([k])=>k!=='schemes'):ALL_SECTIONS;
 const VIEWS={library:[['books','TEAM BOOKS','the playbooks'],
                       ['map','THE MAP','by geography'],
                       ['formations','FORMATIONS','by personnel'],

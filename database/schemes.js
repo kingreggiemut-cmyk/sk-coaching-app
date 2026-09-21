@@ -160,8 +160,8 @@ const SKVIEWS=[['home','Home','the room'],['plan','The Plan','the creed'],['inst
   ['sheet','Call Sheet','what you take in'],['drives','Drives','the script rack'],
   ['board','The Board','cases and answers'],['personnel','Personnel','who runs it']];
 const pkShort=(n)=>{ const t=String(n||'').replace(/\s+(Offense|Defense|Spread-to-Run)$/i,'').trim();
-  return t.length<=16?t:t.split(' ').slice(0,2).join(' '); };
-const pkCrest=(s)=>s.logo
+  return t.length<=24?t:t.split(' ').slice(0,2).join(' '); };   /* 24 so Tennessee Veer N Shoot stays whole */
+const pkCrest=(s)=>s.logoImg ? `<img src="${esc(s.logoImg)}" alt="" loading="lazy" decoding="async">` : s.logo
   ? `<img src="logos/${esc(s.logo)}.png" alt="" loading="lazy" decoding="async">`
   : `<b>${esc((s.name||'?')[0])}</b>`;
 const schemeOpen=()=>SCHEME&&SCHEMES&&SCHEMES.find(x=>x.key===SCHEME);
@@ -354,7 +354,7 @@ function pkCardStyle(o,sc){
   return `--o:${o};--s:${s};--op:${op};--lay:${lay};--gray:${gray};--z:${20-ab};`
     +`--tc:${sc.c1||'#1E3A6E'};--tc2:${sc.c2||'#F5B935'};--pe:${vis?'auto':'none'}`+(sc.home&&sc.home.card?`;--face:url('${new URL(sc.home.card,location.href).href}')`:'');
 }
-function pkState(sc){ const n=installedSet(sc).size, t=((sc.install&&sc.install.pillars)||[]).length||3;
+function pkState(sc){ if(sc.soon) return ['soon','Coming soon']; const n=installedSet(sc).size, t=((sc.install&&sc.install.pillars)||[]).length||3;
   return n>=t?['ready','Game Ready']:n?['prog',`In Progress · ${n} of ${t} sections`]:['open','Open It']; }
 /* THE DECK IS ONE SIDE OF THE BALL. An install teaches offence or defence,
    never both, so the picker shows the schemes for whichever side the header
@@ -364,7 +364,12 @@ function pkState(sc){ const n=installedSet(sc).size, t=((sc.install&&sc.install.
    offence and said "offense" out loud in seven places, which reads wrong on a
    Saban defence. One word, taken from the scheme. */
 function SIDEWORD(sc){ return (sc && sc.side === 'D') ? 'defence' : 'offense'; }
-const deckOf=()=>(SCHEMES||[]).filter(s=>(s.side||'O')===(typeof SIDE==='undefined'?'O':SIDE));
+/* THE SHELF HOLDS THE WHOLE SERIES (his call 2026-09-21): an entry of the series that has no install yet
+   stands on the shelf as a Coming soon card. It flips like the others and opens nothing. */
+const soonCards=()=>{ if(!SERIES_HERE()||!SERIES.qbs) return []; const sd=typeof SIDE==='undefined'?'O':SIDE;
+  return SERIES.qbs.filter(q=>q.soon).map((q,i)=>({ key:'soon-'+i, soon:true, side:sd, name:q.fullName||(q.name+' '+SERIES.title.replace(/^The\s+/i,'').replace(/\s+Offense$/i,'')), c1:q.c1||'#1E3A6E', c2:q.c2||'#F5B935', logo:null, logoImg:q.logo||null,
+    home:{ card:q.card||null, era:q.team||'', sub:'coming soon', pitch:q.pitch||'' }, install:{pillars:[]}, formations:[], counts:{plays:0,films:0,pillars:{}}, plays:[] })); };
+const deckOf=()=>(SCHEMES||[]).filter(s=>(s.side||'O')===(typeof SIDE==='undefined'?'O':SIDE)).concat(soonCards());
 /* the count line reads in the install's own words, so a defence says
    "3 pressure · 2 disguise" instead of borrowing the offence's headings */
 const pkN=(s)=>(s.counts&&s.counts.plays!=null)?s.counts.plays:(s.plays||[]).length;
@@ -390,6 +395,7 @@ function pkTile(f){ const key=f.lib?slug(f.lib[0])+'__'+slug(f.lib[1]):'425__'+s
 const pkInked=(sc)=>{ const p=planOf(sc); return Array.isArray(p.inked)?p.inked.length:0; };
 /* the standing card's dossier: era, the line, the fronts, the counts, Open */
 function pkDossier(sc){
+  if(sc.soon){ const h=sc.home||{}; return `<span class="pd-tape"></span><div class="pd-k">On the way</div><div class="pd-name" id="pkname">${esc(pkShort(sc.name))}</div><div><span class="pd-stamp">${esc(h.era||'')} · coming soon</span></div>${h.pitch?`<div class="pd-t">${esc(h.pitch)}</div>`:''}<div class="pd-go"><span class="pk-state soon" id="pkstate"><i></i>Coming soon</span></div>`; }
   const h=sc.home||{}, st=pkState(sc), pls=(sc.install&&sc.install.pillars)||[], cov=sc.mode==='coverages';
   const films=(sc.counts&&sc.counts.films!=null)?sc.counts.films:(sc.plays||[]).filter(p=>p.videoUrl).length, fr=(sc.formations||[]).slice(0,3);
   const tiles=fr.length?`<div class="pd-lab">The ${sc.side==='D'?(fr.length===1?'front':'fronts'):(fr.length===1?'formation':'formations')}</div><div class="pd-tiles">${fr.map(f=>`<div class="tl">${pkTile(f)}</div>`).join('')}</div><div class="pd-tlab">${fr.map(f=>`<span>${esc(f.name)}</span>`).join('')}</div>`:'';
@@ -402,23 +408,25 @@ function pkDossier(sc){
     <div class="pd-go"><button class="skb gold pk-go" data-open="1">${cov?'Open the coverages':'Open the install'} &rarr;</button><span class="pk-state ${st[0]}" id="pkstate"><i></i>${st[1]}</span></div>`;
 }
 /* the book in game, along the bottom */
-function pkBook(sc){ const b=sc.home&&sc.home.book; if(!b) return '';
+function pkBook(sc){ if(sc.soon) return `<div><div class="h">The install is on the way</div><div class="k7">it drops in here when the video is out</div></div>`; const b=sc.home&&sc.home.book; if(!b) return '';
   return `${b.thumb?`<img src="${esc(b.thumb)}" alt="" loading="lazy" decoding="async">`:''}<div><div class="h">In game, this runs out of the <i>${esc(b.team)}</i> ${sc.side==='D'?'defensive':'offensive'} playbook</div><div class="k7">${esc(b.note||'')}</div></div>${(b.copies||[]).length?`<div class="cuts"><u>Same book in Ultimate Team</u>${b.copies.map(t=>`<span>${esc(t)}</span>`).join('')}</div>`:''}`; }
 /* THE SERIES POP-UP (his note 2026-09-14): the first time the picker opens it
    says what these installs are together, over the picker, and has to be
    closed. It comes back from the chip beside the installs eyebrow. */
 /* once per SESSION, not once ever (his call 2026-09-14): every new visit opens it again, and the gold button under the installs brings it back any time */
-const SERIES_SEEN=()=>{ try{ return !!(typeof SERIES!=='undefined'&&SERIES&&sessionStorage.getItem('sk_series_seen_'+SERIES.key)); }catch(e){ return true; } };
+/* a series belongs to one side of the ball (the Veer N Shoot is the college offense's; Madden's has no side) */
+const SERIES_HERE=()=>{ if(typeof SERIES==='undefined'||!SERIES) return false; const sd=typeof SIDE==='undefined'?'O':SIDE; return !SERIES.side||SERIES.side===sd; };
+const SERIES_SEEN=()=>{ try{ return !SERIES_HERE()||!!sessionStorage.getItem('sk_series_seen_'+SERIES.key); }catch(e){ return true; } };
 function seriesPop(){
-  if(typeof SERIES==='undefined'||!SERIES) return; seriesClose();
+  if(!SERIES_HERE()) return; seriesClose();
   const S=SERIES;
   const el=document.createElement('div'); el.className='yg-pop'; el.id='ygpop';
-  el.innerHTML=`<div class="yg-scrim" data-ygclose></div><div class="yg-box">
+  el.innerHTML=`<div class="yg-scrim" data-ygclose${S.backdrop?` style="--bg:url('${esc(new URL(S.backdrop,location.href).href)}')"`:''}></div><div class="yg-box">
     <a class="yg-x" data-ygclose aria-label="Close">&times;</a>
     <div class="yg-k">${esc(S.kicker||'')}</div><div class="yg-slab"><span>${esc(S.title)}</span></div>
-    <div class="yg-qbs">${(S.qbs||[]).map(q=>`<div class="yg-qb"><div class="yg-cut">${q.cut?`<img src="${esc(q.cut)}" alt="">`:''}</div><b>${esc(q.name)}</b><i>${esc(q.team)}</i></div>`).join('')}</div>
+    <div class="yg-qbs">${(S.qbs||[]).map(q=>`<div class="yg-qb${q.soon?' soon':''}" style="--c1:${esc(q.c1||'#9E1B32')};--c2:${esc(q.c2||'#F5A623')}"><div class="yg-cut">${q.cut?`<img class="yg-man" src="${esc(q.cut)}" alt="">`:''}${q.logo?`<img class="yg-crest" src="${esc(q.logo)}" alt="">`:''}<span class="yg-tag${q.soon?' soon':''}">${q.soon?'Coming soon':'Install ready'}</span></div><b>${esc(q.name)}</b><i>${esc(q.team)}</i></div>`).join('')}</div>
     <div class="yg-copy">${(S.copy||[]).map(t=>`<p>${esc(t)}</p>`).join('')}</div>
-    <div class="yg-foot">${S.book&&S.book.thumb?`<img class="yg-book" src="${esc(S.book.thumb)}" alt="">`:''}<span class="yg-bk">In game, all three run out of the <b>${esc((S.book||{}).team||'')}</b> playbook</span><button class="skb gold yg-go" data-ygclose>Got it, show me the schemes &rarr;</button></div>
+    <div class="yg-foot">${S.book&&S.book.thumb?`<img class="yg-book" src="${esc(S.book.thumb)}" alt="">`:''}<span class="yg-bk">${S.bookLine?esc(S.bookLine):`In game, all three run out of the <b>${esc((S.book||{}).team||'')}</b> playbook`}</span><button class="skb gold yg-go" data-ygclose>Got it, show me the schemes &rarr;</button></div>
   </div>`;
   document.body.appendChild(el); document.body.classList.add('yg-on');
   el.addEventListener('click',(e)=>{ if(e.target.closest('[data-ygclose]')) seriesClose(); });
@@ -443,13 +451,13 @@ function renderPicker(){
   main.innerHTML=`<div class="pk" id="pk" style="--tc:${cur.c1||'#1E3A6E'};--tc2:${cur.c2||'#F5B935'}">
     <div class="pk-rail">${DECK.map((s,i)=>
       `<button class="pk-chip${i===INSTALL?' on':''}" data-pk="${i}" style="--tc:${s.c1||'#1E3A6E'};--tc2:${s.c2||'#F5B935'}" title="${esc(s.name)}">
-        ${pkCrest(s)}<span>${esc(pkShort(s.name))}</span></button>`).join('')}</div>
+        ${pkCrest(s)}<span>${esc(pkShort(s.name))}</span></button>`).join('')}${SERIES_HERE()?`<button class="pk-chip learn" data-ygopen="1" title="Learn about ${esc(SERIES.title)}"><b>&#9733;</b><span>Learn about<br>${esc(SERIES.title)}</span></button>`:''}</div>
     <div class="pk-stage">
-      <div class="pk-eyebrow eyebrow">Your Installs</div>${typeof SERIES!=='undefined'&&SERIES?`<button class="yg-chip" data-ygopen="1">&#9733; Learn about ${esc(SERIES.title)}</button>`:''}
+      <div class="pk-eyebrow eyebrow">Your Installs</div>
       <div class="pk-deck" id="pkdeck">
         ${N>1?`<button class="pk-arrow prev" data-step="-1" aria-label="Previous scheme">&lsaquo;</button>`:''}
         ${DECK.map((s,i)=>{ const o=off(i);
-          return `<button class="pk-card${o===0?' mid':''}" data-pk="${i}" style="${pkCardStyle(o,s)}" title="${esc(s.name)}">
+          return `<button class="pk-card${o===0?' mid':''}${s.soon?' soon':''}" data-pk="${i}" style="${pkCardStyle(o,s)}" title="${esc(s.name)}">
             ${pkFace(s)}<span class="pk-foil"></span><span class="pk-glare"></span></button>`; }).join('')}
         ${N>1?`<button class="pk-arrow next" data-step="1" aria-label="Next scheme">&rsaquo;</button>`:''}
       </div>
@@ -468,7 +476,7 @@ function renderPicker(){
   const go=(n)=>{ INSTALL=(n+N)%N; apply(); };
   /* a scheme with the new page (skin warroom) opens scheme.html; the rest
      still open the old room here */
-  const open=async(i)=>{ const s=DECK[i]; if(s.skin==='warroom'){ location.href=`scheme.html?key=${encodeURIComponent(s.key)}`; return; }
+  const open=async(i)=>{ const s=DECK[i]; if(s.soon) return; if(s.skin==='warroom'){ location.href=`scheme.html?key=${encodeURIComponent(s.key)}`; return; }
     if(typeof ensureScheme==='function') await ensureScheme(s.key); if(!IDX&&typeof ensureIndex==='function') await ensureIndex();
     navPush(); SCHEME=s.key; SEC='home'; CH=-1; OPENPLAY=null; buildRail(); render(); scrollTo(0,0); };
   main.onclick=e=>{ if(e.target.closest('[data-ygopen]')){ seriesPop(); return; }

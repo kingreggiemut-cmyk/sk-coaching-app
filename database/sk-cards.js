@@ -96,7 +96,8 @@ function ruler(bx,by,bw,bh){
    I-form backs below); the rest are practice drills with men parked off the
    field, and they keep the fitted box below. Routes that run past the frame
    stop at its edge with their arrow, the way they used to stop at the card's. */
-const FRAME={ off:{z:1.15, below:9.2}, def:{z:1.05, below:3.2} };
+/* below 8.0 since 2026-09-21 (was 9.2): a dig at sixteen and a choice route's post show their break instead of running off the top */
+const FRAME={ off:{z:1.15, below:8.0}, def:{z:1.05, below:3.2} };
 function frameBox(g){
   const def=!!g.def, F=def?FRAME.def:FRAME.off;
   const bw=W/F.z, bh=H/F.z, bx=CX-bw/2, by=LOSY+F.below*SC-bh;
@@ -168,10 +169,13 @@ const OPTION_SHAPES={
   Hitch_Fade_Slant:(s,o)=>({stem:s||3, main:[[-o*1.4,-1]],    alt:[[o*1.5,12]]}),
   Out_Fade:       (s,o)=>({stem:s||5,  main:[[o*6,0]],        alt:[[o*1.5,12]]}),
   Out_Fade_Slant: (s,o)=>({stem:s||5,  main:[[o*6,0]],        alt:[[o*1.5,12]]}),
-  Curl_Dig:       (s,o)=>({stem:s||10, main:[[-o*1.6,-2]],    alt:[[-o*8,0]]}),
-  Curl_Fade:      (s,o)=>({stem:s||10, main:[[-o*1.6,-2]],    alt:[[o*1.5,10]]}),
-  /* the game's card: the curl, the post, and the seam — three ways */
-  Curl_Post_Seam: (s,o)=>({stem:s||10, main:[[-o*1.6,-2]],    alts:[[[-o*7,5]],[[0,9]]]}),
+  Curl_Dig:       (s,o)=>({stem:s||10, main:[[-o*1.6,-2]],    alt:[[-o*12,0]]}),
+  /* the stick (his note 2026-09-21): it breaks OUTSIDE against man and sits against zone, so the out is the solid line */
+  Stick_Out:      (s,o)=>({stem:s||8,  main:[[o*7,0.6]],      alts:[[[-o*1.4,-1.3]]]}),
+  /* the outside man's option is an OPTION STREAK (his note 2026-09-21): the streak solid, the hook dotted */
+  Curl_Fade:      (s,o)=>({stem:s||10, main:[[0,14]],           alt:[[-o*1.4,-1.3]]}),
+  /* the game's card (his screenshot 2026-09-21, PA Choice Deep): in, up, and the curl back solid, with the post and the dig off it */
+  Curl_Post_Seam: (s,o)=>({stem:s||10, main:[[-o*1.5,-4]],      alts:[[[-o*8,7]],[[-o*13,0.3]]]}),
   Curl_Seam:      (s,o)=>({stem:s||8,  main:[[-o*1.6,-2]],    alt:[[0,10]]}),
   Dig_Post:       (s,o)=>({stem:s||8,  main:[[-o*8,0]],       alt:[[-o*5,8]]}),
   /* mesh: the drag across, with the option to sit down in the window in
@@ -182,7 +186,8 @@ const OPTION_SHAPES={
   Comeback_Fade:  (s,o)=>({stem:s||12, main:[[o*2,-3]],       alt:[[o*1,8]]}),
   Juke:           (s,o)=>({stem:s||7,  main:[[o*4,1]],        alt:[[-o*4,1]]}),
   Route:          (s,o)=>({stem:s||5,  main:[[o*5,0]],        alt:[[-o*5,0]]}),
-  HB_Choice_In_Out:(s,o)=>({stem:0,    pre:[[o*3,s||5]],      main:[[o*5,0]],  alt:[[-o*3,0]]}),
+  /* the back's choice the way the game's card draws it (his note 2026-09-21): out past the tackle to five, a hook, with the out and the Texas off it */
+  HB_Choice_In_Out:(s,o)=>({stem:0,    pre:[[o*3,s||5]],      main:[[-o*0.4,-1.4]],  alts:[[[-o*6,6]],[[o*6,0]]]}),   /* the Texas is a forty five in front of the quarterback */   /* sit facing the quarterback, the Texas up the field, or the out (his note 2026-09-21) */
   /* a back's option route the way it is coached (his note 2026-09-14): a hook to three or four yards, then he breaks either way */
   HB_Option:      (s,o)=>({stem:s||8,   pre:[[o*2,2]],         main:[[-o*0.4,-1.4]], alts:[[[o*5,0]],[[-o*5,0]]]}),
   HB_Choice_Out:  (s,o)=>({stem:0,     pre:[[o*3,s||5]],      main:[[o*5,0]],  alt:null}),
@@ -190,9 +195,11 @@ const OPTION_SHAPES={
   /* the run-and-shoot / veer-and-shoot family. The decision is named, the
      ops hold only the stem, so the stem is the man's own path (base:'pts')
      and the branches fork from its tip: a choice is post, corner or sit. */
-  Choice:         (s,o)=>({stem:s||12, main:[[-o*7,6]],  alts:[[[0,9]],[[-o*1.4,-1.3]]]}),
+  /* the choice the way the game's card draws it (his note 2026-09-21): the post solid, the dig long across, the sit */
+  Choice:         (s,o)=>({stem:s||12, main:[[-o*9,7]],  alts:[[[-o*13,0.5]],[[-o*1.4,-1.3]]]}),
   /* a switch release to the outside, then keep going or sit */
-  Switch_Choice:  (s,o)=>({stem:s||8,  main:[[o*3,8]],    alts:[[[-o*1.2,-1.4]],[[-o*6,1.5]]]}),
+  /* the switch release outside, then the WHEEL up the sideline solid with the comeback off it (the game's card, 2026-09-21) */
+  Switch_Choice:  (s,o)=>({stem:s||8,  main:[[0,10]],      alts:[[[-o*1.6,-4.5]]]}),
   /* a bunch man's angle release, then hitch or in */
   Angle_Hitch:    (s,o)=>({stem:s||5,  main:[[-o*1.4,-1.3]], alts:[[[-o*7,1]]]}),
   Hitch_Slant:    (s,o)=>({stem:s||5,  main:[[-o*1.4,-1.3]],  alts:[[[-o*7,5]]]}),
@@ -219,6 +226,10 @@ function optionRoute(m){
     for(const [dx,dy] of (sh.pre||[])){ cx+=dx; cy+=dy; base.push([cx,cy]); }
     if(sh.stem){ cy+=sh.stem; base.push([cx,cy]); }
   }
+  /* A BACK'S OPTION FORKS PAST THE LINE (his note 2026-09-21): the game files the stem to the line of scrimmage and
+     draws the decision five yards past it, so the stem keeps going along its last leg until it is there */
+  if(m.y<-2&&m.y+cy<4.5){ const prev=base.length>1?base[base.length-2]:[0,0]; let ux=cx-prev[0], uy=cy-prev[1]; const L=Math.hypot(ux,uy)||1; ux/=L; uy/=L; if(uy<0.3){ ux=0; uy=1; }
+    const need=(4.5-(m.y+cy))/uy; cx+=ux*need; cy+=uy*need; base.push([cx,cy]); }
   const fork=(legs)=>{ if(!legs) return null; let x=cx,y=cy; const out=[]; for(const [dx,dy] of legs){ x+=dx; y+=dy; out.push([x,y]); } return out; };
   const alts=(sh.alts||(sh.alt?[sh.alt]:[])).map(fork).filter(Boolean);
   return { main:[...base,...(fork(sh.main)||[])], alt:alts[0]||null, alts, tip:[cx,cy] };
@@ -408,7 +419,7 @@ function drawCard(g){
 /* clip routes to a standard frame while it is being drawn; null puts the
    card's own limits back. Shared with install.js, which draws its own card. */
 function frameClip(b){
-  if(b&&b.std){ const k=b.bw/W; CLIPB={top:(LOSY-b.by-15*k)/SC, bot:-(b.by+b.bh-LOSY-13*k)/SC, x:(b.bw/2-13*k)/SC}; }
+  if(b&&b.std){ const k=b.bw/W; CLIPB={top:(LOSY-b.by-15*k)/SC, bot:-(b.by+b.bh-LOSY-13*k)/SC, x:(b.bw/2-3*k)/SC}; }   /* x inset small (2026-09-21): a streak on the numbers was being clipped away */
   else CLIPB={top:DEPTH_MAX, bot:DEPTH_MIN, x:X_MAX};
 }
 function drawCardEmpty(){ return `<svg viewBox="0 0 ${W} ${H}">${CARD_DEFS}<rect width="${W}" height="${H}" fill="url(#cardG)"/>${FIELD}${ruler(0,0,W,H)}</svg>`; }
