@@ -217,8 +217,8 @@ body.sk-pick .pk-dot{width:calc(11 * var(--u));height:calc(11 * var(--u))}
 @keyframes ygIn{from{opacity:0;transform:translateY(18px) scale(.98)}to{opacity:1;transform:none}}
 .yg-x{position:absolute;right:calc(22 * var(--u));top:calc(18 * var(--u));width:calc(52 * var(--u));height:calc(52 * var(--u));border-radius:50%;display:grid;place-items:center;background:rgba(23,19,14,.08);color:#17130E;font:400 calc(34 * var(--u))/1 Anton,Impact,sans-serif;cursor:pointer;text-decoration:none}
 .yg-x:hover{background:#F5A623}
-.yg-k{font:800 calc(16 * var(--u))/1 'Barlow Condensed','Arial Narrow',sans-serif;letter-spacing:.3em;text-transform:uppercase;color:#9E1B32}
-.yg-slab{margin-top:calc(12 * var(--u))}.yg-slab span{display:inline-block;padding:calc(10 * var(--u)) calc(26 * var(--u));background:#9E1B32;color:#fff;font:400 calc(80 * var(--u))/.9 Anton,Impact,sans-serif;text-transform:uppercase;clip-path:polygon(0 8%,3% 0,97% 4%,100% 12%,99% 90%,96% 100%,4% 97%,0 88%)}
+.yg-k{font:800 calc(16 * var(--u))/1 'Barlow Condensed','Arial Narrow',sans-serif;letter-spacing:.3em;text-transform:uppercase;color:var(--sk2,#9E1B32)}   /* the series' own colours since 2026-09-28 (the Seahawks are blue and green) */
+.yg-slab{margin-top:calc(12 * var(--u))}.yg-slab span{display:inline-block;padding:calc(10 * var(--u)) calc(26 * var(--u));background:var(--sk1,#9E1B32);color:#fff;font:400 calc(80 * var(--u))/.9 Anton,Impact,sans-serif;text-transform:uppercase;clip-path:polygon(0 8%,3% 0,97% 4%,100% 12%,99% 90%,96% 100%,4% 97%,0 88%)}
 .yg-qbs{display:grid;grid-template-columns:repeat(3,1fr);gap:calc(28 * var(--u));margin-top:calc(26 * var(--u))}
 .yg-qb{text-align:center}
 .yg-cut{height:calc(290 * var(--u));display:flex;align-items:flex-end;justify-content:center;background:radial-gradient(70% 60% at 50% 100%,rgba(158,27,50,.25),transparent 70%)}

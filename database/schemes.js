@@ -160,7 +160,7 @@ const SKVIEWS=[['home','Home','the room'],['plan','The Plan','the creed'],['inst
   ['sheet','Call Sheet','what you take in'],['drives','Drives','the script rack'],
   ['board','The Board','cases and answers'],['personnel','Personnel','who runs it']];
 const pkShort=(n)=>{ const t=String(n||'').replace(/\s+(Offense|Defense|Spread-to-Run)$/i,'').trim();
-  return t.length<=24?t:t.split(' ').slice(0,2).join(' '); };   /* 24 so Tennessee Veer N Shoot stays whole */
+  return t.length<=28?t:t.split(' ').slice(0,2).join(' '); };   /* 28 so Tennessee Veer N Shoot and Seahawks Advanced Coverages stay whole (2026-09-28) */
 const pkCrest=(s)=>s.logoImg ? `<img src="${esc(s.logoImg)}" alt="" loading="lazy" decoding="async">` : s.logo
   ? `<img src="logos/${esc(s.logo)}.png" alt="" loading="lazy" decoding="async">`
   : `<b>${esc((s.name||'?')[0])}</b>`;
@@ -420,7 +420,7 @@ const SERIES_SEEN=()=>{ try{ return !SERIES_HERE()||!!sessionStorage.getItem('sk
 function seriesPop(){
   if(!SERIES_HERE()) return; seriesClose();
   const S=SERIES;
-  const el=document.createElement('div'); el.className='yg-pop'; el.id='ygpop';
+  const el=document.createElement('div'); el.className='yg-pop'; el.id='ygpop'; if(S.c1) el.style.setProperty('--sk1',S.c1); if(S.c2) el.style.setProperty('--sk2',S.c2);
   el.innerHTML=`<div class="yg-scrim" data-ygclose${S.backdrop?` style="--bg:url('${esc(new URL(S.backdrop,location.href).href)}')"`:''}></div><div class="yg-box">
     <a class="yg-x" data-ygclose aria-label="Close">&times;</a>
     <div class="yg-k">${esc(S.kicker||'')}</div><div class="yg-slab"><span>${esc(S.title)}</span></div>

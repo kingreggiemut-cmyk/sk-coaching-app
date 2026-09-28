@@ -177,6 +177,11 @@ function adjustGeo(g, ops) {
     const m = c.men.find((x) => x._k === op.man); if (!m) continue;
     if (op.mirror) { m.x = -m.x; if (m.pts) m.pts = m.pts.map(([dx, dy]) => [-dx, dy]); }
     if (op.mirrorPts && m.pts) m.pts = m.pts.map(([dx, dy]) => [-dx, dy]);
+    /* a man moved to a spot on the field (a walked down safety, 2026-09-28) */
+    if (op.at) { m.x = c._flip ? -op.at[0] : op.at[0]; m.y = op.at[1]; delete m.from; delete m.mv; }
+    /* where he walked down from (a dotted walk before the snap) and a man made a rusher (2026-09-28) */
+    if (op.from) { m.from = c._flip ? [-op.from[0], op.from[1]] : op.from.slice(); m.mv = op.mv || 'creep'; }
+    if (op.rush) { m.rush = 1; m.fam = 'rush'; if (!m.lb || m.lb === 'Assignment') m.lb = 'Blitz'; delete m.zone; delete m.zk; delete m.zj; }
     if (op.route) { m.pts = op.route.map((p) => p.slice()); if (c._flip) m.pts = m.pts.map(([dx, dy]) => [-dx, dy]); m._blk = false; delete m.b; delete m.bk; delete m.opt; delete m.stem; delete m.dd; }   /* a handed route replaces an option route (his note 2026-09-21: a drag is a drag) */
     if (op.block) { m.pts = null; m._blk = true; m.b = 1; }
     /* motion: the path he takes before the snap, absolute field spots; his route starts at its end */
@@ -348,7 +353,7 @@ function noteHTML(p) {
   const top = p.whenToUse ? `<div class="h26">When to call it</div><div class="t">${esc(p.whenToUse)}</div>` : `<div class="h26">${esc(p.formation || p.libSet || 'From the book')}</div><div class="k team" style="margin-top:6px">Your addition from the book</div><div class="t s14" style="margin-top:6px">Write what you see: the reads, the adjustment, when you call it. It saves as you type.</div><textarea class="note ynote" data-ynote="${esc(p.id)}" maxlength="1200" placeholder="your notes on this call">${esc(noteOf(SC, p.id))}</textarea>`;
   const keys = reads.length ? `<div><div class="k team">The ${RDWORD(SC)}s</div><ul class="keylist">${reads.map((x, k) => `<li class="${k + 1 === RD ? 'on' : k + 1 < RD ? 'done' : ''}" data-rd="${k + 1}"><b>${k + 1}</b><span>${esc(x.label)}</span></li>`).join('')}</ul></div>` : '';
   const adjs = adj.length ? `<div><div class="k team">Adjustments</div><div style="margin-top:8px">${adj.map((a, k) => { const live = !still && ops[k]; return `<div class="adj${live ? ' live' : ''}${live && on.has(k) ? ' on' : ''}" ${live ? `data-adj="${k}"` : ''}><b>${k + 1}</b><span>${esc(a)}</span>${live ? `<span class="mk">${on.has(k) ? 'showing' : 'see it'}</span>` : ''}</div>`; }).join('')}</div></div>` : '';
-  return `<div class="top">${top}</div>${keys || adjs ? `<div class="rule"></div><div class="two">${keys}${adjs}</div>` : ''}`;
+  return `<div class="top">${top}</div>${keys || adjs ? `<div class="rule"></div><div class="two">${keys}${adjs}</div>${p.rules ? `<a class="rulesbtn" href="#" data-rules="${esc(p.id)}">The rules &rarr;</a>` : ''}${p.checks ? `<a class="rulesbtn alt" href="#" data-shot="${esc(p.checks)}" data-shotk="the Cover 4 checks">The Cover 4 checks &rarr;</a>` : ''}` : ''}`;
 }
 /* THE PLAY BLOCK, three ways: on the install ('install'), open at the top
    of All Plays ('focus'), in the takeover ('modal') */
@@ -382,7 +387,33 @@ function introManifesto() {
   const plinth = `<div class="frame" style="${at(X(9), 176, CW(4), H)}"><div class="tv plinth"><img class="wm" src="logos/${esc(SC.logo)}.png" alt="">${SC.about.hero ? `<img class="man" src="${esc(SC.about.hero)}" alt="">` : ''}<div class="cap"><b>${esc(star ? nice(star.player.name, true) : (SC.about.era || ''))}</b><i>${esc([h.era, h.sub].filter(Boolean).join(' · '))}</i></div></div></div>`;
   return `${head('The intro', `${esc(whose())} ${esc(shortName())}`, esc(SC.tagline || ''), headRight(`<a class="btn sm" href="#install/0">Start the install <em>&rarr;</em></a>`))}${paper}${plinth}`;
 }
+/* THE INTRO AS PAGES (his brief 2026-09-28, the Seahawks): each of the three principles has three pages, read one at a
+   time with a pager; the principles are tabs above the page, the star stands on the plinth on the right four columns */
+let IP = 0, IPG = 0;
+const introPaged = () => !!(SC && SC.about && (SC.about.principles || []).some((p) => p.pages && p.pages.length));
+function introStep(d) {
+  NAVDIR = d < 0 ? -1 : 1; TURN = true; const pr = ((SC.about && SC.about.principles) || []).slice(0, 3), n = ((pr[IP] || {}).pages || []).length;
+  if (d > 0) { if (IPG < n - 1) IPG++; else if (IP < pr.length - 1) { IP++; IPG = 0; } else return false; }
+  else { if (IPG > 0) IPG--; else if (IP > 0) { IP--; IPG = ((pr[IP] || {}).pages || []).length - 1; } else return false; }
+  repaint(); return true;
+}
+function introPages() {
+  const pr = ((SC.about && SC.about.principles) || []).slice(0, 3), lay = L(), H = lay.H - 80 - 176 - 16;
+  if (IP >= pr.length) IP = 0; const p = pr[IP], pages = p.pages || []; if (IPG >= pages.length) IPG = 0; const pg = pages[IPG] || {};
+  const star = ((SC.personnel && SC.personnel.players) || []).find((g) => g.player && g.player.name), h = SC.home || {};
+  const tabs = `<div class="ptabs" style="${at(X(1), 176, CW(8), 60)}">${pr.map((q, i) => `<a class="ptab${i === IP ? ' on' : ''}" href="#intro" data-ip="${i}"><b>0${i + 1}</b><span>${esc(q.title)}</span></a>`).join('')}</div>`;
+  const paper = `<div class="paper t1 ppage" style="${at(X(1), 252, CW(8), H - 76)}"><span class="tape" style="left:420px;top:-14px"></span><div class="in">
+      <div class="k team">${esc(pg.k || '')} &middot; page ${IPG + 1} of ${pages.length}</div>
+      <div class="pt">${esc(pg.title || p.title)}</div>
+      <div class="t">${esc(pg.text || p.blurb || '')}</div>
+      ${(pg.points || []).length ? `<ol class="mpts">${pg.points.map((s2, k) => `<li><b>${k + 1}</b><span>${esc(s2)}</span></li>`).join('')}</ol>` : ''}
+      <div class="pager"><a class="pgb${IP === 0 && IPG === 0 ? ' off' : ''}" href="#intro" data-ipg="-1" aria-label="Previous page">&lsaquo;</a><span class="pgd">${pages.map((_, k) => `<i class="${k === IPG ? 'on' : ''}"></i>`).join('')}</span><span class="pgn">${esc(p.blurb || '')}</span><a class="pgb" href="#intro" data-ipg="1" aria-label="Next page">&rsaquo;</a></div>
+    </div></div>`;
+  const plinth = `<div class="frame" style="${at(X(9), 176, CW(4), H)}"><div class="tv plinth"><img class="wm" src="logos/${esc(SC.logo)}.png" alt="">${SC.about.hero ? `<img class="man" src="${esc(SC.about.hero)}" alt="">` : ''}<div class="cap"><b>${esc(SC.name || '')}</b><i>${esc([h.era, h.sub].filter(Boolean).join(' · '))}</i></div></div></div>`;
+  return `${head('The intro', `${esc(whose())} ${esc(shortName())}`, esc(SC.tagline || ''), headRight(`<a class="btn sm" href="${COV() ? '#coverages' : '#install/0'}">Start the install <em>&rarr;</em></a>`))}${tabs}${paper}${plinth}`;
+}
 function introStage() {
+  if (introPaged()) return introPages();
   if (SC.side !== 'D' && !COV() && SC.about && SC.about.hero) return introManifesto();
   const pr = (SC.about && SC.about.principles) || [], fr = SC.formations || [], ink = inkedSet(), lay = L();
   const points = (p) => String(p.detail || '').split(/(?<=[.!?])\s+/).filter(Boolean).slice(0, 3);
@@ -1234,13 +1265,37 @@ function historyStage() {
     <div class="frame roster" style="${at(X(9), 176, CW(4), lay.H - 80 - 176 - 16)}"><div class="rh">The players &middot; tap one${P.shot ? `<a class="rbtn" href="#" data-shot="${esc(P.shot)}">Full personnel &rarr;</a>` : ''}</div>${rows}</div>`;
 }
 /* the full personnel screenshot (his call 2026-09-21): one button on the roster frame opens it over the page */
-function shotPop(src) {
+function shotPop(src, k) {
   shotClose(); const el = document.createElement('div'); el.className = 'shotpop'; el.id = 'shotpop';
-  el.innerHTML = `<div class="shot-in"><a class="shot-x" href="#" data-shotclose aria-label="Close">&times;</a><div class="shot-k">${esc(shortName())} &middot; the full personnel</div><img src="${esc(src)}" alt="The full personnel"></div>`;
+  el.innerHTML = `<div class="shot-in"><a class="shot-x" href="#" data-shotclose aria-label="Close">&times;</a><div class="shot-k">${esc(shortName())} &middot; ${esc(k || 'the full personnel')}</div><img src="${esc(src)}" alt="The full personnel"></div>`;
   el.addEventListener('click', (e) => { if (e.target === el || e.target.closest('[data-shotclose]')) { e.preventDefault(); shotClose(); } });
   document.body.appendChild(el);
 }
 function shotClose() { const el = document.getElementById('shotpop'); if (el) el.remove(); }
+/* THE RULES POP-UP (Quarters and Palms, 2026-09-28): the match rules from the Alabama book, the custom adjustments
+   board, the deep dive films, on one scrolling paper over the blurred page */
+let RTAB = { id: null, i: 0 };
+function rulesPop(id) {
+  const p = playOf(SC, id); const r = p && p.rules; if (!r) return; shotClose();
+  RTAB = { id, i: 0 };
+  const el = document.createElement('div'); el.className = 'shotpop rulespop'; el.id = 'shotpop';
+  el.innerHTML = `<div class="rules-in land"><a class="shot-x" href="#" data-shotclose aria-label="Close">&times;</a>
+    <div class="rhead"><div><div class="k team">${esc(r.kicker || 'the rules')}</div><div class="rname">${esc(r.title || p.name)}</div></div><div class="rintro">${esc(r.intro || '')}</div></div>
+    <div class="rtabs">${(r.sections || []).map((s, i) => `<a class="rtab" href="#" data-rtab="${i}">${esc(s.tab || s.t.split(':')[0])}</a>`).join('')}</div>
+    <div class="rbody"></div>
+    <div class="rfoot"><span class="rcue">&larr; &rarr; step through the rules</span>${(r.films || []).map((f) => `<a class="rfilm" href="${esc(f.url)}" target="_blank" rel="noopener">&#9654; ${esc(f.t)}</a>`).join('')}</div></div>`;
+  el.addEventListener('click', (e) => { const t = e.target.closest('[data-rtab]'); if (t) { e.preventDefault(); RTAB.i = +t.dataset.rtab; rulesRender(); return; }
+    if (e.target === el || e.target.closest('[data-shotclose]')) { e.preventDefault(); shotClose(); } });
+  document.body.appendChild(el); rulesRender();
+}
+function rulesRender() {
+  const el = document.getElementById('shotpop'); const p = playOf(SC, RTAB.id); const r = p && p.rules; if (!el || !r) return;
+  const n = (r.sections || []).length; RTAB.i = ((RTAB.i % n) + n) % n; const s = r.sections[RTAB.i], shot = (r.shots || [])[s.shot || 0] || (r.shots || [])[0];
+  el.querySelectorAll('.rtab').forEach((t, i) => t.classList.toggle('on', i === RTAB.i));
+  el.querySelector('.rbody').innerHTML = `<div class="rpic">${shot && shot.img ? `<img src="${esc(shot.img)}" alt=""><figcaption>${esc(shot.t || '')}</figcaption>` : ''}</div>
+    <div class="rtext"><div class="rk">${RTAB.i + 1} of ${n}</div><div class="rt">${esc(s.t)}</div><ul>${(s.b || []).map((b) => `<li>${b}</li>`).join('')}</ul></div>`;
+}
+function rulesTab(d) { RTAB.i += d; rulesRender(); }
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && document.getElementById('shotpop')) shotClose(); });
 /* the player: a big position and the number in the frame, who he is and what
    he is good at on one paper, what the role is built for on the other */
@@ -1262,7 +1317,7 @@ function personnelStage() {
   if (HIST()) return historyStage();
   const P = SC.personnel || {}, players = P.players || [], ab = SC.about || {}, lay = L(), fh = lay.frame.h;
   if (!players.length) return head('Personnel', 'Nobody yet', 'no personnel authored for this scheme');
-  const cw = Math.floor(1000 / players.length);
+  const cw = Math.floor(992 / players.length);   /* inside the frame's border, so the last locker is not clipped (2026-09-28) */
   /* five locker panels: the crest stencilled in the corner, the position in
      the middle, the nameplate and the players who played it at the foot */
   const stand = (pl, i) => { const k = posShort(pl), who = (pl.lineage || []).map((c) => esc(nice(c.name, true))).join(' &middot; ');
@@ -1274,7 +1329,7 @@ function personnelStage() {
     ${quote ? `<div class="quote">&ldquo;${esc(quote.text)}&rdquo;</div>` : ''}`;
   const full = P.full && P.full.img ? `<button class="btn sm" data-lineup>${esc(P.full.label || 'See the full personnel')}</button>` : '<span></span>';
   return `${head('Personnel &amp; history', 'Who runs it', esc(whoBuilt()))}
-    <div class="frame" style="${at(44, 176, 1000, fh)}"><div class="tv locker">${players.map(stand).join('')}</div></div>
+    <div class="frame" style="${at(44, 176, 1000, fh)}"><div class="tv locker${players.length >= 6 ? ' six' : ''}">${players.map(stand).join('')}</div></div>
     ${rail('', { html: paper, cls: 'hist' }, lay)}
     <div class="foot" style="${at(44, lay.foot.y, 1000, 80)}">${full}<span class="cue">Tap a group to open the role and the players who played it<i></i></span></div>`;
 }
@@ -1363,7 +1418,8 @@ document.addEventListener('input', (e) => { const t = e.target && e.target.close
 
 /* ---------- the router ---------- */
 function parseHash() { const h = (location.hash || '#front').slice(1).split('/'); return { sec: h[0] || 'front', at: Math.max(0, parseInt(h[1] || '0', 10) || 0), id: decodeURIComponent(h.slice(1).join('/') || '') }; }
-function render() {
+function render() { return vt(renderNow); }
+function renderNow() {
   const { sec, at: a, id } = parseHash(); const prev = SEC, prevAt = AT, prevId = PLAYID;
   /* the takeover opens and closes over the rows without rebuilding them */
   /* the takeover opens over All Plays or the intro without rebuilding them; closing over All Plays keeps the scroll, closing over the intro repaints it (a chip may have been inked) */
@@ -1410,7 +1466,39 @@ function render() {
   keyPop(); spotPop();
 }
 /* repaint the stage on screen in place, so a key or an ink does not restart the entrance */
-function repaint() { if (SEC === 'role') { const st = $('.modal .stage'); if (st) { st.innerHTML = roleStage(AT); return; } }
+/* MOTION BETWEEN SCREENS (his note 2026-09-28: 'there is no animation'): one directional wipe for every screen change,
+   the View Transitions API where the browser has it (Chrome, Edge, Safari 18, Firefox 144), nothing where it does not
+   or where the person asked for reduced motion. NAVDIR is set by whoever moves (step, flip, the pager) before the hash
+   changes, so back travels the other way. */
+let NAVDIR = 1, VT_BOOTED = false, TURN = false;
+/* THE PAGE TURN (his pick 2026-09-28, option A of the three on the board): the papers turn like pages in a binder, the
+   head and the frames settle in behind them. Only a real page change turns (a hash change, the arrows, the pager); a key
+   pop or a check mark repaints in place. Back turns the page the other way. Under reduced motion it just paints. */
+/* NOTHING GETS CUT OFF (his rule 2026-09-28): after every paint, any paper whose writing runs past its box is zoomed
+   down a step at a time (to 70 percent at most) until it fits. Papers that scroll on purpose are left alone. */
+addEventListener('resize', () => { clearTimeout(fitPapers._r); fitPapers._r = setTimeout(fitPapers, 120); });
+function fitPapers() {
+  if (document.documentElement.classList.contains('turn-in') || document.documentElement.classList.contains('turn-out')) return;
+  document.querySelectorAll('.stage .paper > .in').forEach((inn) => {
+    const paper = inn.parentElement;   /* the play paper scrolls behind a hidden bar, so it is fitted too: a scroll nobody can see is a cut off (2026-09-28) */
+    /* the writing's box against the paper's box (never mid turn: the turn's end calls this again); a paper whose .in is
+       stretched to its height reads its scroll height instead */
+    inn.style.zoom = ''; let z = 1; const over = () => { const pr = paper.getBoundingClientRect(), ir = inn.getBoundingClientRect(); return ir.bottom > pr.bottom + 1 || inn.scrollHeight > inn.clientHeight + 2; };
+    let n = 0; while (over() && z > 0.7 && n++ < 10) { z = Math.round((z - 0.04) * 100) / 100; inn.style.zoom = z; }
+  });
+}
+const vt = (paint0) => {
+  const paint = () => { paint0(); requestAnimationFrame(fitPapers); };
+  const root = document.documentElement, first = !VT_BOOTED; VT_BOOTED = true;
+  const ok = !first && TURN && !matchMedia('(prefers-reduced-motion: reduce)').matches; TURN = false;
+  if (!ok) { paint(); NAVDIR = 1; return; }
+  root.dataset.nav = NAVDIR < 0 ? 'back' : 'fwd'; root.classList.remove('turn-in'); root.classList.add('turn-out');
+  clearTimeout(vt._t);
+  vt._t = setTimeout(() => { root.classList.remove('turn-out'); paint(); root.classList.add('turn-in');
+    vt._t = setTimeout(() => { root.classList.remove('turn-in'); delete root.dataset.nav; NAVDIR = 1; fitPapers(); }, 620); }, 300);
+};
+function repaint() { return vt(repaintNow); }
+function repaintNow() { if (SEC === 'role') { const st = $('.modal .stage'); if (st) { st.innerHTML = roleStage(AT); return; } }
   const c = curPlay(); if (!c && SEC !== 'install') return render();
   const st = SEC === 'play' ? $('.modal .stage') : $('.stage'); if (!st) return render();
   const dbl = st.querySelector('.dbl') ? st.querySelector('.dbl').outerHTML : '';
@@ -1433,7 +1521,7 @@ function keyPop() {
 }
 const go = (n) => { location.hash = `#${SEC}/${n}`; };
 function step(d) { if (SEC !== 'install') return; const n = installSlides().length; if (!n) { location.hash = '#coverages'; return; }
-  const nx = AT + d; if (nx < 0) { location.hash = '#intro'; return; } if (nx >= n) { location.hash = '#sheet'; return; } go(nx); }
+  NAVDIR = d < 0 ? -1 : 1; const nx = AT + d; if (nx < 0) { location.hash = '#intro'; return; } if (nx >= n) { location.hash = '#sheet'; return; } go(nx); }
 function landKey(d) { const c = curPlay(); if (!c) return false; const n = (c.p.reads || []).length;
   const nx = RD + d; if (nx < 0 || nx > n) return false; RD = nx; repaint(); if (SC.side === 'D') return true; const art = $('[data-card] .art'); if (art) { art.classList.add('flash'); setTimeout(() => art.classList.remove('flash'), 450); } return true; }
 function inkCurrent() { const c = curPlay(); if (!c || COV()) return; const on = !inkedSet().has(c.p.id);
@@ -1456,6 +1544,7 @@ function inkFly(name, a) {
 /* THE SWITCH between two plays: the slab, the frame and the paper slide out
    the way you are going, the next ones slide in behind them */
 function swap(d, paint) {
+  NAVDIR = d < 0 ? -1 : 1; TURN = true; return paint();   /* the page turn is vt()'s (2026-09-28) */
   const st = SEC === 'play' ? $('.modal .stage') : $('.stage'); if (!st || !d) return paint();
   st.classList.add(d > 0 ? 'out-l' : 'out-r');
   setTimeout(() => { paint(); st.classList.remove('out-l', 'out-r'); st.classList.add(d > 0 ? 'in-r' : 'in-l'); void st.offsetWidth; st.classList.remove('in-r', 'in-l'); }, 230);
@@ -1470,12 +1559,13 @@ function flip(d) {
     PLAYID = c.list[k].id; RD = 0; FILM = null; history.replaceState(null, '', '#play/' + PLAYID); swap(d, repaint); }
 }
 
-addEventListener('hashchange', render);
+addEventListener('hashchange', () => { TURN = true; render(); });
 addEventListener('keydown', (e) => {
   if (e.target && e.target.matches && e.target.matches('input,textarea,select,[contenteditable]')) return;
+  if (document.querySelector('#shotpop.rulespop')) { if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') { e.preventDefault(); rulesTab(e.key === 'ArrowRight' ? 1 : -1); } return; }   /* the rules sheet takes the arrows while it is open */
   if (SEC === 'sheet') { if (e.key === 'Escape' && SHEETFS) sheetFS(false); else if (e.key === 'p' || e.key === 'P') { e.preventDefault(); presentStep(); } return; }
-  if (e.key === 'ArrowRight') { e.preventDefault(); if (SEC === 'intro') location.hash = COV() ? '#coverages' : '#install/0'; else if (SEC === 'coverages') location.hash = '#coverage/' + SC.plays[0].id; else flip(1); }
-  else if (e.key === 'ArrowLeft') { e.preventDefault(); if (SEC === 'intro') location.hash = '#front'; else flip(-1); }
+  if (e.key === 'ArrowRight') { e.preventDefault(); if (SEC === 'intro') { if (introPaged() && introStep(1)) return; location.hash = COV() ? '#coverages' : '#install/0'; } else if (SEC === 'coverages') location.hash = '#coverage/' + SC.plays[0].id; else flip(1); }
+  else if (e.key === 'ArrowLeft') { e.preventDefault(); if (SEC === 'intro') { if (introPaged() && introStep(-1)) return; location.hash = '#front'; } else flip(-1); }
   else if (e.key === ' ' || e.code === 'Space') { e.preventDefault(); if (SEC === 'coverage' || (SEC === 'play' && curPlay() && curPlay().p.spots)) { spotStep(1); return; } if (!landKey(1)) flip(1); }
   else if (e.key === 'ArrowUp') { e.preventDefault(); landKey(-1); }
   else if (e.key === 'ArrowDown') { e.preventDefault(); landKey(1); }
@@ -1509,7 +1599,10 @@ app.addEventListener('click', (e) => {
   /* the breakdown opens on YouTube in a new tab (his call 2026-09-21), never inside the page; only Back closes a film */
   const fm = e.target.closest('[data-film]'); if (fm) { if (fm.dataset.film !== 'off') return; e.preventDefault(); const c = curPlay(); if (!c && !(SEC === 'install' && (fm.dataset.film === 'title' || fm.dataset.film === 'off'))) return; FILM = fm.dataset.film === 'off' ? null : c ? c.p.id : 'title'; repaint(); return; }
   const mo = e.target.closest('[data-rows]'); if (mo) { e.preventDefault(); const r = $('.rows'); if (r) { const y = (parseFloat(r.querySelector('.filt').style.top) - 40) * parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--s')); scrollTo({ top: y, behavior: 'smooth' }); } return; }
-  const sh = e.target.closest('[data-shot]'); if (sh) { e.preventDefault(); shotPop(sh.dataset.shot); return; }
+  const sh = e.target.closest('[data-shot]'); if (sh) { e.preventDefault(); shotPop(sh.dataset.shot, sh.dataset.shotk); return; }
+  const ru = e.target.closest('[data-rules]'); if (ru) { e.preventDefault(); rulesPop(ru.dataset.rules); return; }
+  const ipt = e.target.closest('[data-ip]'); if (ipt) { e.preventDefault(); NAVDIR = +ipt.dataset.ip < IP ? -1 : 1; IP = +ipt.dataset.ip; IPG = 0; TURN = true; repaint(); return; }
+  const ipg = e.target.closest('[data-ipg]'); if (ipg) { e.preventDefault(); if (!introStep(+ipg.dataset.ipg) && +ipg.dataset.ipg > 0) location.hash = COV() ? '#coverages' : '#install/0'; return; }
   const se = e.target.closest('[data-sel]'); if (se) { TSEL = +se.dataset.sel; repaint(); return; }
   const bl = e.target.closest('[data-belief]'); if (bl) { const i = +bl.dataset.belief; OPEN.has(i) ? OPEN.delete(i) : OPEN.add(i); bl.classList.toggle('open', OPEN.has(i)); return; }
   const rd = e.target.closest('[data-rd]'); if (rd) { RD = (+rd.dataset.rd === RD) ? 0 : +rd.dataset.rd; repaint(); return; }
@@ -1527,7 +1620,8 @@ app.addEventListener('click', (e) => {
   if (!one) { const S = await (await fetch('schemes.json')).json(); one = (S.schemes || []).find((s) => s.key === KEY); }
   /* THE SHEET MODULE IS THE SIDE'S (2026-09-21): an offense mounts the offensive sheet (lifted from the Bears book), a defense the
      defensive one (lifted from Alabama). The college page loads neither up front; the Madden page loads the offensive one itself. */
-  if (one && typeof mountGpSheet !== 'function') { const mod = one.side === 'D' ? 'gp-sheet' : 'gp-sheet-offense';
+  /* a Madden page loads the offensive sheet itself, so a Madden DEFENSE (the Seahawks, 2026-09-28) loads the defensive one over it */
+  if (one && (typeof mountGpSheet !== 'function' || !document.querySelector('script[src$="' + (one.side === 'D' ? 'gp-sheet' : 'gp-sheet-offense') + '.js"]'))) { const mod = one.side === 'D' ? 'gp-sheet' : 'gp-sheet-offense';
     await new Promise((res) => { const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = mod + '.css'; const own = document.querySelector('link[href$="scheme.css"]'); document.head.insertBefore(l, own || null);
       const sc = document.createElement('script'); sc.src = mod + '.js'; sc.onload = res; sc.onerror = res; document.head.appendChild(sc); }); }
   if (one) document.body.classList.add('side-' + (one.side === 'D' ? 'D' : 'O'));

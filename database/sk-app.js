@@ -167,7 +167,7 @@ async function boot(){
     fetch('formations.json').then(r=>r.json()).catch(()=>({})),
     fetch('formation-names.json').then(r=>r.json()).catch(()=>({})),
     fetch('schemes/index.json').then(r=>r.json()).catch(()=>({schemes:[],library:null}))]);
-  FORMS=forms; SETNAMES=names; SCHEMES=idx.schemes||[]; LIBN=idx.library||null; SERIES=idx.series||null;
+  FORMS=forms; SETNAMES=names; SCHEMES=idx.schemes||[]; LIBN=idx.library||null; SERIES=Array.isArray(idx.series)?(idx.series.find(s=>!s.side||s.side===SIDE)||null):(idx.series||null);   /* one series per side of the ball (2026-09-28) */
   if(LIBN){ $('#live').innerHTML = `<i>LIBRARY</i><b>${LIBN.plays.toLocaleString()}</b><u>${LIBN.books} playbooks</u>`;
     $('#q').placeholder = `Search ${LIBN.plays.toLocaleString()} plays, every playbook and formation: mesh, ${SK_GAMEKEY?'chiefs':'alabama'}, trips…`; }
   /* the new scheme page (scheme.html) keeps drives and the board here until
@@ -213,7 +213,8 @@ const ALL_SECTIONS=[['schemes','SCHEMES','your installs'],
                 ['library','PLAYBOOKS','the play database'],
                 ['saved','SAVED','starred plays']];
 /* Madden's schemes are offenses (the Young Gun installs, 2026-09-13), so on the Madden pages the section rides the offense bar instead */
-const SECTIONS=(SK_GAMEKEY && window.SK_SIDE==='D')?ALL_SECTIONS.filter(([k])=>k!=='schemes'):ALL_SECTIONS;
+/* every page has the Schemes section since 2026-09-28: the Madden defense carries the Seahawks */
+const SECTIONS=ALL_SECTIONS;
 const VIEWS={library:[['books','TEAM BOOKS','the playbooks'],
                       ['map','THE MAP','by geography'],
                       ['formations','FORMATIONS','by personnel'],
