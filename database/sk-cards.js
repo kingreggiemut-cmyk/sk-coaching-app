@@ -186,6 +186,8 @@ const OPTION_SHAPES={
   Comeback_Fade:  (s,o)=>({stem:s||12, main:[[o*2,-3]],       alt:[[o*1,8]]}),
   Juke:           (s,o)=>({stem:s||7,  main:[[o*4,1]],        alt:[[-o*4,1]]}),
   Route:          (s,o)=>({stem:s||5,  main:[[o*5,0]],        alt:[[-o*5,0]]}),
+  /* the option route he hot routes a tight end or H-back to (his note 2026-10-05): three or four yards past the line, a hitch, and the break either way dotted */
+  Sit_In_Out:     (s,o)=>({stem:s||6,  main:[[-o*0.4,-1.3]],  alts:[[[o*5,0.4]],[[-o*5,0.4]]]}),
   /* the back's choice the way the game's card draws it (his note 2026-09-21): out past the tackle to five, a hook, with the out and the Texas off it */
   HB_Choice_In_Out:(s,o)=>({stem:0,    pre:[[o*3,s||5]],      main:[[-o*0.4,-1.4]],  alts:[[[-o*6,6]],[[o*6,0]]]}),   /* the Texas is a forty five in front of the quarterback */   /* sit facing the quarterback, the Texas up the field, or the out (his note 2026-09-21) */
   /* a back's option route the way it is coached (his note 2026-09-14): a hook to three or four yards, then he breaks either way */
