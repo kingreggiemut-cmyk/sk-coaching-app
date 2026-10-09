@@ -599,6 +599,33 @@
     .dplan td.txt { text-align: left; padding: 0 7px; } .dplan td.val { padding: 0 7px; }
     @media (min-width: 1700px) { .en { font-size: 15px; } .eh span { font-size: 13px; } .ev { padding: 8px 10px; } }
     .dplan tfoot td { position: sticky; bottom: 0; background: var(--card); font-weight: 800; height: 44px; border-top: 2.5px solid var(--ink); padding: 0 7px; }
+
+    /* the Income section: three charts side by side, then every month in a table */
+    body.sec-income #dincome { display: grid; }
+    #dincome { grid-template-columns: repeat(12, minmax(0, 1fr)); grid-template-rows: auto minmax(0, 1.7fr) minmax(0, 1fr); gap: 16px 24px; }
+    .ihead { grid-column: 1 / -1; display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+    .dtabs.istat { position: static; transform: none; }
+    .inav { display: flex; align-items: center; gap: 8px; }
+    .dchip[disabled] { opacity: 0.35; cursor: default; }
+    .ipull { margin-left: auto; font-weight: 600; font-size: 13px; color: var(--mute); }
+    .icard { grid-column: span 4; }
+    .isw { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 8px; }
+    .ibig { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+    .inum { font-weight: 800; font-size: 44px; line-height: 1; letter-spacing: -0.02em; }
+    .idelta { font-weight: 800; font-size: 15px; white-space: nowrap; } .idelta.up { color: #17803f; } .idelta.down { color: #b8321f; } .idelta.flat { color: var(--mute); font-weight: 600; font-size: 13px; }
+    .isub { margin-top: 6px; font-weight: 500; font-size: 13px; color: var(--mute); }
+    .ichart { position: relative; flex: 1; min-height: 110px; margin-top: 10px; cursor: crosshair; }
+    .ichart svg { display: block; position: absolute; inset: 0; }
+    .itip { position: absolute; top: 4px; background: var(--ink); color: var(--card); border-radius: 10px; padding: 8px 10px; pointer-events: none; white-space: nowrap; z-index: 2; }
+    .itip .td, .itip .tp { font-weight: 600; font-size: 12px; opacity: 0.8; } .itip .tv { font-weight: 800; font-size: 15px; }
+    .ifoot { display: flex; justify-content: space-between; gap: 6px 12px; flex-wrap: wrap; margin-top: 8px; font-weight: 600; font-size: 13px; color: var(--mute); }
+    .ikey { display: inline-flex; align-items: center; gap: 6px; } .ikey i { display: inline-block; width: 14px; height: 2px; border-radius: 2px; } .ikey i.pv { background: repeating-linear-gradient(90deg, #a8a49c 0 4px, transparent 4px 7px); margin-left: 8px; }
+    .itable { grid-column: 1 / -1; }
+    .itable table { width: 100%; border-collapse: collapse; font-size: 15px; }
+    .itable th { position: sticky; top: 0; z-index: 1; background: var(--card); font-weight: 700; font-size: 13px; color: var(--mute); text-align: right; padding: 0 10px 8px; white-space: nowrap; } .itable th.l { text-align: left; }
+    .itable td { text-align: right; padding: 0 10px; height: 38px; border-top: 1.5px solid var(--line); font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
+    .itable td.txt { text-align: left; padding-left: 4px; } .itable td.tot { font-weight: 800; } .itable tr.on td { background: #eef2ff; }
+    .imon { font-weight: 700; height: 32px; padding: 0 6px; border-radius: 8px; }
     .dmicros .micro-grid { padding: 0 0 4px; } .dmicros .micro .n, .dmicros .micro .v { font-size: 13px; } .dmicros .micro .v span { font-size: 12px; } .dmicros .grp-lbl { padding: 12px 0 6px !important; } .dmicros .grp-lbl:first-child { padding-top: 0 !important; }
   }
 </style>
@@ -704,6 +731,7 @@
     <aside class="dpane" id="dpane"></aside>
   </div>
   <div class="dsec" id="dfuel"></div>
+  <div class="dsec" id="dincome"></div>
 </div>
 <div id="dpop-back"></div>
 <div id="dpop" role="dialog" aria-label="Add or change"></div>
@@ -738,7 +766,7 @@ const SB_URL = 'https://ksgxrxqvnfpfhidxsxcs.supabase.co';
 const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzZ3hyeHF2bmZwZmhpZHhzeGNzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE0MzkxMTgsImV4cCI6MjA5NzAxNTExOH0.pUD6sbkjhhTlgl5x4KHFJsThoHVlNkNBlSFES_8HHvM';
 const BRAIN = '/.netlify/functions/day-brain';
 const STORE_KEY = 'daily-board';
-const APP_VERSION = '2.0';
+const APP_VERSION = '2.1';
 const ROW_ID = 'reggie';
 /*
  * A copy served from localhost or opened off the disk is a test copy, and a test
@@ -3313,7 +3341,7 @@ function deskTop() {
   const range = a.getMonth() === b.getMonth() ? `${MO[a.getMonth()]} ${a.getDate()} to ${b.getDate()}` : `${MO[a.getMonth()]} ${a.getDate()} to ${MO[b.getMonth()]} ${b.getDate()}`;
   const wx = ($('#wx') || {}).textContent || '';
   return `<div class="dtl"><div class="dclock" id="dclock">${((d.getHours() + 11) % 12) + 1}:${pad(d.getMinutes())}</div><div><div class="lbl">${WDL[d.getDay()]}, ${MO[d.getMonth()]} ${d.getDate()}</div><div class="lbl" style="font-weight:600;letter-spacing:.06em">${esc(wx)}</div></div></div>
-    <div class="dtabs" role="tablist">${[['week', 'Week'], ['fuel', 'Fuel'], ['body', 'Body'], ['talk', 'Talk']].map(([k, n]) => `<button class="dtab${desk.sec === k ? ' on' : ''}" role="tab" aria-selected="${desk.sec === k}" data-dact="sec" data-sec="${k}">${n}</button>`).join('')}</div>
+    <div class="dtabs" role="tablist">${[['week', 'Week'], ['fuel', 'Fuel'], ['body', 'Body'], ['talk', 'Talk'], ['income', 'Income']].map(([k, n]) => `<button class="dtab${desk.sec === k ? ' on' : ''}" role="tab" aria-selected="${desk.sec === k}" data-dact="sec" data-sec="${k}">${n}</button>`).join('')}</div>
     <div class="dtr">${desk.sec === 'week' ? `<button class="dchip ar" data-dact="wk" data-n="-1" aria-label="Week before">‹</button><button class="dwkl" data-dact="wk" data-n="0" title="Back to this week">${range}</button><button class="dchip ar" data-dact="wk" data-n="1" aria-label="Week after">›</button>` : ''}${deskSyncPill()}</div>`;
 }
 function deskSyncPill() {
@@ -3454,7 +3482,7 @@ function deskFuelEdit(inp) {
 function renderDesk() {
   if (!DESK()) return;
   if (!desk.open) desk.open = ymd();
-  document.body.classList.remove('sec-week', 'sec-fuel', 'sec-body', 'sec-talk');
+  document.body.classList.remove('sec-week', 'sec-fuel', 'sec-body', 'sec-talk', 'sec-income');
   document.body.classList.add(`sec-${desk.sec}`);
   $('#dtop').innerHTML = deskTop();
   if (desk.pop || desk.drag) return;                        // do not redraw under an open form or a drag
@@ -3470,6 +3498,9 @@ function renderDesk() {
     const a = document.activeElement;
     if (a && a.dataset && a.dataset.meal) { $('#dfhero').innerHTML = deskFuelHero(); return; }  // mid-edit: numbers only
     $('#dfuel').innerHTML = deskFuel();
+  } else if (desk.sec === 'income') {
+    $('#dincome').innerHTML = incomeHTML();
+    incDraw();
   }
 }
 function deskSec(sec) {
@@ -3571,6 +3602,7 @@ function openSavedMeals() {
       return;
     }
     const a = b.dataset.dact, id = b.dataset.id, date = b.dataset.date;
+    if (incAct(a, b)) return;
     if (a === 'sec') deskSec(b.dataset.sec);
     else if (a === 'wk') { desk.off = Number(b.dataset.n) === 0 ? 0 : desk.off + Number(b.dataset.n); const ds = deskDates(); if (!ds.includes(desk.open)) desk.open = ds.includes(ymd()) ? ymd() : ds[0]; renderDesk(); }
     else if (a === 'open-day') { desk.open = date; renderDesk(); }
@@ -3631,6 +3663,226 @@ function openSavedMeals() {
   root.addEventListener('dragend', () => { if (desk.drag) { desk.drag = null; $$('.dcol.over').forEach((c) => c.classList.remove('over')); renderDesk(); } });
   // the clock, the now line and the sync pill keep moving without a full redraw of anything being used
   setInterval(() => { if (DESK() && $('#dsync')) $('#dsync').outerHTML = deskSyncPill(); }, 5000);
+})();
+
+/* ============================================================
+   Income: what YouTube and Stripe brought in, side by side.
+
+   Desk only, and this computer only: the numbers live in this
+   browser's own storage and are never written to the synced row,
+   so they do not reach the phone or anything else that can read
+   the board.
+
+   Nothing here can fetch the numbers itself. YouTube Studio and
+   Stripe are other sites, so a pull is done from his own signed-in
+   browser and handed in through dbIncome.put(): one list of cents
+   per day for each source, starting on a named date. A later pull
+   only has to carry the recent days; it is merged over what is here.
+   ============================================================ */
+const INCOME_KEY = 'daily-board-income';
+const INC_KEYS = ['ck', 'kr', 'sg', 'sn'];          // Campus Kings, King Reggie, Stripe gross, Stripe after fees
+const INC_COLOR = { yt: '#c9700f', st: '#5b54d6', all: '#c2338a' };   // checked with the dataviz validator against the card surface
+let INC = null;
+const inc = { range: 'month', off: 0, net: false, geo: {} };
+const diffDays = (a, b) => Math.round((fromYmd(b) - fromYmd(a)) / 864e5);
+function incLoad() {
+  if (INC) return INC;
+  try { INC = JSON.parse(localStorage.getItem(INCOME_KEY)); } catch { INC = null; }
+  if (!INC || !INC.s) INC = { v: 1, pulledAt: null, s: {} };
+  return INC;
+}
+function incPut(data) {
+  incLoad();
+  for (const k of INC_KEYS) {
+    const d = data[k];
+    if (!d || !/^\d{4}-\d{2}-\d{2}$/.test(d.from || '') || !Array.isArray(d.cents)) continue;
+    const map = {}, cur = INC.s[k];
+    if (cur) cur.v.forEach((x, i) => { map[addDays(cur.from, i)] = x; });
+    d.cents.forEach((x, i) => { map[addDays(d.from, i)] = Math.round(Number(x) || 0); });
+    const dates = Object.keys(map).sort(), from = dates[0];
+    INC.s[k] = { from, v: Array.from({ length: diffDays(from, dates[dates.length - 1]) + 1 }, (_, i) => map[addDays(from, i)] || 0) };
+  }
+  INC.pulledAt = data.pulledAt || new Date().toISOString();
+  try { localStorage.setItem(INCOME_KEY, JSON.stringify(INC)); } catch {}
+  if (DESK()) renderDesk();
+  return Object.fromEntries(Object.entries(INC.s).map(([k, v]) => [k, `${v.from} +${v.v.length}`]));
+}
+window.dbIncome = { put: incPut, get: () => incLoad() };
+
+const incRaw = (k, date) => { const s = incLoad().s[k]; if (!s) return 0; const i = diffDays(s.from, date); return i >= 0 && i < s.v.length ? s.v[i] : 0; };
+const incOf = {
+  yt: (d) => incRaw('ck', d) + incRaw('kr', d),
+  st: (d) => incRaw(inc.net ? 'sn' : 'sg', d),
+  all: (d) => incRaw('ck', d) + incRaw('kr', d) + incRaw(inc.net ? 'sn' : 'sg', d)
+};
+const incSum = (src, days) => days.reduce((a, d) => a + incOf[src](d), 0);
+/* The last day YouTube has actually reported. It runs a day or two behind. */
+function incYtThrough() {
+  const s = incLoad().s;
+  let last = null;
+  for (const k of ['ck', 'kr']) if (s[k]) for (let i = s[k].v.length - 1; i >= 0; i--) if (s[k].v[i] > 0) { const d = addDays(s[k].from, i); if (!last || d > last) last = d; break; }
+  return last;
+}
+function incFirstDay() { const s = incLoad().s; const f = Object.values(s).map((x) => x.from).sort(); return f[0] || null; }
+const money = (c) => `${c < 0 ? '-' : ''}$${(Math.abs(c) / 100).toLocaleString('en-CA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+const moneyAxis = (c) => { const v = c / 100; return v >= 1000 ? `$${(v / 1000).toFixed(v % 1000 === 0 ? 0 : 1)}K` : `$${Math.round(v)}`; };
+const dayLbl = (d) => { const x = fromYmd(d); return `${MO[x.getMonth()]} ${x.getDate()}`; };
+const rangeLbl = (a, b) => (a.slice(0, 7) === b.slice(0, 7) ? `${dayLbl(a)} to ${fromYmd(b).getDate()}` : `${dayLbl(a)} to ${dayLbl(b)}`);
+const dayList = (a, b) => Array.from({ length: Math.max(0, diffDays(a, b) + 1) }, (_, i) => addDays(a, i));
+
+/* The window on screen and the one it is measured against: the same number of days, straight before it. */
+function incPeriod() {
+  const td = ymd();
+  let start, end, pStart, pEnd, title, span;
+  if (inc.range === 'month') {
+    const t = fromYmd(td), m0 = new Date(t.getFullYear(), t.getMonth() - inc.off, 1), p0 = new Date(m0.getFullYear(), m0.getMonth() - 1, 1);
+    const mEnd = ymd(new Date(m0.getFullYear(), m0.getMonth() + 1, 0)), pLast = ymd(new Date(p0.getFullYear(), p0.getMonth() + 1, 0));
+    start = ymd(m0); end = inc.off === 0 ? td : mEnd; pStart = ymd(p0);
+    // a month still running is held up against the same days of the month before, not the whole of it
+    const sameDays = addDays(pStart, diffDays(start, end));
+    pEnd = inc.off === 0 ? (sameDays < pLast ? sameDays : pLast) : pLast;
+    title = `${['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'][m0.getMonth()]} ${m0.getFullYear()}${inc.off === 0 ? ' so far' : ''}`;
+    span = diffDays(start, mEnd) + 1;
+  } else {
+    const n = inc.range === 'week' ? 7 : 30;
+    end = addDays(td, -n * inc.off); start = addDays(end, -(n - 1)); pEnd = addDays(start, -1); pStart = addDays(pEnd, -(n - 1));
+    title = rangeLbl(start, end); span = n;
+  }
+  return { start, end, pStart, pEnd, title, span, days: dayList(start, end), pdays: dayList(pStart, pEnd) };
+}
+function incDelta(cur, prev) {
+  if (!prev) return `<span class="idelta flat">no earlier number</span>`;
+  const pct = ((cur - prev) / prev) * 100, up = pct >= 0;
+  return `<span class="idelta ${Math.abs(pct) < 0.05 ? 'flat' : up ? 'up' : 'down'}">${up ? '▲' : '▼'} ${Math.abs(pct).toFixed(1)}%</span>`;
+}
+function incMonths() {
+  const first = incFirstDay(); if (!first) return [];
+  const td = ymd(), t = fromYmd(td), out = [];
+  for (let i = 0; i < 36; i++) {
+    const m0 = new Date(t.getFullYear(), t.getMonth() - i, 1), a = ymd(m0);
+    const b = i === 0 ? td : ymd(new Date(m0.getFullYear(), m0.getMonth() + 1, 0));
+    if (b < first) break;
+    const days = dayList(a < first ? first : a, b);
+    out.push({ off: i, label: `${MO[m0.getMonth()]} ${m0.getFullYear()}`, partial: i === 0 || a < first, yt: incSum('yt', days), st: incSum('st', days), all: incSum('all', days), ck: days.reduce((s, d) => s + incRaw('ck', d), 0), kr: days.reduce((s, d) => s + incRaw('kr', d), 0) });
+  }
+  return out;
+}
+function incomeHTML() {
+  incLoad();
+  if (!Object.keys(INC.s).length) {
+    return `<div class="dcard" style="grid-column:1/-1;grid-row:1/-1;align-items:center;justify-content:center;text-align:center"><div class="dpt">No numbers yet</div><div style="margin-top:8px;max-width:46ch;color:var(--mute);font-weight:500;font-size:15px;line-height:1.45">Income is read from YouTube Studio and Stripe in your own browser. Ask Claude to pull your income and the charts fill in here.</div></div>`;
+  }
+  const p = incPeriod(), first = incFirstDay();
+  const seg = (k, n) => `<button class="dtab${inc.range === k ? ' on' : ''}" data-dact="inc-range" data-r="${k}" aria-pressed="${inc.range === k}">${n}</button>`;
+  const canBack = p.pStart >= first;
+  const pulled = INC.pulledAt ? new Date(INC.pulledAt) : null;
+  const ytT = incYtThrough();
+  const card = (src, name, sub, foot) => {
+    const cur = incSum(src, p.days);
+    const n = incReported(src, p), lag = n < p.days.length;
+    const curCmp = lag ? incSum(src, p.days.slice(0, n)) : cur;
+    const prevDays = lag ? p.pdays.slice(0, n) : p.pdays, prev = incSum(src, prevDays);
+    return `<section class="dcard icard" data-src="${src}">
+      <header><div class="lbl"><i class="isw" style="background:${INC_COLOR[src]}"></i>${name}</div><div class="lbl" style="font-weight:600;letter-spacing:.06em">${sub}</div></header>
+      <div class="ibig"><div class="inum">${money(cur)}</div>${incDelta(curCmp, prev)}</div>
+      <div class="isub">${prevDays.length ? `Against ${money(prev)}, ${rangeLbl(prevDays[0], prevDays[prevDays.length - 1])}${lag ? ', the days YouTube has reported' : ''}` : 'Nothing earlier to measure against'}</div>
+      <div class="ichart" id="ich-${src}" role="img" aria-label="${name}, ${p.title}: ${money(cur)}. The table below lists every month."></div>
+      <div class="ifoot"><span>${foot}</span><span class="ikey"><i style="background:${INC_COLOR[src]}"></i>this period<i class="pv"></i>the one before</span></div>
+    </section>`;
+  };
+  const ck = p.days.reduce((s, d) => s + incRaw('ck', d), 0), kr = p.days.reduce((s, d) => s + incRaw('kr', d), 0);
+  const sg = p.days.reduce((s, d) => s + incRaw('sg', d), 0), sn = p.days.reduce((s, d) => s + incRaw('sn', d), 0);
+  const all = incSum('all', p.days), yt = incSum('yt', p.days);
+  const months = incMonths();
+  const rows = months.map((m, i) => {
+    const before = months[i + 1];
+    const d = before && !m.partial && !before.partial ? incDelta(m.all, before.all) : `<span class="idelta flat">${m.partial ? 'part month' : ''}</span>`;
+    return `<tr class="${inc.range === 'month' && inc.off === m.off ? 'on' : ''}"><td class="txt"><button class="imon" data-dact="inc-month" data-off="${m.off}">${m.label}${m.off === 0 ? ' so far' : ''}</button></td><td>${money(m.ck)}</td><td>${money(m.kr)}</td><td>${money(m.yt)}</td><td>${money(m.st)}</td><td class="tot">${money(m.all)}</td><td>${d}</td></tr>`;
+  }).join('');
+  return `<div class="ihead">
+      <div class="dtabs istat" role="group" aria-label="Range">${seg('week', 'Week')}${seg('30', '30 days')}${seg('month', 'Month')}</div>
+      <div class="inav"><button class="dchip ar" data-dact="inc-nav" data-n="1" aria-label="Earlier" ${canBack ? '' : 'disabled'}>‹</button><span class="dwkl" style="display:inline-flex;align-items:center;justify-content:center;min-width:170px">${p.title}</span><button class="dchip ar" data-dact="inc-nav" data-n="-1" aria-label="Later" ${inc.off === 0 ? 'disabled' : ''}>›</button>${inc.off ? `<button class="dchip" data-dact="inc-nav" data-n="0">Back to now</button>` : ''}</div>
+      <div class="dtabs istat" role="group" aria-label="Stripe figure"><button class="dtab${inc.net ? '' : ' on'}" data-dact="inc-net" data-v="0" aria-pressed="${!inc.net}">Stripe gross</button><button class="dtab${inc.net ? ' on' : ''}" data-dact="inc-net" data-v="1" aria-pressed="${inc.net}">After fees</button></div>
+      <div class="ipull">${pulled ? `Pulled ${MO[pulled.getMonth()]} ${pulled.getDate()} at ${t12(`${pad(pulled.getHours())}:${pad(pulled.getMinutes())}`)}` : ''} · on this computer only${ytT && ytT < p.end && inc.off === 0 ? ` · YouTube has reported through ${dayLbl(ytT)}` : ''}</div>
+    </div>
+    ${card('yt', 'YouTube', 'Estimated, CAD', `Campus Kings ${money(ck)} · King Reggie ${money(kr)}`)}
+    ${card('st', 'Stripe', inc.net ? 'After fees, CAD' : 'Gross, CAD', inc.net ? `${money(sg)} before fees` : `${money(sn)} after fees`)}
+    ${card('all', 'Combined', 'YouTube + Stripe', all ? `YouTube is ${Math.round((100 * yt) / all)}% of it · ${money(Math.round(all / Math.max(1, p.days.length)))} a day` : '')}
+    <section class="dcard itable"><header><div class="lbl">By month · click one to open it</div><div class="lbl" style="font-weight:600;letter-spacing:.06em">${inc.net ? 'Stripe after fees' : 'Stripe gross'}</div></header>
+      <div class="dscroll"><table><thead><tr><th class="l">Month</th><th>Campus Kings</th><th>King Reggie</th><th>YouTube</th><th>Stripe</th><th>Combined</th><th>Against the month before</th></tr></thead><tbody>${rows}</tbody></table></div></section>`;
+}
+/* How many days of the open window this source can speak for. Stripe is live; YouTube is a day or two behind. */
+function incReported(src, p) {
+  if (src === 'st' || inc.off !== 0) return p.days.length;
+  const t = incYtThrough(); if (!t) return p.days.length;
+  return Math.max(1, p.days.filter((d) => d <= t).length);
+}
+/* Round the top of the axis up to a clean number. */
+function incCeil(c) { const v = Math.max(1, c / 100); const p = Math.pow(10, Math.floor(Math.log10(v))); for (const m of [1, 2, 2.5, 5, 10]) if (m * p >= v) return m * p * 100; return 10 * p * 100; }
+function incDraw() {
+  const p = incPeriod();
+  inc.geo = { p };
+  for (const src of ['yt', 'st', 'all']) {
+    const el = $(`#ich-${src}`); if (!el) continue;
+    const W = el.clientWidth, H = el.clientHeight; if (W < 80 || H < 60) { el.innerHTML = ''; continue; }
+    const cur = p.days.slice(0, incReported(src, p)).map((d) => incOf[src](d)), prev = p.pdays.map((d) => incOf[src](d));
+    const L = 46, R = 12, T = 10, B = 22, top = incCeil(Math.max(...cur, ...prev, 100));
+    const n = Math.max(p.span, prev.length, 2);
+    const x = (i) => L + ((W - L - R) * i) / (n - 1), y = (v) => T + (H - T - B) * (1 - Math.max(0, v) / top);
+    const pts = (a) => a.map((v, i) => `${x(i).toFixed(1)},${y(v).toFixed(1)}`).join(' ');
+    const c = INC_COLOR[src], last = cur.length - 1;
+    el.innerHTML = `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" aria-hidden="true">
+      ${[0, 0.5, 1].map((f) => `<line x1="${L}" x2="${W - R}" y1="${y(top * f)}" y2="${y(top * f)}" stroke="#e6e3dc" stroke-width="1"></line><text x="${L - 8}" y="${y(top * f) + 4}" text-anchor="end" font-size="12" font-weight="600" fill="#67645d" style="font-variant-numeric:tabular-nums">${moneyAxis(top * f)}</text>`).join('')}
+      <text x="${L}" y="${H - 4}" font-size="12" font-weight="600" fill="#67645d">${dayLbl(p.start)}</text>
+      <text x="${W - R}" y="${H - 4}" text-anchor="end" font-size="12" font-weight="600" fill="#67645d">${dayLbl(addDays(p.start, n - 1))}</text>
+      ${prev.length > 1 ? `<polyline points="${pts(prev)}" fill="none" stroke="#a8a49c" stroke-width="1.5" stroke-dasharray="4 4" stroke-linejoin="round" stroke-linecap="round"></polyline>` : ''}
+      ${cur.length > 1 ? `<polygon points="${x(0).toFixed(1)},${y(0)} ${pts(cur)} ${x(last).toFixed(1)},${y(0)}" fill="${c}" opacity="0.10"></polygon><polyline points="${pts(cur)}" fill="none" stroke="${c}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"></polyline>` : ''}
+      ${cur.length ? `<circle cx="${x(last).toFixed(1)}" cy="${y(cur[last]).toFixed(1)}" r="4" fill="${c}" stroke="#fbfaf7" stroke-width="2"></circle>` : ''}
+      <g class="ihov" style="display:none"><line y1="${T}" y2="${H - B}" stroke="#1d1d1f" stroke-width="1"></line><circle class="hp" r="4" fill="#a8a49c" stroke="#fbfaf7" stroke-width="2"></circle><circle class="hc" r="4.5" fill="${c}" stroke="#fbfaf7" stroke-width="2"></circle></g>
+    </svg><div class="itip" hidden></div>`;
+    inc.geo[src] = { el, cur, prev, x, y, n, L, R, W };
+  }
+}
+/* One pointer, three charts: the day under the cursor is read off all of them together. */
+function incHover(src, clientX) {
+  const g0 = inc.geo[src], p = inc.geo.p; if (!g0 || !p) return;
+  const r = g0.el.getBoundingClientRect();
+  const i = Math.max(0, Math.min(g0.n - 1, Math.round(((clientX - r.left - g0.L) / (g0.W - g0.L - g0.R)) * (g0.n - 1))));
+  for (const s of ['yt', 'st', 'all']) {
+    const g = inc.geo[s]; if (!g) continue;
+    const hov = g.el.querySelector('.ihov'), tip = g.el.querySelector('.itip');
+    const has = i < g.cur.length, hasP = i < g.prev.length;
+    if (!has && !hasP) { hov.style.display = 'none'; tip.hidden = true; continue; }
+    hov.style.display = '';
+    hov.querySelector('line').setAttribute('x1', g.x(i)); hov.querySelector('line').setAttribute('x2', g.x(i));
+    const hc = hov.querySelector('.hc'), hp = hov.querySelector('.hp');
+    hc.style.display = has ? '' : 'none'; hp.style.display = hasP ? '' : 'none';
+    if (has) { hc.setAttribute('cx', g.x(i)); hc.setAttribute('cy', g.y(g.cur[i])); }
+    if (hasP) { hp.setAttribute('cx', g.x(i)); hp.setAttribute('cy', g.y(g.prev[i])); }
+    tip.textContent = '';
+    const add = (cls, txt) => { const d = document.createElement('div'); d.className = cls; d.textContent = txt; tip.appendChild(d); };
+    add('td', has ? niceDate(p.days[i]) : `${niceDate(p.pdays[i])} (before)`);
+    if (has) add('tv', money(g.cur[i]));
+    if (hasP) add('tp', `${money(g.prev[i])} on ${dayLbl(p.pdays[i])}`);
+    tip.hidden = false;
+    const left = g.x(i) + 12 + 150 > g.W ? g.x(i) - 12 - tip.offsetWidth : g.x(i) + 12;
+    tip.style.left = `${Math.max(0, left)}px`;
+  }
+}
+function incHoverOff() { for (const s of ['yt', 'st', 'all']) { const g = inc.geo[s]; if (!g) continue; const h = g.el.querySelector('.ihov'), t = g.el.querySelector('.itip'); if (h) h.style.display = 'none'; if (t) t.hidden = true; } }
+function incAct(a, b) {
+  if (a === 'inc-range') { inc.range = b.dataset.r; inc.off = 0; }
+  else if (a === 'inc-nav') { const n = Number(b.dataset.n); inc.off = n === 0 ? 0 : Math.max(0, inc.off + n); }
+  else if (a === 'inc-net') inc.net = b.dataset.v === '1';
+  else if (a === 'inc-month') { inc.range = 'month'; inc.off = Number(b.dataset.off); }
+  else return false;
+  renderDesk();
+  return true;
+}
+(function incWire() {
+  const root = $('#dincome');
+  root.addEventListener('pointermove', (e) => { const c = e.target.closest('.ichart'); if (c) incHover(c.id.slice(4), e.clientX); else incHoverOff(); });
+  root.addEventListener('pointerleave', incHoverOff);
 })();
 
 /* ---------- sync (Supabase, one row) ----------
