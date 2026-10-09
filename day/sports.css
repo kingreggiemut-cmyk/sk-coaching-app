@@ -51,8 +51,14 @@
   .sp-stack h3, .sp-sheet h3 { margin: 0; font: 400 18px/1 var(--fd); letter-spacing: .04em; text-transform: uppercase; }
   .sp-stack.picks { box-shadow: 0 0 0 3px var(--sky), var(--pshadow); }
   .sp-cols { display: grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); gap: 0 24px; }
+  .stale { opacity: .5; pointer-events: none; transition: opacity .15s; }
   .sp-none, .sp-wait { padding: 14px 2px; font: 600 13px/1.4 var(--fb); color: var(--mute); }
   .sp-day { padding: 12px 2px 4px; font: 400 15px/1 var(--fm); color: var(--skb-ink); }
+  .sp-cols .sp-day { grid-column: 1 / -1; padding: 16px 2px 6px; border-bottom: 2px solid var(--ink); font: 400 18px/1 var(--fd); letter-spacing: .04em; text-transform: uppercase; color: var(--ink); }
+  .sp-cols .sp-day:first-child { padding-top: 2px; }
+  .sp-cols .sp-day span { font: 400 15px/1 var(--fm); letter-spacing: 0; text-transform: none; color: var(--skb-ink); margin-left: 8px; }
+  .sp-nflw .sp-cols { grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); }
+  .sp-cols .sp-g:last-child { border-bottom: 1.5px dotted var(--rule); }
   .sp-g { position: relative; display: grid; grid-template-columns: 70px minmax(0, 1fr) auto 32px; align-items: center; gap: 10px; min-height: 58px; padding: 6px 2px; border-bottom: 1.5px dotted var(--rule); cursor: pointer; transition: background-color .12s, transform .15s var(--ease); }
   .sp-g:hover { background: rgba(23,19,14,.06); transform: translateX(3px); }
   .sp-g:last-child { border-bottom: 0; }
@@ -163,7 +169,6 @@
 
   @media (max-width: 1560px) { .sp-sep { display: none; } .sp-sep + .sp-tag { margin-left: 14px; } }
   @media (max-height: 860px) { .sp-match h2 { font-size: 26px; } .sp-match .sc { font-size: 26px; } .sp-match .sp-lg.stk.big { width: 52px; height: 52px; padding: 6px; } .sp-sheet { padding: 16px 24px 18px; } .sp-sgrid { margin-top: 12px; } .sp-sgrid > div { gap: 10px; } }
-  @media (min-width: 2200px) { .sp-g .tr b, .sp-ld b, .sp-inj b, .sp-tbl td.l b, .sp-poll b { font-size: 16px; } .sp-inj p, .sp-ld p, .sp-tbl td { font-size: 15px; } .sp-g { min-height: 64px; } }
   body.sp-open #mic { opacity: 0; pointer-events: none; }
   @media (max-width: 1500px) { .sp-slate, .sp-three { grid-template-columns: repeat(2, minmax(0, 1fr)); } .sp-stands { grid-template-columns: minmax(0, 1fr); } .sp-sgrid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .sp-sgrid > div:last-child { grid-column: 1 / -1; } }
 

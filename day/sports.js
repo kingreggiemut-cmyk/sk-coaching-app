@@ -297,7 +297,9 @@
   }
 
   /* ---------- screens ---------- */
-  const view = { v: 'week', game: null, cfbQ: '', lgQ: {}, tab: 'both', fresh: true };
+  const view = { v: 'week', game: null, cfbQ: '', lgQ: {}, tab: 'both', fresh: true, kept: {} };
+  /* the board asked for, or the last one shown while the new one is fetched */
+  function boardOrKept(lg, q) { const b = getBoard(lg, q); if (b) { view.kept[lg] = b; return { b, stale: false }; } return { b: view.kept[lg] || null, stale: !!view.kept[lg] }; }
   let host = null, paintT = null;
 
   function nextFor(T, b) {
@@ -329,7 +331,7 @@
   }
 
   function weekScreen() {
-    const b = getBoard('cfb', view.cfbQ);
+    const { b, stale } = boardOrKept('cfb', view.cfbQ);
     let slate;
     if (!b) slate = `<section class="pp sp-stack" style="grid-column:1/-1">${paperWait(broke(`sb:cfb:${view.cfbQ}`) ? 'The college feed did not answer. Trying again shortly.' : 'reading the college slate')}</section>`;
     else {
@@ -346,9 +348,36 @@
         ${stack('Best of the rest', 'close lines, winning teams', rest, (e) => ({ why: whyGood(e) }))}`;
     }
     const wk = b && b.week ? `Week ${b.week}` : 'This week';
-    return `<div class="sp-tixrow">${TEAMS.map((T, i) => ticket(T).replace('style="--team:', `style="--n:${i};--team:`)).join('')}</div>
-      <div class="sp-bar"><h2>College football <span class="mk">${esc(wk)}</span></h2><div class="sp-step"><button class="dchip ar" data-sp="cfbwk" data-n="-1" aria-label="Week before" ${b && b.week > 1 ? '' : 'disabled'}>‹</button><button class="dchip" data-sp="cfbwk" data-n="0">This week</button><button class="dchip ar" data-sp="cfbwk" data-n="1" aria-label="Week after" ${b && b.week < 16 ? '' : 'disabled'}>›</button><button class="dchip" data-sp="view" data-v="lg:cfb">Every game and the Top 25</button></div></div>
-      <div class="sp-slate">${slate}</div>`;
+    const college = `<div class="sp-bar"><h2>College football <span class="mk">${esc(wk)}</span></h2><div class="sp-step"><button class="dchip ar" data-sp="cfbwk" data-n="-1" aria-label="Week before" ${b && b.week > 1 ? '' : 'disabled'}>‹</button><button class="dchip" data-sp="cfbwk" data-n="0">This week</button><button class="dchip ar" data-sp="cfbwk" data-n="1" aria-label="Week after" ${b && b.week < 16 ? '' : 'disabled'}>›</button><button class="dchip" data-sp="view" data-v="lg:cfb">Every game and the Top 25</button></div></div>
+      <div class="sp-slate${stale ? ' stale' : ''}">${slate}</div>`;
+    // whichever league plays next goes on top: college on a Saturday, the NFL on a Sunday
+    const nk = boardOrKept('nfl', view.lgQ.nfl || ''), nb = nk.b;
+    const soon = (bd) => { const x = bd && bd.events.find((q) => q.state !== 'post'); return x ? when(x.date).getTime() : Infinity; };
+    const nflFirst = soon(nb) < soon(b);
+    const tix = TEAMS.map((T, i) => ticket(T).replace('style="--team:', 'style="--n:' + i + ';--team:')).join('');
+    return `<div class="sp-tixrow">${tix}</div>${nflFirst ? nflWeek(nb, nk.stale) + college : college + nflWeek(nb, nk.stale)}`;
+  }
+
+  /* The whole NFL week on one sheet, by day, the way the college slate is laid out. */
+  function nflWeek(b, stale) {
+    const q = view.lgQ.nfl || '';
+    let body;
+    if (!b) body = paperWait(broke('sb:nfl:' + q) ? 'The NFL feed did not answer. Trying again shortly.' : 'reading the NFL week');
+    else if (!b.events.length) body = '<div class="sp-none">No games this week.</div>';
+    else {
+      const days = [];
+      for (const ev of b.events) { const k = ymd(when(ev.date)); let d = days.find((x) => x.k === k); if (!d) days.push(d = { k, list: [] }); d.list.push(ev); }
+      const names = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+      body = '<div class="sp-cols">' + days.map((d) => {
+        const dt = new Date(d.k + 'T12:00');
+        return '<div class="sp-day">' + names[dt.getDay()] + ' <span>' + MO[dt.getMonth()] + ' ' + dt.getDate() + ', ' + d.list.length + (d.list.length === 1 ? ' game' : ' games') + '</span></div>' + d.list.map((ev) => gameRow(ev, { day: false })).join('');
+      }).join('') + '</div>';
+    }
+    const playing = b ? new Set(b.events.flatMap((ev) => [ev.home.ab, ev.away.ab])).size : 0;
+    const title = (b && b.week ? 'Week ' + b.week : 'This week') + (b && b.stype === 2 && playing && playing < 32 ? ', ' + (32 - playing) + ' teams on a bye' : '');
+    const dis = (ok) => (ok ? '' : 'disabled');
+    return '<div class="sp-bar"><h2>NFL <span class="mk">' + esc(title) + '</span></h2><div class="sp-step"><button class="dchip ar" data-sp="lgstep" data-lg="nfl" data-n="-1" aria-label="Week before" ' + dis(b && b.week > 1) + '>‹</button><button class="dchip" data-sp="lgstep" data-lg="nfl" data-n="0">This week</button><button class="dchip ar" data-sp="lgstep" data-lg="nfl" data-n="1" aria-label="Week after" ' + dis(b && b.week < 18) + '>›</button><button class="dchip" data-sp="view" data-v="lg:nfl">Standings</button></div></div>'
+      + '<section class="pp sp-stack sp-nflw' + (stale ? ' stale' : '') + '">' + body + '</section>';
   }
 
   function teamScreen(T) {
@@ -483,13 +512,13 @@
       if (a === 'star') { ev.stopPropagation(); const e = evOf[b.dataset.id] || stars[b.dataset.id] || (view.game && live[`g:${view.game.lg}:${view.game.id}`] ? gameAsEvent(live[`g:${view.game.lg}:${view.game.id}`].v) : null); if (e) { toggleStar(e); view.popStar = e.id; paint(); view.popStar = null; if (window.renderDesk) window.renderDesk(); } return; }
       if (a === 'view') { go(b.dataset.v); return; }
       if (a === 'game') { openGame(b.dataset.lg, b.dataset.id); return; }
-      if (a === 'cfbwk') { const n = Number(b.dataset.n), cur = (getBoard('cfb', view.cfbQ) || {}).week; view.cfbQ = n === 0 || !cur ? '' : `&week=${Math.max(1, Math.min(16, cur + n))}&seasontype=2`; view.fresh = true; paint(); return; }
+      if (a === 'cfbwk') { const n = Number(b.dataset.n), cur = (getBoard('cfb', view.cfbQ) || {}).week; view.cfbQ = n === 0 || !cur ? '' : `&week=${Math.max(1, Math.min(16, cur + n))}&seasontype=2`; paint(); return; }
       if (a === 'lgstep') {
         const lg = b.dataset.lg, n = Number(b.dataset.n), cur = getBoard(lg, view.lgQ[lg] || '');
         if (n === 0) view.lgQ[lg] = '';
         else if (LG[lg].by === 'week') { if (cur && cur.week) view.lgQ[lg] = `&week=${Math.max(1, Math.min(18, cur.week + n))}&seasontype=2`; }
         else { const d = cur && cur.day ? new Date(cur.day + 'T12:00') : new Date(); d.setDate(d.getDate() + n); view.lgQ[lg] = `&dates=${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}`; }
-        view.fresh = true; paint();
+        paint();                                           // no page turn: he is stepping in place
       }
     });
     host.addEventListener('keydown', (ev) => { if ((ev.key === 'Enter' || ev.key === ' ') && ev.target.classList && ev.target.classList.contains('sp-g')) { ev.preventDefault(); ev.target.click(); } });
