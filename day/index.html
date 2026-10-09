@@ -769,7 +769,7 @@ const SB_URL = 'https://ksgxrxqvnfpfhidxsxcs.supabase.co';
 const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzZ3hyeHF2bmZwZmhpZHhzeGNzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE0MzkxMTgsImV4cCI6MjA5NzAxNTExOH0.pUD6sbkjhhTlgl5x4KHFJsThoHVlNkNBlSFES_8HHvM';
 const BRAIN = '/.netlify/functions/day-brain';
 const STORE_KEY = 'daily-board';
-const APP_VERSION = '2.4';
+const APP_VERSION = '2.5';
 const ROW_ID = 'reggie';
 /*
  * A copy served from localhost or opened off the disk is a test copy, and a test
@@ -3752,7 +3752,8 @@ function incPeriod() {
     end = addDays(td, -n * inc.off); start = addDays(end, -(n - 1)); pEnd = addDays(start, -1); pStart = addDays(pEnd, -(n - 1));
     title = rangeLbl(start, end); span = n;
   }
-  return { start, end, pStart, pEnd, title, span, days: dayList(start, end), pdays: dayList(pStart, pEnd) };
+  const pfull = inc.range === 'month' && inc.off === 0 ? dayList(pStart, ymd(new Date(fromYmd(start).getFullYear(), fromYmd(start).getMonth(), 0))) : null;
+  return { start, end, pStart, pEnd, title, span, days: dayList(start, end), pdays: dayList(pStart, pEnd), pfull };
 }
 function incDelta(cur, prev) {
   if (!prev) return `<span class="idelta flat">no earlier number</span>`;
@@ -3786,7 +3787,7 @@ function incomeHTML() {
     const cur = incSum(src, p.days);
     const pc = pace && pace[src];
     const paceRow = !pace ? '' : pc
-      ? `<div class="ipace"><span>On pace for <b>${money(pc.proj)}</b> by ${pace.end}</span>${incDelta(pc.proj, pace.prev[src])}<span class="pn">on ${pace.prevName}'s ${money(pace.prev[src])} · ${src === 'all' ? 'the two added together' : `from ${pc.n} full day${pc.n === 1 ? '' : 's'}`}</span></div>`
+      ? `<div class="ipace"><span>Projected <b>${money(pc.proj)}</b> by ${pace.end}</span>${incDelta(pc.proj, pace.prev[src])}<span class="pn">on ${pace.prevName}'s ${money(pace.prev[src])} · ${src === 'all' ? 'the two added together' : pc.fromLast ? `days still to come taken from ${pace.prevName}` : `at the pace of the ${pc.n} day${pc.n === 1 ? '' : 's'} reported`}</span></div>`
       : `<div class="ipace"><span class="pn">Too early in the month to project</span></div>`;
     const n = incReported(src, p), lag = n < p.days.length;
     const curCmp = lag ? incSum(src, p.days.slice(0, n)) : cur;
@@ -3809,7 +3810,7 @@ function incomeHTML() {
     const d = before && !m.partial && !before.partial ? incDelta(m.all, before.all) : `<span class="idelta flat">${m.partial ? 'part month' : ''}</span>`;
     const row = `<tr class="${inc.range === 'month' && inc.off === m.off ? 'on' : ''}"><td class="txt"><button class="imon" data-dact="inc-month" data-off="${m.off}">${m.label}${m.off === 0 ? ' so far' : ''}</button></td><td>${money(m.ck)}</td><td>${money(m.kr)}</td><td>${money(m.yt)}</td><td>${money(m.st)}</td><td class="tot">${money(m.all)}</td><td>${d}</td></tr>`;
     if (m.off !== 0 || !tpace || !tpace.all) return row;
-    return row + `<tr class="proj"><td class="txt"><span class="imon" style="display:inline-flex;align-items:center">${m.label} at this pace</span></td><td>${money(tpace.ck.proj)}</td><td>${money(tpace.kr.proj)}</td><td>${money(tpace.yt.proj)}</td><td>${money(tpace.st.proj)}</td><td class="tot">${money(tpace.all.proj)}</td><td>${incDelta(tpace.all.proj, tpace.prev.all)}</td></tr>`;
+    return row + `<tr class="proj"><td class="txt"><span class="imon" style="display:inline-flex;align-items:center">${m.label} projected</span></td><td>${money(tpace.ck.proj)}</td><td>${money(tpace.kr.proj)}</td><td>${money(tpace.yt.proj)}</td><td>${money(tpace.st.proj)}</td><td class="tot">${money(tpace.all.proj)}</td><td>${incDelta(tpace.all.proj, tpace.prev.all)}</td></tr>`;
   }).join('');
   return `<div class="ihead">
       <div class="dtabs istat" role="group" aria-label="Range">${seg('week', 'Week')}${seg('30', '30 days')}${seg('month', 'Month')}</div>
@@ -3823,11 +3824,21 @@ function incomeHTML() {
       <div class="dscroll"><table><thead><tr><th class="l">Month</th><th>Campus Kings</th><th>King Reggie</th><th>YouTube</th><th>Stripe</th><th>Combined</th><th>Against the month before</th></tr></thead><tbody>${rows}</tbody></table></div></section>`;
 }
 /*
- * Where this month lands if the days still to come look like the days so far.
- * Only finished days count: today is half over, and YouTube is a day or two
- * behind, so each source is measured over the days it has fully reported and
- * that daily average is carried across the whole month. Combined is the two
- * projections added, not a third guess.
+ * Where this month lands. The two sources are projected differently on
+ * purpose, because they earn differently.
+ *
+ * YouTube has nothing to lean on but the month itself, so it is a run rate:
+ * the daily average of the days it has fully reported, carried across the
+ * whole month.
+ *
+ * Stripe is memberships. A day's takings are mostly the people who joined on
+ * that day of the month renewing, so a strong first week says nothing about
+ * the third. Days already finished count as they came in; each day still to
+ * come is read off the same day last month, and is replaced by the real
+ * number as soon as that day is over. Cancellations and new sales show up as
+ * they happen, day by day.
+ *
+ * Combined is the two added, not a third guess.
  */
 function incPace() {
   const td = ymd(), t = fromYmd(td);
@@ -3841,12 +3852,38 @@ function incPace() {
   const ytThrough = ytT && ytT < yest ? ytT : yest;
   const ck = one((d) => incRaw('ck', d), ytThrough), kr = one((d) => incRaw('kr', d), ytThrough);
   const yt = ck && kr ? { n: ck.n, proj: ck.proj + kr.proj } : null;
-  const st = one(incOf.st, yest);
+  const st = incStripeAhead(t, td, dim) || one(incOf.st, yest);
   const all = yt && st ? { n: Math.min(yt.n, st.n), proj: yt.proj + st.proj } : null;
   // what it is measured against: the whole of the month before
   const p0 = new Date(t.getFullYear(), t.getMonth() - 1, 1), pdays = dayList(ymd(p0), ymd(new Date(t.getFullYear(), t.getMonth(), 0)));
   const prev = { yt: incSum('yt', pdays), st: incSum('st', pdays), all: incSum('all', pdays), ck: pdays.reduce((a, d) => a + incRaw('ck', d), 0), kr: pdays.reduce((a, d) => a + incRaw('kr', d), 0) };
   return { yt, st, all, ck, kr, prev, end: `${MO[last.getMonth()]} ${dim}`, prevName: ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'][p0.getMonth()] };
+}
+function incStripeAhead(t, td, dim) {
+  const s = incLoad().s.sn; if (!s) return null;
+  // the same day of the month, last month; or the month before that when last month was too short to have it
+  const sameDay = (day) => {
+    for (let k = 1; k <= 6; k++) {
+      const m = new Date(t.getFullYear(), t.getMonth() - k, 1), len = new Date(m.getFullYear(), m.getMonth() + 1, 0).getDate();
+      if (day > len) continue;
+      const d = ymd(new Date(m.getFullYear(), m.getMonth(), day));
+      return d >= s.from ? incRaw('sn', d) : null;
+    }
+    return null;
+  };
+  let proj = 0, ahead = 0;
+  for (let day = 1; day <= dim; day++) {
+    const d = ymd(new Date(t.getFullYear(), t.getMonth(), day));
+    if (d < td) { proj += incRaw('sn', d); continue; }
+    const was = sameDay(day);
+    if (d === td) { proj += Math.max(incRaw('sn', d), was || 0); continue; }   // today is still coming in
+    if (was == null) return null;                                              // no month to read it from: fall back to the run rate
+    proj += was; ahead++;
+  }
+  // a longer month before this one: its last days renew on this month's last day
+  const pLen = new Date(t.getFullYear(), t.getMonth(), 0).getDate();
+  for (let day = dim + 1; day <= pLen; day++) proj += incRaw('sn', ymd(new Date(t.getFullYear(), t.getMonth() - 1, day)));
+  return { proj: Math.round(proj), ahead, fromLast: true };
 }
 /* How many days of the open window this source can speak for. Stripe is live; YouTube is a day or two behind. */
 function incReported(src, p) {
@@ -3862,7 +3899,7 @@ function incDraw() {
   for (const src of ['yt', 'st', 'all']) {
     const el = $(`#ich-${src}`); if (!el) continue;
     const W = el.clientWidth, H = el.clientHeight; if (W < 80 || H < 60) { el.innerHTML = ''; continue; }
-    const cur = p.days.slice(0, incReported(src, p)).map((d) => incOf[src](d)), prev = p.pdays.map((d) => incOf[src](d));
+    const cur = p.days.slice(0, incReported(src, p)).map((d) => incOf[src](d)), prev = (p.pfull || p.pdays).map((d) => incOf[src](d));
     const L = 46, R = 12, T = 10, B = 22, top = incCeil(Math.max(...cur, ...prev, 100));
     const n = Math.max(p.span, prev.length, 2);
     const x = (i) => L + ((W - L - R) * i) / (n - 1), y = (v) => T + (H - T - B) * (1 - Math.max(0, v) / top);
@@ -3898,9 +3935,10 @@ function incHover(src, clientX) {
     if (hasP) { hp.setAttribute('cx', g.x(i)); hp.setAttribute('cy', g.y(g.prev[i])); }
     tip.textContent = '';
     const add = (cls, txt) => { const d = document.createElement('div'); d.className = cls; d.textContent = txt; tip.appendChild(d); };
-    add('td', has ? niceDate(p.days[i]) : `${niceDate(p.pdays[i])} (before)`);
+    const pd = p.pfull || p.pdays;
+    add('td', has ? niceDate(p.days[i]) : `${niceDate(pd[i])}, last month`);
     if (has) add('tv', money(g.cur[i]));
-    if (hasP) add('tp', `${money(g.prev[i])} on ${dayLbl(p.pdays[i])}`);
+    if (hasP) add('tp', `${money(g.prev[i])} on ${dayLbl(pd[i])}`);
     tip.hidden = false;
     const left = g.x(i) + 12 + 150 > g.W ? g.x(i) - 12 - tip.offsetWidth : g.x(i) + 12;
     tip.style.left = `${Math.max(0, left)}px`;
