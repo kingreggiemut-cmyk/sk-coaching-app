@@ -769,7 +769,7 @@ const SB_URL = 'https://ksgxrxqvnfpfhidxsxcs.supabase.co';
 const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzZ3hyeHF2bmZwZmhpZHhzeGNzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE0MzkxMTgsImV4cCI6MjA5NzAxNTExOH0.pUD6sbkjhhTlgl5x4KHFJsThoHVlNkNBlSFES_8HHvM';
 const BRAIN = '/.netlify/functions/day-brain';
 const STORE_KEY = 'daily-board';
-const APP_VERSION = '2.3';
+const APP_VERSION = '2.4';
 const ROW_ID = 'reggie';
 /*
  * A copy served from localhost or opened off the disk is a test copy, and a test
@@ -3683,15 +3683,16 @@ function openSavedMeals() {
    only has to carry the recent days; it is merged over what is here.
    ============================================================ */
 const INCOME_KEY = 'daily-board-income';
-const INC_KEYS = ['ck', 'kr', 'sg', 'sn'];          // Campus Kings, King Reggie, Stripe gross, Stripe after fees
+const INC_KEYS = ['ck', 'kr', 'sn'];                // Campus Kings, King Reggie, Stripe after fees. Gross is not kept: he only cares what lands.
 const INC_COLOR = { yt: '#c9700f', st: '#5b54d6', all: '#c2338a' };   // checked with the dataviz validator against the card surface
 let INC = null;
-const inc = { range: 'month', off: 0, net: false, geo: {} };
+const inc = { range: 'month', off: 0, geo: {} };
 const diffDays = (a, b) => Math.round((fromYmd(b) - fromYmd(a)) / 864e5);
 function incLoad() {
   if (INC) return INC;
   try { INC = JSON.parse(localStorage.getItem(INCOME_KEY)); } catch { INC = null; }
   if (!INC || !INC.s) INC = { v: 1, pulledAt: null, s: {} };
+  delete INC.s.sg;                                   // the first pull stored gross too
   return INC;
 }
 function incPut(data) {
@@ -3715,8 +3716,8 @@ window.dbIncome = { put: incPut, get: () => incLoad() };
 const incRaw = (k, date) => { const s = incLoad().s[k]; if (!s) return 0; const i = diffDays(s.from, date); return i >= 0 && i < s.v.length ? s.v[i] : 0; };
 const incOf = {
   yt: (d) => incRaw('ck', d) + incRaw('kr', d),
-  st: (d) => incRaw(inc.net ? 'sn' : 'sg', d),
-  all: (d) => incRaw('ck', d) + incRaw('kr', d) + incRaw(inc.net ? 'sn' : 'sg', d)
+  st: (d) => incRaw('sn', d),
+  all: (d) => incRaw('ck', d) + incRaw('kr', d) + incRaw('sn', d)
 };
 const incSum = (src, days) => days.reduce((a, d) => a + incOf[src](d), 0);
 /* The last day YouTube has actually reported. It runs a day or two behind. */
@@ -3800,7 +3801,7 @@ function incomeHTML() {
     </section>`;
   };
   const ck = p.days.reduce((s, d) => s + incRaw('ck', d), 0), kr = p.days.reduce((s, d) => s + incRaw('kr', d), 0);
-  const sg = p.days.reduce((s, d) => s + incRaw('sg', d), 0), sn = p.days.reduce((s, d) => s + incRaw('sn', d), 0);
+  const sn = incSum('st', p.days);
   const all = incSum('all', p.days), yt = incSum('yt', p.days);
   const months = incMonths(), tpace = incPace();
   const rows = months.map((m, i) => {
@@ -3813,13 +3814,12 @@ function incomeHTML() {
   return `<div class="ihead">
       <div class="dtabs istat" role="group" aria-label="Range">${seg('week', 'Week')}${seg('30', '30 days')}${seg('month', 'Month')}</div>
       <div class="inav"><button class="dchip ar" data-dact="inc-nav" data-n="1" aria-label="Earlier" ${canBack ? '' : 'disabled'}>‹</button><span class="dwkl" style="display:inline-flex;align-items:center;justify-content:center;min-width:170px">${p.title}</span><button class="dchip ar" data-dact="inc-nav" data-n="-1" aria-label="Later" ${inc.off === 0 ? 'disabled' : ''}>›</button>${inc.off ? `<button class="dchip" data-dact="inc-nav" data-n="0">Back to now</button>` : ''}</div>
-      <div class="dtabs istat" role="group" aria-label="Stripe figure"><button class="dtab${inc.net ? '' : ' on'}" data-dact="inc-net" data-v="0" aria-pressed="${!inc.net}">Stripe gross</button><button class="dtab${inc.net ? ' on' : ''}" data-dact="inc-net" data-v="1" aria-pressed="${inc.net}">After fees</button></div>
       <div class="ipull">${pulled ? `Pulled ${MO[pulled.getMonth()]} ${pulled.getDate()} at ${t12(`${pad(pulled.getHours())}:${pad(pulled.getMinutes())}`)}` : ''} · on this computer only${ytT && ytT < p.end && inc.off === 0 ? ` · YouTube has reported through ${dayLbl(ytT)}` : ''}</div>
     </div>
     ${card('yt', 'YouTube', 'Estimated, CAD', `Campus Kings ${money(ck)} · King Reggie ${money(kr)}`)}
-    ${card('st', 'Stripe', inc.net ? 'After fees, CAD' : 'Gross, CAD', inc.net ? `${money(sg)} before fees` : `${money(sn)} after fees`)}
+    ${card('st', 'Stripe', 'After fees, CAD', `${money(Math.round(sn / Math.max(1, p.days.length)))} a day`)}
     ${card('all', 'Combined', 'YouTube + Stripe', all ? `YouTube is ${Math.round((100 * yt) / all)}% of it · ${money(Math.round(all / Math.max(1, p.days.length)))} a day` : '')}
-    <section class="dcard itable"><header><div class="lbl">By month · click one to open it</div><div class="lbl" style="font-weight:600;letter-spacing:.06em">${inc.net ? 'Stripe after fees' : 'Stripe gross'}</div></header>
+    <section class="dcard itable"><header><div class="lbl">By month · click one to open it</div><div class="lbl" style="font-weight:600;letter-spacing:.06em">Stripe is after fees</div></header>
       <div class="dscroll"><table><thead><tr><th class="l">Month</th><th>Campus Kings</th><th>King Reggie</th><th>YouTube</th><th>Stripe</th><th>Combined</th><th>Against the month before</th></tr></thead><tbody>${rows}</tbody></table></div></section>`;
 }
 /*
@@ -3910,7 +3910,6 @@ function incHoverOff() { for (const s of ['yt', 'st', 'all']) { const g = inc.ge
 function incAct(a, b) {
   if (a === 'inc-range') { inc.range = b.dataset.r; inc.off = 0; }
   else if (a === 'inc-nav') { const n = Number(b.dataset.n); inc.off = n === 0 ? 0 : Math.max(0, inc.off + n); }
-  else if (a === 'inc-net') inc.net = b.dataset.v === '1';
   else if (a === 'inc-month') { inc.range = 'month'; inc.off = Number(b.dataset.off); }
   else return false;
   renderDesk();
