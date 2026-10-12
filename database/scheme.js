@@ -32,7 +32,7 @@ const RDWORD = (sc) => sc.side === 'D' ? 'key' : 'read';
 /* a defense lines up in fronts, an offense in formations */
 const FRONTWORD = (sc) => sc.side === 'D' ? 'front' : 'formation';
 
-let SC = null, FORMS = null, GEO = {}, SEC = 'front', AT = 0, DIR = 'fwd', RD = 0;
+let SC = null, FORMS = null, GEO = {}, BLK = null, SEC = 'front', AT = 0, DIR = 'fwd', RD = 0;
 const ADJ = new Map();                 // play id -> Set of switched-on adjustment indices
 const OPEN = new Set();                // which beliefs on the intro are open
 let PLAYID = null, CAM = false, FILM = null, PICK = 0, PICKLIST = [], ROWY = null, INDEX = null, TSEL = 0, UNDER = 'plays', SPOT = null, COVVIEW = 'shot';
@@ -121,7 +121,7 @@ async function skPlanPull() {
   let changed = false;
   if (r && r.data && rt >= lt) { try { localStorage.setItem(PLAN_KEY, JSON.stringify(r.data)); } catch (e) {} PLAN = null; planRead(); changed = true; }
   else if (lt) SKDB.plans.save(SC.key, local);
-  try { const gk = 'gp-sheet-' + (SC.schemeKey || SC.key); if (!localStorage.getItem(gk)) { const sheet = await SKDB.sheets.load(SC.schemeKey || SC.key); if (sheet) { localStorage.setItem(gk, JSON.stringify(sheet)); changed = true; } } } catch (e) {}
+  try { const gk = GPKEY(); if (!localStorage.getItem(gk)) { const sheet = await SKDB.sheets.load(SC.schemeKey || SC.key); if (sheet) { localStorage.setItem(gk, JSON.stringify(sheet)); changed = true; } } } catch (e) {}
   return changed;
 }
 document.addEventListener('sk-auth', async (e) => { if (!SC || !(e.detail && e.detail.signedIn)) return; if (await skPlanPull()) render(); else if (GP && GP.reload) GP.reload(); });
@@ -136,7 +136,7 @@ function inkPlay(id, on) {
 function addedSet() { const p = planRead(); return new Set(Array.isArray(p.added) ? p.added : []); }
 function addPlay(sl, on) { const p = planRead(); const set = new Set(Array.isArray(p.added) ? p.added : []); on ? set.add(sl) : set.delete(sl); p.added = [...set]; planWrite(p); }
 const byId = (id) => SC.plays.find((p) => p.id === id);
-const taught = () => (SC.install.pillars || []).flatMap((pl) => pl.plays.map(byId).filter(Boolean));
+const taught = () => (SC.install.pillars || []).flatMap((pl) => pl.plays.map(byId).filter((p) => p && !p.guide));   /* a guide (a rules breakdown that is its own entry) is not a call: never counted, never inked */
 const taughtOf = (p) => { for (const pl of SC.install.pillars || []) { const j = pl.plays.indexOf(p.id); if (j >= 0) return { pl, j, n: pl.plays.length }; } return null; };
 const own = () => SC.plays.filter((p) => !p.gpOnly);
 
@@ -175,6 +175,8 @@ function adjustGeo(g, ops) {
     if (op.align) { for (const m of defPick(c, op.align.who)) { const dy = op.align.y - m.y; m.y = op.align.y; if (m.zone) m.zone[1] -= dy; } continue; }
     if (op.flip) { c._flip = !c._flip; c.men.forEach((m) => { m.x = -m.x; if (m.pts) m.pts = m.pts.map(([dx, dy]) => [-dx, dy]); if (m.mpath) m.mpath = m.mpath.map(([x, y]) => [-x, y]); }); continue; }
     const m = c.men.find((x) => x._k === op.man); if (!m) continue;
+    /* a man's zone corrected (Mike SS 3 Seam's strong safety is a seam flat, 2026-10-12) */
+    if (op.job) { m.zj = op.job.zj; m.zk = op.job.zk || m.zk; if (op.job.zone) m.zone = op.job.zone.slice(); }
     if (op.mirror) { m.x = -m.x; if (m.pts) m.pts = m.pts.map(([dx, dy]) => [-dx, dy]); }
     if (op.mirrorPts && m.pts) m.pts = m.pts.map(([dx, dy]) => [-dx, dy]);
     /* a man moved to a spot on the field (a walked down safety, 2026-09-28) */
@@ -235,14 +237,19 @@ const ICON = {
   board: '<path d="M12 21s-6-5.5-6-11a6 6 0 0 1 12 0c0 5.5-6 11-6 11z"/><circle cx="12" cy="10" r="2"/>',
   personnel: '<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>',
   coverages: '<path d="M12 3 4 6v6c0 5 3.5 8.5 8 9 4.5-.5 8-4 8-9V6z"/><path d="M8 12l3 3 5-6"/>',
+  stop: '<path d="M12 3 4 6v6c0 5 3.5 8.5 8 9 4.5-.5 8-4 8-9V6z"/><path d="M9.2 9.2l5.6 5.6M14.8 9.2l-5.6 5.6"/>',
 };
 const ico = (k) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${ICON[k]}</svg>`;
-const AREAS_ALL = [['intro', 'Intro'], ['install', 'Install'], ['coverages', 'Coverages'], ['plays', 'All plays'], ['sheet', 'Call sheet'], ['drives', 'Drives'], ['board', 'Board'], ['personnel', 'Personnel']];
+/* THE STORY (2026-10-09): who the real team is and how we recreate it, its own door ahead of the intro (story-reel.js) */
+const STORY = () => (SC && SC.about && SC.about.story && SC.about.story.scenes && window.skStoryReel ? SC.about.story : null);
+ICON.story = '<rect x="3" y="5" width="18" height="14" rx="1.5"/><path d="M10 9.5v5l4.5-2.5z"/>';
+const AREAS_ALL = [['story', 'The team'], ['intro', 'Intro'], ['install', 'Install'], ['coverages', 'Coverages'], ['plays', 'All plays'], ['stop', 'Stop it'], ['sheet', 'Call sheet'], ['drives', 'Drives'], ['board', 'Board'], ['personnel', 'Personnel']];
 /* an offense's last door is History & Personnel (his call 2026-09-14); a defense keeps Personnel */
 const HIST = () => !!(SC && SC.side !== 'D' && (SC.personnel && SC.personnel.players || []).some((p) => p.player));
 /* a scheme of coverages (mode: 'coverages') has no install: the coverages are its section */
 const COV = () => !!(SC && SC.mode === 'coverages');
-const AREAS_OF = () => AREAS_ALL.filter(([k]) => COV() ? !['install', 'sheet', 'board'].includes(k) : k !== 'coverages').map(([k, a]) => [k, k === 'personnel' && HIST() ? 'History & Personnel' : a]);
+const NOINTRO = () => !!(SC && SC.noIntro), INTRO = () => (NOINTRO() ? (STORY() ? '#story' : '#front') : '#intro');   /* a scheme with no intro page: its opening stands in for it */
+const AREAS_OF = () => AREAS_ALL.filter(([k]) => k !== 'stop' || (SC && SC.stop)).filter(([k]) => k !== 'story' || STORY()).filter(([k]) => k !== 'intro' || !NOINTRO()).filter(([k]) => k !== 'personnel' || !(SC && SC.noPersonnel)).filter(([k]) => COV() ? !['install', 'sheet', 'board'].includes(k) : k !== 'coverages').map(([k, a]) => [k, k === 'personnel' && HIST() ? 'History & Personnel' : k === 'story' && STORY().door ? STORY().door : a]);   /* a story may name its own door (The mind) */
 let AREAS = AREAS_ALL;
 const OLD = (sec) => `${SC.side === 'D' ? 'defense' : 'index'}.html?scheme=${encodeURIComponent(KEY)}&sec=${sec}`;
 /* THE DOCK: the crest, the areas, the count. Chrome only; never a button. */
@@ -288,7 +295,7 @@ function parallax() {
   addEventListener('pointermove', (e) => { mx = (e.clientX / innerWidth - .5) * 2; my = (e.clientY / innerHeight - .5) * 2; if (!raf) raf = requestAnimationFrame(apply); }, { passive: true });
 }
 const camBox = (H) => CAM ? `<div class="cam" style="height:176px"><span>Face cam</span></div>` : '';
-const stagewrap = (inner, h = STAGE_H, cls = '', extra = '') => `<div class="stagewrap" style="--h:${h}"><div class="stage${cls ? ' ' + cls : ''}" style="--h:${h}"><a class="dbl" href="${SC.side === 'D' ? 'defense' : 'index'}.html">&larr; The database</a><button class="dbl fsr${(typeof skFsActive === 'function' ? skFsActive() : document.fullscreenElement) ? ' on' : ''}" data-fullscreen>${(typeof skFsActive === 'function' ? skFsActive() : document.fullscreenElement) ? '&#x2716; Exit full screen' : '&#x26F6; Full screen'}</button><span class="dbl who" data-skwho hidden></span>${inner}${camBox(h)}</div>${extra}</div>`;
+const stagewrap = (inner, h = STAGE_H, cls = '', extra = '') => `<div class="stagewrap" style="--h:${h}"><div class="stage${cls ? ' ' + cls : ''}" style="--h:${h}"><a class="dbl" href="${SC.side === 'D' ? 'defense' : 'index'}.html">&larr; The database</a>${instHas() ? '<button class="dbl idx" data-instmap>&#9776; The install</button>' : ''}<button class="dbl fsr${(typeof skFsActive === 'function' ? skFsActive() : document.fullscreenElement) ? ' on' : ''}" data-fullscreen>${(typeof skFsActive === 'function' ? skFsActive() : document.fullscreenElement) ? '&#x2716; Exit full screen' : '&#x26F6; Full screen'}</button><span class="dbl who" data-skwho hidden></span>${inner}${camBox(h)}</div>${extra}</div>`;
 
 /* ---------- THE FRONT: the one screen off the regions ---------- */
 function frontHTML() {
@@ -307,7 +314,7 @@ function frontHTML() {
       <div class="crest"><img src="logos/${esc(SC.logo)}.png" alt=""></div>
     </div>
     <div class="tag" style="top:${H - 210}px">${tagWords.map((w, i) => `<span style="transition-delay:${900 + i * 90}ms">${esc(w)}&nbsp;</span>`).join('')}<span class="mk" style="transition-delay:${900 + tagWords.length * 90}ms">${esc(ab.era || '')}</span></div>
-    <a class="chev" href="#intro" aria-label="Start" style="top:${H - 136}px"></a>`, H, 'front');
+    <a class="chev" href="${STORY() ? '#story' : '#intro'}" aria-label="Start" style="top:${H - 136}px"></a>`, H, 'front');
 }
 function wireFront() {
   const f = $('.stage.front'); if (!f) return;
@@ -336,7 +343,7 @@ function whose() { const ab = SC.about || {}; const c = (ab.coach || String(ab.e
 const shortName = () => SC.name.replace(/\s+(Offense|Defense|Defence|Spread-to-Run)$/i, '').replace(/^[A-Z][a-z]+\s+/, '');
 const playChips = (p) => [p.formation ? `<span class="chip">${esc(p.formation)}</span>` : '', p.libType ? `<span class="chip">${esc(p.libType)}</span>` : '', inkedSet().has(p.id) ? '<span class="chip ink">On the sheet</span>' : p.added ? '<span class="chip">Added from the book</span>' : ''].filter(Boolean).join('');
 /* animate the drawing in this screen's frame: the engine's own run, one tempo for everybody */
-const animBtn = (p) => (p && p.slug && GEO[p.slug]) ? `<button class="btn anim" data-anim="1">&#9654; Animate play call</button>` : '';
+const animBtn = (p) => liveOn(p) ? `<button class="btn anim" data-anim="live">&#9654; Animate play call</button>` : (p && p.slug && GEO[p.slug]) ? `<button class="btn anim" data-anim="1">&#9654; Animate play call</button>` : '';
 function animateHere(btn) { const st = btn.closest('.stage') || document; const svg = st.querySelector('.frame .art svg, .tv .art svg, .frame svg'); if (!svg) return;
   if (skCardRunning()) { skStopCard(); btn.innerHTML = '&#9654; Animate play call'; return; }
   if (skRunCard(svg, () => { btn.innerHTML = '&#9654; Animate play call'; })) btn.innerHTML = '&#9632; Stop'; }
@@ -349,22 +356,127 @@ function watchHTML(p) {
    keys and the adjustments side by side */
 function noteHTML(p) {
   const reads = p.reads || [], adj = p.adjustments || [], ops = p.adjustOps || [], on = ADJ.get(p.id) || new Set();
-  const still = SC.side === 'D';
+  const still = SC.side === 'D'; if (liveOn(p)) liveAt(p);   /* a live call's step decides which key is open */
+  if (liveOn(p) && liveRules(p)) { const rl = RL(p); let n = 0;
+    return `<div class="top"><div class="h26">${esc(rl.title)}: the rules</div><div class="t">${esc(rl.intro || '')}</div></div><div class="rule"></div><div class="two rl">${rl.groups.map((g) => `<div><div class="k team">${esc(g.head)}</div><ul class="keylist">${g.items.map((x, k) => { n++; return `<li class="${n === LIVE.i ? 'on' : n < LIVE.i ? 'done' : ''}" data-lr="${n}"><b>${k + 1}</b><span>${esc(x.label)}</span></li>`; }).join('')}</ul></div>`).join('')}</div><a class="rulesbtn" href="#" data-lrules="1">&larr; Back to the call</a>`; }
   const top = p.whenToUse ? `<div class="h26">When to call it</div><div class="t">${esc(p.whenToUse)}</div>` : `<div class="h26">${esc(p.formation || p.libSet || 'From the book')}</div><div class="k team" style="margin-top:6px">Your addition from the book</div><div class="t s14" style="margin-top:6px">Write what you see: the reads, the adjustment, when you call it. It saves as you type.</div><textarea class="note ynote" data-ynote="${esc(p.id)}" maxlength="1200" placeholder="your notes on this call">${esc(noteOf(SC, p.id))}</textarea>`;
   const keys = reads.length ? `<div><div class="k team">The ${RDWORD(SC)}s</div><ul class="keylist">${reads.map((x, k) => `<li class="${k + 1 === RD ? 'on' : k + 1 < RD ? 'done' : ''}" data-rd="${k + 1}"><b>${k + 1}</b><span>${esc(x.label)}</span></li>`).join('')}</ul></div>` : '';
-  const adjs = adj.length ? `<div><div class="k team">Adjustments</div><div style="margin-top:8px">${adj.map((a, k) => { const live = !still && ops[k]; return `<div class="adj${live ? ' live' : ''}${live && on.has(k) ? ' on' : ''}" ${live ? `data-adj="${k}"` : ''}><b>${k + 1}</b><span>${esc(a)}</span>${live ? `<span class="mk">${on.has(k) ? 'showing' : 'see it'}</span>` : ''}</div>`; }).join('')}</div></div>` : '';
-  return `<div class="top">${top}</div>${keys || adjs ? `<div class="rule"></div><div class="two">${keys}${adjs}</div>${p.rules ? `<a class="rulesbtn" href="#" data-rules="${esc(p.id)}">The rules &rarr;</a>` : ''}${p.checks ? `<a class="rulesbtn alt" href="#" data-shot="${esc(p.checks)}" data-shotk="the Cover 4 checks">The Cover 4 checks &rarr;</a>` : ''}` : ''}`;
+  const lv = liveOn(p), lvAt = lv ? liveAt(p) - reads.length - 1 : -1;
+  const adjs = adj.length && lv ? `<div><div class="k team">Adjustments</div><div style="margin-top:8px">${adj.map((a, k) => `<div class="adj lv${lvAt === k ? ' on' : lvAt > k ? ' done' : ''}" data-aj="${k}"><b>${k + 1}</b><span>${esc(a)}</span></div>`).join('')}</div></div>`
+    : adj.length ? `<div><div class="k team">Adjustments</div><div style="margin-top:8px">${adj.map((a, k) => { const live = !still && ops[k]; return `<div class="adj${live ? ' live' : ''}${live && on.has(k) ? ' on' : ''}" ${live ? `data-adj="${k}"` : ''}><b>${k + 1}</b><span>${esc(a)}</span>${live ? `<span class="mk">${on.has(k) ? 'showing' : 'see it'}</span>` : ''}</div>`; }).join('')}</div></div>` : '';
+  return `<div class="top">${top}</div>${keys || adjs ? `<div class="rule"></div><div class="two">${keys}${adjs}</div>${p.rules ? `<a class="rulesbtn" href="#" data-rules="${esc(p.id)}">The rules &rarr;</a>` : ''}${liveOn(p) && RL(p) ? `<a class="rulesbtn" href="#" data-lrules="1">The rules of ${esc(RL(p).title)} &rarr;</a>` : ''}${p.checks ? `<a class="rulesbtn alt" href="#" data-shot="${esc(p.checks)}" data-shotk="the Cover 4 checks">The Cover 4 checks &rarr;</a>` : ''}${p.shot && p.shot.img ? `<a class="rulesbtn alt" href="#" data-shot="${esc(p.shot.img)}" data-shotp="${esc(p.id)}" data-shotk="${esc(p.shot.cap || p.shot.label)}">${esc(p.shot.label)} &rarr;</a>` : ''}` : ''}`;
 }
+/* THE LIVE PLAY PAGE (2026-10-11): a call with staging (live-play.js + the scheme's own staging file, SC.live) gets the live
+   field in its frame. One step counter per call: 0 the call, then each key, then each adjustment, then the snap. */
+let LIVE = { id: null, i: 0, rules: false };
+/* the rules breakdown of a call: the same field and the same paper, turned over to the coverage's rules */
+const RL = (p) => (p && p.rulesLive && SC && window.skLive && skLive.has(SC.key, p.id + ':rules') && GEO[p.rulesLive.slug]) ? p.rulesLive : null;
+const liveRules = (p) => !!(p && RL(p) && (p.guide || (LIVE.id === p.id && LIVE.rules)));   /* a guide is its rules: it opens on them and has no call to go back to */
+const rlItems = (p) => RL(p).groups.flatMap((g) => g.items);
+const liveId = (p) => p.id + (liveRules(p) ? ':rules' : '');
+const LPQ = new URLSearchParams(location.search), LPSTILL = LPQ.get('lps') != null, LPGRID = LPQ.get('lpgrid');
+/* the board is every call's page on a defense that has the live field; LIVEAUTO = nobody has staged this call yet, so the field stages it from the art */
+const LIVEAUTO = (p) => !!(p && SC && window.skLive && !skLive.has(SC.key, p.id));
+const liveOn = (p) => !!(p && SC && window.skLive && p.slug && GEO[p.slug] && (skLive.has(SC.key, p.id) || (SC.live && SC.side === 'D' && SC.plays.includes(p))));
+const liveN = (p) => liveRules(p) ? 1 + rlItems(p).length : 2 + (p.reads || []).length + (p.adjustments || []).length;
+function liveAt(p) { if (LIVE.id !== p.id) { LIVE = { id: p.id, i: 0, rules: LPQ.get('lpr') != null && !!RL(p) }; if (LPSTILL) LIVE.i = Math.min(liveN(p) - 1, +LPQ.get('lps') || 0); const n = (p.reads || []).length; RD = !LIVE.rules && LIVE.i >= 1 && LIVE.i <= n ? LIVE.i : 0; } return LIVE.i; }
+function liveSet(i) { const c = curPlay(); if (!c || !liveOn(c.p)) return false; if (i < 0 || i >= liveN(c.p)) return false; const n = (c.p.reads || []).length;
+  const rules = liveRules(c.p); LIVE = { id: c.p.id, i, rules }; RD = !rules && i >= 1 && i <= n ? i : 0; repaint(); return true; }
+function liveFlip() { const c = curPlay(); if (!c || !liveOn(c.p) || !RL(c.p) || c.p.guide) return; LIVE = { id: c.p.id, i: 0, rules: !liveRules(c.p) }; RD = 0; repaint(); }
+function liveBoot() { liveFit(); leadBoot(); if (!window.skLive) return; const st = SEC === 'play' ? $('.modal .stage') : $('.stage'), h = st && st.querySelector('.lphost'); if (!h) { skLive.unmount(); return; }
+  const c = curPlay(); if (!c) return; const p = c.p, i = liveAt(p); if (liveId(p) !== h.dataset.live) return;
+  if (skLive.adopt(h)) { if (skLive.at() !== i) skLive.go(i); return; }
+  const rl = liveRules(p) ? RL(p) : null, rid = p.id + ':rules';
+  const fp = rl ? fieldPlays(new Set([rid]), [{ id: rid, slug: rl.slug, libFamily: rl.libFamily, libSet: rl.libSet, name: rl.title, reads: [] }])[rid] : fieldPlays(new Set([p.id]))[p.id]; if (!fp || !fp.def) return;
+  const cfg = rl ? { scheme: SC.key, id: rid, name: rl.title, men: fp.men, forms: FORMS || {}, reads: rl.groups[0].items, adj: rl.groups.slice(1).flatMap((g) => g.items).map((x) => x.text), adjLabels: rl.groups.slice(1).flatMap((g) => g.items).map((x) => x.label), labels: { call: ['The rules', rl.title], key: rl.groups[0].chip || rl.groups[0].head, adj: rl.groups[1] ? (rl.groups[1].chip || rl.groups[1].head) : '' }, noRun: true, start: i, still: LPSTILL, left: document.body.classList.contains('mob') ? 0 : .2 }
+    : { scheme: SC.key, id: p.id, name: p.name, men: fp.men, forms: FORMS || {}, reads: p.reads || [], adj: p.adjustments || [], start: i, still: LPSTILL, left: document.body.classList.contains('mob') ? 0 : .2, auto: LIVEAUTO(p) };
+  skLive.mount(h, cfg); if (LPGRID) { const m = LPGRID.split('-'); skLive.grid(cfg, +m[0] || 0, m[1] ? +m[1] : 99, +LPQ.get('lpcols') || 3); } }
+/* his words for the step that is open, under the field */
+function liveLine(p) { const i = liveAt(p), rd = p.reads || [], ad = p.adjustments || []; let tx = '';
+  if (liveRules(p)) { const it = rlItems(p)[i - 1]; tx = it ? it.text : 'Space bar, or click the field: one rule at a time.'; return `<div class="lpline${tx.length > 330 ? ' long' : ''}${i === 0 ? ' hint' : ''}"><p>${esc(tx)}</p></div>`; }
+  if (i === 0) tx = 'Space bar, or click the field: each key, then each adjustment, then the snap.'; else if (i <= rd.length) tx = rd[i - 1].text || ''; else if (i <= rd.length + ad.length) tx = ad[i - rd.length - 1]; else tx = 'Everything on, and the snap.';
+  return `<div class="lpline${tx.length > 330 ? ' long' : ''}${i === 0 ? ' hint' : ''}"><p>${esc(tx)}</p></div>`; }
+/* THE INSTALL MAP (his ask 2026-10-12, for every scheme from here on): "when I'm going through the install, sometimes I have
+   to jump to a new part and then come back, and there is no easy way to jump back to where you were". A chip beside The
+   database (and the I key) opens the whole install as one full screen list: the fronts, then each section with its lead
+   in, its calls and its end screen. A row goes straight to that slide. The slide he is on is marked; away from the install,
+   the one he was on when he left is. */
+const instHas = () => !!(SC && SC.install && (SC.install.pillars || []).length && !COV());
+const instSave = (n) => { try { sessionStorage.setItem('sk_instat_' + SC.key, String(n)); } catch (e) {} };
+const instLast = () => { try { const v = sessionStorage.getItem('sk_instat_' + SC.key); return v == null ? -1 : +v; } catch (e) { return -1; } };
+function instMapClose() { const m = $('#instmap'); if (m) m.remove(); }
+function instMap() { if ($('#instmap')) { instMapClose(); return; } if (!instHas()) return; const s = installSlides(), ink = inkedSet(), here = SEC === 'install' ? AT : -1, was = here < 0 ? instLast() : -1;
+  const row = (k, num, label, sub, cls) => `<a class="imrow${k === here ? ' on' : k === was ? ' was' : ''}${cls ? ' ' + cls : ''}" href="#install/${k}" data-imgo="${k}"><b>${num}</b><span>${label}${sub ? `<small>${sub}</small>` : ''}</span>${k === here ? '<i>you are here</i>' : k === was ? '<i>you were here</i>' : ''}</a>`;
+  const cols = []; let cur = null;
+  s.forEach((x, k) => { if (x.t === 'forms') { cols.push({ num: '', name: SC.side === 'D' ? 'The fronts' : 'The formations', rows: [row(k, '', SC.side === 'D' ? 'Every front' : 'Every formation', '', 'lead')] }); return; }
+    if (x.t === 'title') { cur = { num: '0' + (x.i + 1), name: x.pl.name, rows: [row(k, '', 'The section', esc(x.pl.eyebrow || ''), 'lead')] }; cols.push(cur); return; }
+    if (!cur) return; if (x.t === 'play') cur.rows.push(row(k, x.j + 1, esc(x.p.name) + (!x.p.guide && ink.has(x.p.id) ? ' <span class="ck">&#10003;</span>' : ''), esc(x.p.guide ? 'The rules' : [x.p.formation, x.p.type].filter(Boolean).join(' \u00b7 '))));
+    else if (x.t === 'bucket') cur.rows.push(row(k, '', 'On the sheet', '', 'end')); });
+  const el = document.createElement('div'); el.id = 'instmap'; el.className = 'instmap';
+  el.innerHTML = `<div class="im-in"><a class="shot-x" href="#" data-imclose aria-label="Close">&times;</a><div class="im-h"><span class="k">${esc(SC.name)}</span><b>The install</b><span class="mk">click anywhere to go there</span></div><div class="im-cols">${cols.map((c) => `<div class="im-col"><h4>${c.num ? `<em>${c.num}</em>` : ''}${esc(c.name)}</h4>${c.rows.join('')}</div>`).join('')}</div></div>`;
+  el.addEventListener('click', (e) => { if (e.target.closest('[data-imgo]')) { instMapClose(); return; } if (e.target === el || e.target.closest('[data-imclose]')) { e.preventDefault(); instMapClose(); } });
+  document.body.appendChild(el); }
+/* STOP IT (2026-10-12, his idea): what we call against what they run. Its own door in the dock. #stop is THE WALL, every
+   question drawn; #stop/<question> is THE RAIL: the questions down the left, the field in the middle, our answers down the
+   right, each one played as the look and then the snap. Both screens are drawn by stop-it.js inside the box this gives them;
+   the data is SC.stop (the importer carries it from the scheme's module), the staging is the scheme's own file in SC.live. */
+let STOPSWAP = false; const STOPQ = new URLSearchParams(location.search);
+function stopStage() { const lay = L(), top = lay.frame.y, bh = lay.foot.y + lay.foot.h - top, S = SC.stop, T = PLAYID ? S.threats.find((x) => x.id === PLAYID) : null;
+  if (STOPQ.get('stopgrid')) return `<div class="sbboard" style="${at(X(1), 16, CW(12), lay.H - 120)}"><div class="sbhost grid" data-stop="grid"></div></div>`;
+  if (!T) return `${head(esc(SC.name), 'How do I stop...', 'pick what is giving you trouble')}<div class="sbboard" style="${at(X(1), top, CW(12), bh)}"><div class="sbhost wall" data-stop="wall"></div></div>`;
+  const j = S.threats.indexOf(T);
+  return `${head(`${esc(S.name)} &middot; ${esc(T.group)}`, esc(T.q), '', headRight('', arrowsHTML(j + 1, S.threats.length)))}<div class="sbboard" style="${at(X(1), top, CW(12), bh)}"><div class="sbhost rail" data-stop="${esc(T.id)}"></div></div>`; }
+function stopGo(id) { const h = '#stop/' + id; if (location.hash === h) return; STOPSWAP = true; location.hash = h; }
+function stopFlip(d) { const l = SC.stop.threats, n = l.findIndex((x) => x.id === PLAYID); if (n < 0) { location.hash = '#stop/' + l[0].id; return; } stopGo(l[((n + d) % l.length + l.length) % l.length].id); }
+function stopBoot() { if (!window.skStop) return; const h = $('.stagewrap .stage .sbhost'); if (!h) { skStop.unmount(); return; } if (skStop.adopt(h)) return;
+  const S = SC.stop, menOf = (list) => { const ids = new Set(list), fp = fieldPlays(ids), men = {}; ids.forEach((id) => { if (fp[id] && fp[id].def) men[id] = fp[id].men; }); return men; };
+  if (h.dataset.stop === 'grid') { const m = STOPQ.get('stopgrid').split('-'); skStop.grid(h, { scheme: SC.key, stop: S, men: menOf(S.threats.flatMap((x) => x.answers.map((a) => a.call))) }, +m[0] || 0, m[1] ? +m[1] : 99); return; }
+  if (h.dataset.stop === 'wall') { skStop.wall(h, { scheme: SC.key, stop: S, group: STOPQ.get('stopw') != null ? +STOPQ.get('stopw') : null }); return; }
+  const T = S.threats.find((x) => x.id === h.dataset.stop); if (!T) return;
+  skStop.mount(h, { scheme: SC.key, stop: S, th: T.id, men: menOf(T.answers.map((a) => a.call)), nav: stopGo, still: STOPQ.get('stops') != null ? +STOPQ.get('stops') : null, ans: STOPQ.get('stopa') != null ? +STOPQ.get('stopa') : null }); }
+/* THE BOARD: a live call's page. Tabs pick the list, the list is slips, the open slip grows, one card has his words */
+function liveStage(p, mode, j, n, pl, H) { const lay = L(H), ink = inkedSet().has(p.id), i = liveAt(p), rules = liveRules(p), rd = p.reads || [], ad = p.adjustments || [];
+  const inkBtn = p.guide ? '' : `<button class="btn sm${ink ? ' gh' : ''}" data-ink>${ink ? 'On the sheet &#10003;' : 'Add to call sheet'}</button>`;
+  const eyebrow = p.guide ? `${mode === 'install' && pl ? esc(pl.name) : 'Scheme Kings'} &middot; The rules` : mode === 'install' ? `${esc(pl.name)} &middot; ${esc(p.formation || p.libSet || '')}` : `${mode === 'modal' ? 'The play' : 'All plays'} &middot; ${esc(p.formation || p.libSet || '')}${p.libType ? ' &middot; ' + esc(p.libType) : ''}`;
+  const top = lay.frame.y, bh = lay.foot.y + lay.foot.h - top, adjOn = !rules && i > rd.length && i <= rd.length + ad.length, runOn = !rules && i === rd.length + ad.length + 1, callOn = !rules && (i === 0 || runOn);   /* the Play call tab: the call by itself, and the snap */
+  const slip = (on, num, txt, attr, cls) => `<a class="lpslip${on ? ' on' : ''}${cls ? ' ' + cls : ''}" ${attr}><i>${num}</i><span>${esc(txt)}</span></a>`;
+  let tabs = '', slips = '', note = '', nk = '';
+  if (rules) { const rl = RL(p), offs = []; let base = 0; rl.groups.forEach((g) => { offs.push(base); base += g.items.length; }); let gi = rl.groups.findIndex((g, k) => i > offs[k] && i <= offs[k] + g.items.length); if (gi < 0) gi = 0;
+    tabs = rl.groups.map((g, k) => `<a class="lptab${k === gi ? ' on' : ''}" data-lstep="${offs[k] + 1}">${esc(g.chip || g.head)}</a>`).join('') + (p.guide ? '' : `<a class="lptab bk" data-lrules="1">&larr; The call</a>`);
+    slips = rl.groups[gi].items.map((x, k) => slip(offs[gi] + k + 1 === i, k + 1, x.label, `data-lstep="${offs[gi] + k + 1}"`, rl.groups[gi].items.length > 6 ? 'tight' : '')).join(''); const it = rlItems(p)[i - 1]; note = it ? it.text : rl.intro || ''; nk = it ? '' : rl.title + ': the rules'; }
+  else { tabs = `<a class="lptab${callOn ? ' on' : ''}" data-lstep="0">Play call</a><a class="lptab${adjOn || callOn ? '' : ' on'}" data-lstep="${rd.length ? 1 : 0}">Keys</a>${ad.length ? `<a class="lptab${adjOn ? ' on' : ''}" data-lstep="${rd.length + 1}">Adjustments</a>` : ''}${RL(p) ? `<a class="lptab" data-lrules="1">Rules</a>` : ''}`;
+    slips = callOn ? '' : adjOn ? ad.map((a, k) => slip(i === rd.length + 1 + k, k + 1, a, `data-lstep="${rd.length + 1 + k}"`, 'txt' + (i > rd.length + 1 + k ? ' done' : ''))).join('') : rd.map((x, k) => slip(i === k + 1, k + 1, x.label, `data-lstep="${k + 1}"`)).join('');
+    if (i === 0) { note = p.whenToUse || ''; nk = 'When to call it'; } else if (runOn) { note = 'Everything on, and the snap.'; nk = 'Run it'; } else if (!adjOn) note = (rd[i - 1] || {}).text || ''; }
+  const N = liveN(p), more = `${p.rules ? `<a class="btn gh sm" href="#" data-rules="${esc(p.id)}">The rules</a>` : ''}${p.checks ? `<a class="btn gh sm" href="#" data-shot="${esc(p.checks)}" data-shotk="the Cover 4 checks">The Cover 4 checks</a>` : ''}${p.shot && p.shot.img ? `<a class="btn gh sm" href="#" data-shot="${esc(p.shot.img)}" data-shotp="${esc(p.id)}" data-shotk="${esc(p.shot.cap || p.shot.label)}">${esc(p.shot.label)}</a>` : ''}`;
+  return `${head(eyebrow, esc(p.name), '', headRight(inkBtn, arrowsHTML(j + 1, n)))}<div class="lpboard" style="${at(X(1), top, CW(12), bh)}"><div class="lphost" data-live="${esc(liveId(p))}" data-scheme="${esc(SC.key)}"></div><div class="lpshade"></div>
+    <div class="lpcol"><div class="lptabs">${tabs}</div><div class="lpslips">${slips}</div>${note ? `<div class="lpnote"><span class="tape"></span>${nk ? `<b>${esc(nk)}</b>` : ''}${esc(note)}</div>` : ''}</div>
+    <div class="lpctl"><button class="lpsq" data-lgo="-1" aria-label="Back">&lsaquo;</button><span class="lppips">${Array.from({ length: N }, (_, k) => `<i class="${k === i ? 'on' : k < i ? 'done' : ''}"></i>`).join('')}</span><button class="lpnx" data-lgo="1">Next &rsaquo;</button></div>
+    <div class="lpacts">${more}<button class="btn anim sm" data-anim="live">&#9654; Animate play call</button>${ytId(p.videoUrl) ? `<a class="btn gh sm" href="${esc(p.videoUrl)}" target="_blank" rel="noopener">&#9654; Watch the full breakdown</a>` : ''}${mode === 'focus' ? `<a class="btn gh sm" href="#plays" data-rows>See all ${n} plays</a>` : ''}</div></div>`; }
+/* the board's column never runs past the board: it is scaled down until it fits (a short, wide window) */
+function liveFit() { document.querySelectorAll('.lpboard,.ldboard').forEach((b) => { const col = b.querySelector('.lpcol,.ldcol'); if (!col) return; col.style.zoom = ''; const avail = b.clientHeight - (b.classList.contains('lpboard') ? 96 : 40), h = col.scrollHeight; if (h > avail && avail > 80) col.style.zoom = Math.max(.56, avail / h).toFixed(3); }); }
+/* THE SECTION LEAD IN (his pick 2026-10-11): a paper board in team colours. His line for the section on one card, the checks under it, and the section's calls as cards drawn from the game's art; a card opens its play */
+function leadStage(pl, i, pls, plays, k, tot) { const lay = L(), top = 176, bh = lay.H - 80 - top - 16, n = plays.length, game = (pl.game && Array.isArray(pl.game.checks)) ? pl.game.checks.filter((x) => typeof x === 'string') : [];
+  return `${head(`Section ${i + 1} of ${pls.length}`, esc(pl.name), esc(pl.eyebrow || ''), headRight(`<button class="btn sm" data-go="1">Start with ${esc(plays[0] ? plays[0].name : 'the first call')} <em>&rarr;</em></button>`, arrowsHTML(k + 1, tot)))}
+    <div class="ldboard" style="${at(X(1), top, CW(12), bh)}"><div class="ldcol"><span class="ldnum">0${i + 1}</span><div class="ldnote"><span class="tape"></span>${esc(pl.line || '')}</div>${game.length ? `<div class="k team">You know it is in when</div><div class="ldchk">${game.map((x, kk) => `<div><b>${kk + 1}</b><span>${esc(x)}</span></div>`).join('')}</div>` : ''}</div>
+    <div class="ldcards${n > 3 ? ' many' : ''}" style="--cols:${n > 3 ? Math.ceil(n / 2) : Math.max(n, 2)}">${plays.map((q, kk) => `<a class="ldcard r${kk % 3}" href="#install/${k + 1 + kk}"><span class="tape"></span><canvas data-ldcall="${esc(q.id)}"></canvas><span class="nm">${esc(q.name)}</span><span class="k team">${esc(q.formation || '')}${q.type ? ' &middot; ' + esc(q.type) : ''}</span><span class="op">Open &rsaquo;</span></a>`).join('')}</div></div>`; }
+/* THE END OF A SECTION (2026-10-11): the same paper board as the lead in. How many of the section's calls are on the sheet, the slots they fill, and each call as a card he can add from here or open again */
+function bucketStage(pl, i, pls, plays, k, tot) { const ALLP = plays; plays = plays.filter((p) => !p.guide); const lay = L(), top = 176, bh = lay.H - 80 - top - 16, ink = inkedSet(), n = plays.length, done = plays.filter((p) => ink.has(p.id)).length, next = pls[i + 1], nm = pl.name.replace(/^The /, ''), title = /calls$/i.test(nm) ? nm : nm + ' calls';
+  return `${head('On the sheet', esc(title), done === n ? `${esc(pl.name)} is installed` : `${done} of ${n} inked`, headRight(next ? `<button class="btn sm" data-next="1">Next section: ${esc(next.name)} <em>&rarr;</em></button>` : `<a class="btn sm" href="#sheet">Open the call sheet <em>&rarr;</em></a>`, arrowsHTML(k + 1, tot)))}
+    <div class="ldboard" style="${at(X(1), top, CW(12), bh)}"><div class="ldcol"><span class="ldnum">${done}<small>of ${n} on the sheet</small></span><div class="ldnote"><span class="tape"></span>${done === n ? 'Every call landed in the bucket it belongs to.' : 'The rest are waiting on you. Add them here, or open a call to go back over it.'}</div><div class="ldslots${n > 4 ? ' many' : ''}">${plays.map((p) => `<div class="${ink.has(p.id) ? 'on' : ''}">${ink.has(p.id) ? esc(p.name) : '&nbsp;'}</div>`).join('')}</div></div>
+    <div class="ldcards bk${n > 3 ? ' many' : ''}" style="--cols:${n > 3 ? Math.ceil(n / 2) : Math.max(n, 2)}">${plays.map((q, kk) => `<div class="ldcard r${kk % 3}${ink.has(q.id) ? ' inked' : ''}"><span class="tape"></span><a class="ldopen" href="#install/${k - ALLP.length + ALLP.indexOf(q)}"><canvas data-ldcall="${esc(q.id)}"></canvas><span class="nm">${esc(q.name)}</span><span class="k team">${esc(q.formation || '')}${q.type ? ' &middot; ' + esc(q.type) : ''}</span></a><button class="ldink" data-inkid="${esc(q.id)}">${ink.has(q.id) ? 'On the sheet &#10003;' : 'Add to call sheet'}</button></div>`).join('')}</div></div>`; }
+function leadBoot() { const cvs = document.querySelectorAll('canvas[data-ldcall]'); if (!cvs.length || !window.skLive || !skLive.card) return; const ids = new Set([...cvs].map((c) => c.dataset.ldcall)), fp = fieldPlays(ids);
+  cvs.forEach((cv) => { const c = fp[cv.dataset.ldcall]; if (c && c.def && !cv.dataset.on) { cv.dataset.on = '1'; skLive.card(cv, { men: c.men, off: (FORMS && FORMS['shotgun__doubles']) || [], small: cvs.length > 3 }); } }); }
 /* THE PLAY BLOCK, three ways: on the install ('install'), open at the top
    of All Plays ('focus'), in the takeover ('modal') */
 function playStage(p, mode, j, n, pl, H) {
   if (p.spots || p.macros) return covStage(p, mode, j, n, H);
+  if (liveOn(p)) return liveStage(p, mode, j, n, pl, H);
   const lay = L(H), ink = inkedSet().has(p.id);
   const inkBtn = `<button class="btn sm${ink ? ' gh' : ''}" data-ink>${ink ? 'On the sheet &#10003;' : 'Add to call sheet'}</button>`;
   const eyebrow = mode === 'install' ? `${esc(pl.name)} &middot; ${esc(p.formation || p.libSet || '')}` : `${mode === 'modal' ? 'The play' : 'All plays'} &middot; ${esc(p.formation || p.libSet || '')}${p.libType ? ' &middot; ' + esc(p.libType) : ''}`;
   const film = FILM === p.id && ytId(p.videoUrl);
   const still = SC.side === 'D';
-  const inner = film ? `<div class="film"><iframe src="https://www.youtube-nocookie.com/embed/${encodeURIComponent(ytId(p.videoUrl))}?autoplay=1&rel=0&modestbranding=1" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe></div><button class="btn gh" data-film="off" style="position:absolute;right:12px;top:12px;height:40px;padding:0 14px;font-size:13px;z-index:3">Back to the drawing &times;</button>` : cardHTML(p, still ? 0 : RD);
+  const inner = film ? `<div class="film"><iframe src="https://www.youtube-nocookie.com/embed/${encodeURIComponent(ytId(p.videoUrl))}?autoplay=1&rel=0&modestbranding=1" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe></div><button class="btn gh" data-film="off" style="position:absolute;right:12px;top:12px;height:40px;padding:0 14px;font-size:13px;z-index:3">Back to the drawing &times;</button>` : liveOn(p) ? `<div class="lphost" data-live="${esc((liveAt(p), liveId(p)))}" data-scheme="${esc(SC.key)}"></div>${liveLine(p)}` : cardHTML(p, still ? 0 : RD);
   return `${head(eyebrow, esc(p.name), '', headRight(inkBtn, arrowsHTML(j + 1, n)))}${frame(inner, lay)}${rail('', { html: noteHTML(p), cls: 'note' }, lay)}${foot(`<div class="footl">${animBtn(p)}${watchHTML(p)}</div>`, mode === 'focus' ? `<a class="cue" href="#plays" data-rows>See all ${n} plays<i></i></a>` : '', lay)}`;
 }
 
@@ -390,8 +502,14 @@ function introManifesto() {
 /* THE INTRO AS PAGES (his brief 2026-09-28, the Seahawks): each of the three principles has three pages, read one at a
    time with a pager; the principles are tabs above the page, the star stands on the plinth on the right four columns */
 let IP = 0, IPG = 0;
-const introPaged = () => !!(SC && SC.about && (SC.about.principles || []).some((p) => p.pages && p.pages.length));
+/* THE PRINCIPLES ON THE FIELD: a scheme whose principles carry a DECK gets the paper board intro (intro-field.js, his pick
+   2026-10-09): a click-through ink diagram on a tilting sheet, words stamped on the field, the count in marker */
+const introScenes = () => !!(SC && SC.about && (SC.about.principles || []).some((p) => p.deck && p.deck.steps && p.deck.steps.length) && window.skIntroField);
+/* THE FRONTS AS A PAPER BOARD (2026-10-09): a defense whose fronts carry a show list opens its install on the board */
+const frontsBoard = () => !!(window.skIntroField && SC && SC.side === 'D' && (SC.formations || []).some((f) => f.show && f.show.length));
+const introPaged = () => introScenes() || !!(SC && SC.about && (SC.about.principles || []).some((p) => p.pages && p.pages.length));
 function introStep(d) {
+  if (introScenes()) return skIntroField.step(d);
   NAVDIR = d < 0 ? -1 : 1; TURN = true; const pr = ((SC.about && SC.about.principles) || []).slice(0, 3), n = ((pr[IP] || {}).pages || []).length;
   if (d > 0) { if (IPG < n - 1) IPG++; else if (IP < pr.length - 1) { IP++; IPG = 0; } else return false; }
   else { if (IPG > 0) IPG--; else if (IP > 0) { IP--; IPG = ((pr[IP] || {}).pages || []).length - 1; } else return false; }
@@ -412,7 +530,74 @@ function introPages() {
   const plinth = `<div class="frame" style="${at(X(9), 176, CW(4), H)}"><div class="tv plinth"><img class="wm" src="logos/${esc(SC.logo)}.png" alt="">${SC.about.hero ? `<img class="man" src="${esc(SC.about.hero)}" alt="">` : ''}<div class="cap"><b>${esc(SC.name || '')}</b><i>${esc([h.era, h.sub].filter(Boolean).join(' · '))}</i></div></div></div>`;
   return `${head('The intro', `${esc(whose())} ${esc(shortName())}`, esc(SC.tagline || ''), headRight(`<a class="btn sm" href="${COV() ? '#coverages' : '#install/0'}">Start the install <em>&rarr;</em></a>`))}${tabs}${paper}${plinth}`;
 }
+/* the field intro's screen: the head, then one host on all twelve columns that intro-field.js fills (four columns of principles,
+   eight of field and caption). The plays go over resolved to field yards with every setup on, the way the showpiece drew them. */
+function fieldPlays(ids, extra) {
+  const r1 = (n) => Math.round(n * 10) / 10, out = {};
+  for (const p of SC.plays.concat(extra || [])) { if (!ids.has(p.id) || !p.slug || !GEO[p.slug]) continue;
+    const g = adjustGeo(GEO[p.slug], [].concat(p.fix || [], p.adjustOps || []).filter(Boolean));
+    /* the game's position names from the formation tile (QB, RB, WR, TE, the line named by width), matched by where he lines up */
+    const tile = (FORMS && p.libFamily && p.libSet && FORMS[slug(p.libFamily) + '__' + slug(p.libSet)]) || [];
+    if (g.def) { out[p.id] = { id: p.id, def: 1, name: p.name, type: p.type || '', subtype: p.subtype || '', reads: (p.reads || []).map((r) => (r.at || []).filter((x) => typeof x === 'string')), readNames: (p.reads || []).map((r) => r.label || ''), men: g.men.map((m, i) => {
+        const o = { k: 's' + i, i, x: r1(m.x), y: r1(m.y), pos: (tile[i] && tile[i].p) || '', fam: m.fam || '', lb: m.lb || '', zj: m.zj || '', zk: m.zk || '' };
+        if (m.from) { o.from = [r1(m.x + m.from[0]), r1(m.y + m.from[1])]; o.mv = m.mv || ''; }
+        if (m.rush) o.rush = [[o.x, o.y]].concat((m.pts && m.pts.length ? m.pts : [[m.x > 0 ? -1.1 : 1.1, -3]]).map(([dx, dy]) => [r1(m.x + dx), r1(m.y + dy)]));
+        else if (m.zone) o.zone = [r1(m.x + m.zone[0]), r1(m.y + m.zone[1]), m.zone[2], m.zone[3]];
+        else if (m.man != null) o.man = m.man;
+        return o; }) }; continue; }
+    const olx = g.men.filter((m) => m.b && Math.abs(m.x) <= 3.6 && m.y >= -2.6).map((m) => m.x).sort((a, b) => a - b), OLN = ['LT', 'LG', 'C', 'RG', 'RT'];
+    const posOf = (m) => { if (m.qb) return 'QB'; if (m.b && Math.abs(m.x) <= 3.6 && m.y >= -2.6) return OLN[olx.indexOf(m.x)] || 'OL'; let best = null, bd = 2.5; for (const t of tile) { const d = Math.hypot(t.x - m.x, t.y - m.y); if (d < bd) { bd = d; best = t; } } return best && best.p && best.p !== 'OL' ? best.p : (m.b ? 'TE' : 'WR'); };
+    out[p.id] = { name: p.name, type: p.type || '', subtype: p.subtype || '', reads: (p.reads || []).map((r) => (r.at || []).filter((x) => typeof x === 'string')), readNames: (p.reads || []).map((r) => r.label || ''), bscheme: p.bscheme || null, runSide: p.runSide || null, men: g.men.map((m) => {
+      const sx = m.mpath && m.mpath.length ? m.mpath[m.mpath.length - 1][0] : m.x, sy = m.mpath && m.mpath.length ? m.mpath[m.mpath.length - 1][1] : m.y;
+      const role = m.qb ? 'qb' : (m.b && Math.abs(m.x) <= 3.6 && m.y >= -2.6) ? 'ol' : m.b ? 'blk' : 'skill';
+      const abs = (pl) => [[r1(sx), r1(sy)]].concat((pl || []).map(([dx, dy]) => [r1(sx + dx), r1(sy + dy)]));
+      const o = { k: m._k || role, role, x: r1(m.x), y: r1(m.y), pos: posOf(m) };
+      /* the game's blocking cues travel with the man: run or pass block, the lead path, the technique (lead through the hole, stalk, kickout), a pull, the ball carrier */
+      if (m.b) { o.bk = m.bk || 'r'; if (m.tech) o.tech = m.tech; if (m.pull) o.pull = 1; if (Array.isArray(m.rel) && m.rel.length) o.rel = m.rel.map(([dx, dy]) => [r1(sx + dx), r1(sy + dy)]); }
+      if (m.c) o.c = 1;
+      if (m.mpath && m.mpath.length) o.mot = [[r1(m.x), r1(m.y)]].concat(m.mpath.map(([x, y]) => [r1(x), r1(y)]));
+      let opt = null; if (m.opt && typeof optionRoute === 'function') { try { opt = optionRoute(Object.assign({}, m, { x: sx, y: sy })); } catch (e) { opt = null; } }
+      if (opt && opt.main) { o.r = abs(opt.main); const tip = [r1(sx + opt.tip[0]), r1(sy + opt.tip[1])]; o.alts = (opt.alts || []).filter(Boolean).map((a) => [tip].concat(a.map(([dx, dy]) => [r1(sx + dx), r1(sy + dy)]))); o.tip = tip; o.opt = m.opt; }
+      else if (m.pts && m.pts.length && !m.b) o.r = abs(m.pts);
+      return o; }) }; }
+  return out;
+}
+function introField() {
+  const lay = L(), H = lay.H - 80 - 176 - 16;
+  return `${head('The intro', `${esc(whose())} ${esc(shortName())}`, esc(SC.tagline || ''), headRight(`<a class="btn sm" href="${COV() ? '#coverages' : '#install/0'}">Start the install <em>&rarr;</em></a>`))}<div class="ifhost" style="${at(X(1), 176, CW(12), H)}"></div>`;
+}
+/* after a paint: the host is there, mount the field in it (keeping the scene the viewer was on); gone, let it go */
+function introFieldBoot() {
+  if (!window.skIntroField) return; const h = $('.ifhost');
+  if (!h) { skIntroField.unmount(); return; }
+  if (h.dataset.live) return; h.dataset.live = '1';
+  const tiles = { even: (FORMS && FORMS['425__even']) || [], over: (FORMS && FORMS['nickel__over']) || [] };
+  if (h.dataset.kind === 'forms') { const fr = (SC.formations || []).filter((f) => f.desc && !f.extra), first = (SC.install.pillars || [])[0];
+    skIntroField.mount(h, { kind: 'forms', side: SC.side === 'D' ? 'D' : 'O', offense: (FORMS && FORMS['shotgun__doubles']) || [], formations: fr.map((f) => ({ name: f.name, desc: f.desc, bullets: f.bullets || [], show: f.show || [], setups: f.setups || null, plays: SC.plays.filter((p) => p.formation === f.name).map((p) => p.id) })),
+      plays: fieldPlays(new Set(SC.plays.map((p) => p.id))), tiles: Object.fromEntries(fr.map((f) => [f.name, (FORMS && f.lib && FORMS[slug(f.lib[0]) + '__' + slug(f.lib[1])]) || null])),
+      endLabel: first ? 'Start with ' + first.name : 'On to the install', onEnd: () => flip(1), start: skIntroField.state() }); return; }
+  const pr = ((SC.about && SC.about.principles) || []).slice(0, 3).filter((p) => p.deck && p.deck.steps && p.deck.steps.length);
+  const ids = new Set(); pr.forEach((p) => ids.add(p.deck.play || p.deck.call));   /* a defense's deck names one of its own calls */
+  /* THE STORY (2026-10-09): who the real team is and how we recreate it, told on the board in front of the three principles */
+  const story = SC.about && SC.about.story && SC.about.story.deck ? [{ title: SC.about.story.title || 'The story', n: '', deck: SC.about.story.deck }] : []; story.forEach((p) => ids.add(p.deck.play || p.deck.call));
+  const decks = story.concat(pr.map((p, i) => Object.assign({}, p, { n: '0' + (i + 1) })));
+  skIntroField.mount(h, { kind: 'intro', side: SC.side === 'D' ? 'D' : 'O', offense: (FORMS && FORMS['shotgun__doubles']) || [], themLabel: (SC.about && SC.about.story && SC.about.story.label) || '', principles: decks, plays: fieldPlays(ids), blocking: BLK, forms: tiles, onEnd: () => { location.hash = COV() ? '#coverages' : '#install/0'; }, start: skIntroField.state() });
+}
+/* the story's screen: the head, then one host on all twelve columns that story-reel.js fills */
+function storyStage() { const lay = L(), s = STORY();
+  const nx = s.next || { hash: '#intro', label: 'The principles' };   /* where the story hands off: the principles, unless it says otherwise */
+  if (s.full) return `<div class="srhost full" style="${at(X(1), 58, CW(12), lay.H - 80 - 58 - 16)}"></div>`;   /* the whole stage, the title inside the reel */
+  return `${head(esc(s.door || 'The team'), esc(s.title || 'The story'), esc(SC.tagline || ''), headRight(`<a class="btn sm" href="${esc(nx.hash)}">${esc(nx.label)} <em>&rarr;</em></a>`))}<div class="srhost" style="${at(X(1), 176, CW(12), lay.H - 80 - 176 - 16)}"></div>`; }
+/* after a paint: the host is there, mount the reel in it (keeping the scene he was on); gone, let it go */
+let STORY_AT = 0;
+function storyBoot() { if (!window.skStoryReel) return; const h = $('.srhost'); if (!h) { if (SEC !== 'story') skStoryReel.unmount(); return; } if (h.dataset.live) return; h.dataset.live = '1';
+  if (skStoryReel.adopt(h)) return;
+  const s = STORY(), used = new Set(s.scenes.flatMap((x) => [x.call, x.callL]).filter(Boolean)), calls = fieldPlays(used), pic = (p) => (p ? new URL(p, location.href).href : ''), img = {}; Object.keys(s.img || {}).forEach((k) => { img[k] = pic(s.img[k]); });
+  const dbg = new URLSearchParams(location.search).get('srs');
+  skStoryReel.mount(h, { story: s, calls, img, tile: (FORMS && s.tile && FORMS[slug(s.tile[0]) + '__' + slug(s.tile[1])]) || [], off: (FORMS && FORMS['shotgun__doubles']) || [], dark: SC.c2, bright: SC.c1, start: dbg != null ? parseInt(dbg, 10) || 0 : STORY_AT, still: dbg != null && /x$/.test(dbg),
+    onEnd: () => { STORY_AT = 0; location.hash = (s.next && s.next.hash) || '#intro'; }, onStart: () => { location.hash = '#front'; } }); }
 function introStage() {
+  if (introScenes()) return introField();
   if (introPaged()) return introPages();
   if (SC.side !== 'D' && !COV() && SC.about && SC.about.hero) return introManifesto();
   const pr = (SC.about && SC.about.principles) || [], fr = SC.formations || [], ink = inkedSet(), lay = L();
@@ -439,8 +624,10 @@ function installSlides() {
   /* THE FORMATIONS FIRST (his call 2026-09-14): on an offense the install opens
      with the looks it lines up in, each drawn with its write-up, before the
      first section. The next stop is section one. */
-  const fr = (SC.formations || []).filter((f) => f.desc);
-  if (SC.side !== 'D' && fr.length) out.push({ t: 'forms', i: -1, html: (k, tot) => { const lay = L(), n = Math.min(fr.length, 4), span = n > 3 ? 3 : 4, fw = n > 3 ? CW(3) : 488, fh = Math.min(Math.round(fw / 1.8235), lay.H - 80 - 176 - 16 - 24 - 236), py = 176 + fh + 24, ph = lay.H - 80 - py - 16;
+  const fr = (SC.formations || []).filter((f) => f.desc && !f.extra);
+  if (fr.length && (SC.side !== 'D' || frontsBoard())) out.push({ t: 'forms', i: -1, html: (k, tot) => { if (introScenes() || frontsBoard()) { const lay = L(), n = fr.length, first = pls[0];   /* THE FORMATIONS AS A PAPER BOARD (his ask 2026-10-09): a front page of every look, then an overview of each */
+      return `${head('The install', SC.side === 'D' ? 'The fronts' : 'The formations', SC.side === 'D' ? `${n} front${n !== 1 ? 's' : ''}, the whole defense` : `${n} look${n !== 1 ? 's' : ''}, the whole offense`, headRight(first ? `<button class="btn sm" data-go="1">Start with ${esc(first.name)} <em>&rarr;</em></button>` : '', arrowsHTML(k + 1, tot)))}<div class="ifhost" data-kind="forms" style="${at(X(1), 176, CW(12), lay.H - 80 - 176 - 16)}"></div>`; }
+    const lay = L(), n = Math.min(fr.length, 4), span = n > 3 ? 3 : 4, fw = n > 3 ? CW(3) : 488, fh = Math.min(Math.round(fw / 1.8235), lay.H - 80 - 176 - 16 - 24 - 236), py = 176 + fh + 24, ph = lay.H - 80 - py - 16;
     const first = pls[0];
     return `${head('The install', 'The formations', `${n} look${n !== 1 ? 's' : ''}, the whole offense`, headRight(first ? `<button class="btn sm" data-go="1">Start with ${esc(first.name)} <em>&rarr;</em></button>` : '', arrowsHTML(k + 1, tot)))}
       ${fr.slice(0, n).map((f, i) => { const x = X(1 + i * span), calls = SC.plays.filter((p) => p.formation === f.name).length;
@@ -453,7 +640,8 @@ function installSlides() {
        number, the crest and the plate; the wide paper beside it carries the
        write-up and the checks on the left, the calls and the fronts on the
        right; the section's film sits in the foot when the section has one */
-    out.push({ t: 'title', pl, i, html: (k, tot) => { const lay = L(), fh = lay.frame.h, ink = inkedSet();
+    out.push({ t: 'title', pl, i, html: (k, tot) => { if (SC.live && window.skLive && SC.side === 'D') return leadStage(pl, i, pls, plays, k, tot);
+      const lay = L(), fh = lay.frame.h, ink = inkedSet();
       const game = (pl.game && Array.isArray(pl.game.checks)) ? pl.game.checks.filter((x) => typeof x === 'string') : [];
       const fronts = [...new Set(plays.map((q) => q.formation).filter(Boolean))], done = plays.filter((q) => ink.has(q.id)).length;
       const film = FILM === 'title' && ytId(pl.video);
@@ -469,7 +657,8 @@ function installSlides() {
         </div></div>
         ${foot(watch, '', lay)}`; } });
     plays.forEach((p, j) => out.push({ t: 'play', pl, i, p, j, n: plays.length, html: (k, tot) => playStage(p, 'install', k, tot, pl) }));
-    out.push({ t: 'bucket', pl, i, html: (k, tot) => { const lay = L(), ink = inkedSet(), next = pls[i + 1], done = plays.filter((p) => ink.has(p.id)).length;
+    out.push({ t: 'bucket', pl, i, html: (k, tot) => { if (SC.live && window.skLive && SC.side === 'D') return bucketStage(pl, i, pls, plays, k, tot);
+      const lay = L(), ink = inkedSet(), next = pls[i + 1], done = plays.filter((p) => ink.has(p.id)).length;
       return `${head('On the sheet', `${esc(pl.name.replace(/^The /, ''))} calls`, done === plays.length ? `${esc(pl.name)} is installed` : `${done} of ${plays.length} inked`, headRight(next ? `<button class="btn sm" data-next="1">Next section: ${esc(next.name)} <em>&rarr;</em></button>` : `<a class="btn sm" href="#sheet">Open the call sheet <em>&rarr;</em></a>`, arrowsHTML(k + 1, tot)))}${callsHTML(plays, (p) => ink.has(p.id) ? '<span class="chip ink">On the sheet</span>' : '<span class="chip">Not yet</span>', lay)}${rail('', { html: `<div class="k team">${esc(pl.name.replace(/^The /, ''))} calls &middot; ${done} of ${plays.length}</div>${plays.map((p) => `<div class="slot${ink.has(p.id) ? ' on' : ''}"><div class="h26">${ink.has(p.id) ? esc(p.name) : '&nbsp;'}</div></div>`).join('')}<div class="rule"></div><div class="t" style="font-size:15px">${done === plays.length ? 'Every call landed in the bucket it belongs to.' : 'The rest are waiting on you. Go back with the arrows.'}</div>`, cls: plays.length > 7 ? 'many' : '' }, lay)}`; } });
   });
   return out;
@@ -491,16 +680,22 @@ const typeOk = (p, k) => k === 'all' || (k === 'blitz' ? p.libType === 'Blitz' :
 function listOf() {
   const tp = FILT.type, fr = FILT.front;
   const added = addedPlays();
-  const all = own().concat(added);
-  return { all, list: all.filter((p) => typeOk(p, tp) && (fr === 'all' || p.formation === fr)) };
+  const G = SC.groups || null, gi = (p) => { if (!G) return 0; const k = G.findIndex((g) => g.ids.includes(p.id)); return k < 0 ? G.length : k; };
+  const all = own().concat(added).map((p, k) => [p, k]).sort((a, b) => gi(a[0]) - gi(b[0]) || a[1] - b[1]).map((x) => x[0]);   /* the scheme's groups, in order (one video, then the other) */
+  let list = all.filter((p) => typeOk(p, tp) && (fr === 'all' || p.formation === fr));
+  if (!list.length && all.length) { FILT.type = 'all'; FILT.front = 'all'; list = all; }   /* a filter left on from before never shows an empty page */
+  return { all, list };
 }
 /* the rows: chips at y0, three across from y0 + 60, each four columns */
-function rowsHTML(list, y0, chips) {
-  const cards = list.map((p, k) => `<a class="card${k === PICK && SEC !== 'book' ? ' pick' : ''}${p.added ? ' added' : ''}" style="left:${X(1 + 4 * (k % 3))}px;top:${y0 + 60 + Math.floor(k / 3) * 364}px" href="#play/${esc(p.id)}" data-row="${k}"><div class="tv"><div class="plate">${esc(p.name)}</div>${plainArt(p)}</div><div class="hang"><div class="chips">${playChips(p)}</div></div></a>`).join('');
-  return { html: `<div class="rows"><div class="filt" style="top:${y0}px">${chips}</div>${cards}</div>`, h: y0 + 60 + Math.ceil(list.length / 3) * 364 + 40 };
+function rowsHTML(list, y0, chips) { const G = SC.groups || null; let y = y0 + 60, col = 0, cur = null, cards = '';
+  list.forEach((p, k) => { if (G) { const g = (G.find((x) => x.ids.includes(p.id)) || { label: 'Added from the book' }).label; if (g !== cur) { if (col) { y += 364; col = 0; } cards += `<div class="rowdiv" style="left:${X(1)}px;top:${y}px;width:${CW(12)}px"><span>${esc(g)}</span><i>${list.filter((q) => (G.find((x) => x.ids.includes(q.id)) || { label: 'Added from the book' }).label === g).length} calls</i></div>`; y += 76; cur = g; } }
+    cards += `<a class="card${k === PICK && SEC !== 'book' ? ' pick' : ''}${p.added ? ' added' : ''}" style="left:${X(1 + 4 * col)}px;top:${y}px" href="#play/${esc(p.id)}" data-row="${k}"><div class="tv"><div class="plate">${esc(p.name)}</div>${plainArt(p)}</div><div class="hang"><div class="chips">${playChips(p)}</div></div></a>`;
+    if (++col === 3) { col = 0; y += 364; } });
+  if (col) y += 364;
+  return { html: `<div class="rows"><div class="filt" style="top:${y0}px">${chips}</div>${cards}</div>`, h: y + 40 };
 }
 function playsPage() {
-  const { all, list } = listOf(); PICKLIST = list; if (PICK >= list.length) PICK = 0;
+  const { all, list } = listOf(); PICKLIST = list; if (PENDPICK) { const k = list.findIndex((p) => p.id === PENDPICK); if (k >= 0) PICK = k; PENDPICK = null; } if (PICK >= list.length) PICK = 0;
   const tabs = SC.side === 'D' ? [['all', 'Everything'], ['cover', 'Coverages'], ['blitz', 'Blitzes']] : [['all', 'Everything'], ['run', 'Run'], ['pass', 'Pass']];
   const count = (k) => all.filter((p) => typeOk(p, k)).length;
   const chips = `${tabs.map(([k, t]) => `<button class="chip${FILT.type === k ? ' on' : ''}" data-type="${k}">${t} &middot; ${count(k)}</button>`).join('')}<span class="k">${FRONTWORD(SC) === 'front' ? 'Front' : 'Formation'}</span><button class="chip${FILT.front === 'all' ? ' on' : ''}" data-front="all">All</button>${fronts().map((x) => `<button class="chip${FILT.front === x ? ' on' : ''}" data-front="${esc(x)}">${esc(x.replace(/^425 /, ''))} &middot; ${all.filter((p) => p.formation === x).length}</button>`).join('')}<a class="chip door" href="#book">+ Add from the ${esc((SC.about && SC.about.playbook && (SC.about.playbook.cap || SC.about.playbook.title)) || 'book')}</a>`;
@@ -601,27 +796,35 @@ const nice = (s, title) => String(s || '').split(/\s+/).map((w, i) => wordCase(w
 /* THE PRESENTER KEY: P on the sheet lays the coach's sheet down one install
    section at a time. The module's own store is written (the same store Full
    and Slim draw from) and the module reloads. A cleared sheet starts over. */
+/* the call sheet's name in this browser (a scheme whose sheet changed shape carries a rev, so the old one is left behind) */
+function GPKEY() { return 'gp-sheet-' + (SC.schemeKey || SC.key) + (SC.gp && SC.gp.rev ? '-' + SC.gp.rev : ''); }
 function presentStep() {
-  const pls = (SC.install && SC.install.pillars) || [], R = (SC.gp && SC.gp.recommended) || {}; if (!pls.length || !R) return;
-  const key = 'gp-sheet-' + (SC.schemeKey || SC.key); let sh = null; try { sh = JSON.parse(localStorage.getItem(key) || 'null'); } catch (e) {}
+  /* P builds the sheet for the camera, one install section per press. A scheme may give P its own script (gp.present): which
+     sections it walks and which calls land where; without one it walks every section with the recommended picks. With a
+     script, one more press after the last section CLEARS the sheet so the take can be run again. */
+  const PR = (SC.gp && SC.gp.present) || null, all = (SC.install && SC.install.pillars) || [], pls = PR && PR.pillars ? all.filter((pl) => PR.pillars.includes(pl.key)) : all;
+  const REC = (SC.gp && SC.gp.recommended) || {}, R = PR ? Object.assign({}, PR.sections) : REC; if (!pls.length || !R) return;
+  const key = GPKEY(); let sh = null; try { sh = JSON.parse(localStorage.getItem(key) || 'null'); } catch (e) {}
   const secs = (SC.gpSections || []).filter((x) => x.kind === 'plays');
   const empty = !sh || secs.every((x) => !(Array.isArray(sh[x.id]) && sh[x.id].length));
   const plan = planRead(); let step = empty ? 0 : Math.min(plan.pstep || 0, pls.length);
-  if (step >= pls.length) { toast('Every section is on the sheet'); return; }
+  const after = () => { const d = $('.dock'); if (d) d.outerHTML = dockHTML(); const tr = $('.tabrow .k'); if (tr) { const ink = inkedSet(), tt = taught(); tr.textContent = `Your sheet · ${tt.filter((p) => ink.has(p.id)).length} of ${tt.length} inked`; } };
+  if (step >= pls.length) { if (!PR) { toast('Every section is on the sheet'); return; }
+    const blank = { key: null, xFactor: null, formations: (REC.formations || []).slice(), constraints: [], stickyTags: {} }; secs.forEach((x) => { blank[x.id] = []; });
+    try { localStorage.setItem(key, JSON.stringify(blank)); } catch (e) {} if (GP && GP.reload) GP.reload();
+    all.forEach((pl) => pl.plays.forEach((id) => inkPlay(id, false))); plan.pstep = 0; savePlan(); after(); toast('Sheet cleared · P for ' + pls[0].name); return; }
   const upTo = new Set(pls.slice(0, step + 1).flatMap((pl) => pl.plays));
-  if (!sh) sh = { key: null, xFactor: null, formations: (R.formations || []).slice(), constraints: [], stickyTags: {} };
+  if (!sh) sh = { key: null, xFactor: null, formations: (REC.formations || []).slice(), constraints: [], stickyTags: {} };
   for (const x of secs) { const want = (R[x.id] || []).filter((id) => upTo.has(id)); const have = Array.isArray(sh[x.id]) ? sh[x.id] : [];
     sh[x.id] = [...have, ...want.filter((id) => !have.includes(id))]; }
-  if (R.xFactor && R.xFactor.play && upTo.has(R.xFactor.play)) sh.xFactor = Object.assign({}, R.xFactor);
+  if (REC.xFactor && REC.xFactor.play && upTo.has(REC.xFactor.play)) sh.xFactor = Object.assign({}, REC.xFactor);
   const co = (SC.gp && SC.gp.constraintOptions) || [];
   sh.constraints = (R.constraints || []).filter((i) => { const c = co[i]; return c && upTo.has(c.base) && upTo.has(c.off); });
   try { localStorage.setItem(key, JSON.stringify(sh)); } catch (e) {}
   if (GP && GP.reload) GP.reload();
   pls[step].plays.forEach((id) => inkPlay(id, true));
-  plan.pstep = step + 1; savePlan();
-  const d = $('.dock'); if (d) d.outerHTML = dockHTML();
-  const tr = $('.tabrow .k'); if (tr) { const ink = inkedSet(), all = taught(); tr.textContent = `Your sheet · ${all.filter((p) => ink.has(p.id)).length} of ${all.length} inked`; }
-  toast(`${pls[step].name}: ${pls[step].plays.length} call${pls[step].plays.length === 1 ? '' : 's'} on the sheet${step + 1 < pls.length ? ' · P for ' + pls[step + 1].name : ''}`);
+  plan.pstep = step + 1; savePlan(); after();
+  toast(`${pls[step].name}: ${pls[step].plays.length} call${pls[step].plays.length === 1 ? '' : 's'} on the sheet${step + 1 < pls.length ? ' · P for ' + pls[step + 1].name : PR ? ' · P again clears the sheet' : ''}`);
 }
 /* the takeover: the live region goes fixed over a blurred room, the dock stays */
 function sheetFS(on) { SHEETFS = !!on; document.body.classList.toggle('sheetfs', SHEETFS); const r = $('.live.gp-room'); if (r) r.classList.toggle('fs', SHEETFS);
@@ -669,7 +872,7 @@ function builderMount() {
   const wrap = (p) => ({ name: p.name, formation: p.formation || '', star: p.type === 'Star Play' });
   const sv = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--s')) || 1;
   DRIVEB = mountDriveBuilder({
-    plays: SC.plays.map((p) => ({ id: p.id, name: p.name, type: p.type, formation: p.formation || '', tags: p.tags || [] })),
+    plays: SC.plays.filter((p) => !p.guide).map((p) => ({ id: p.id, name: p.name, type: p.type, formation: p.formation || '', tags: p.tags || [] })),
     recommended: SC.drive.recommended, sections: SC.drive.sections, video: SC.drive.video,
     logo: (SC.about && SC.about.logo) || `logos/${SC.logo}.png`, skLogo: SC.drive.skLogo || '', sheetTitle: `${SC.nick || shortName()} Call Sheet`,
     padL: Math.round(44 * sv + 334), padR: Math.round(44 * sv + 310),
@@ -677,7 +880,7 @@ function builderMount() {
     bridge: {
       callSheet(mode) {
         if (mode === 'empty') return { mode: 'empty', total: 0, cap: 24, sections: playSecs.map((x) => ({ id: x.id, label: x.label, cap: x.n, plays: [] })) };
-        let sh = null; try { sh = JSON.parse(localStorage.getItem('gp-sheet-' + (SC.schemeKey || SC.key)) || 'null'); } catch (e) {}
+        let sh = null; try { sh = JSON.parse(localStorage.getItem(GPKEY()) || 'null'); } catch (e) {}
         let total = 0;
         const sections = playSecs.map((x) => { const plays = ((sh && sh[x.id]) || []).map((id) => byIdP.get(id)).filter(Boolean).map(wrap); total += plays.length; return { id: x.id, label: x.label, cap: x.n, plays }; }).filter((x) => x.plays.length);
         return { mode: 'normal', total, cap: 24, sections };
@@ -1265,9 +1468,10 @@ function historyStage() {
     <div class="frame roster" style="${at(X(9), 176, CW(4), lay.H - 80 - 176 - 16)}"><div class="rh">The players &middot; tap one${P.shot ? `<a class="rbtn" href="#" data-shot="${esc(P.shot)}">Full personnel &rarr;</a>` : ''}</div>${rows}</div>`;
 }
 /* the full personnel screenshot (his call 2026-09-21): one button on the roster frame opens it over the page */
-function shotPop(src, k) {
-  shotClose(); const el = document.createElement('div'); el.className = 'shotpop'; el.id = 'shotpop';
-  el.innerHTML = `<div class="shot-in"><a class="shot-x" href="#" data-shotclose aria-label="Close">&times;</a><div class="shot-k">${esc(shortName())} &middot; ${esc(k || 'the full personnel')}</div><img src="${esc(src)}" alt="The full personnel"></div>`;
+function shotPop(src, k, pid) {
+  /* a call's own picture (the run defense macro) may carry what is on it as a list: it sits beside the picture */
+  shotClose(); const el = document.createElement('div'); el.className = 'shotpop'; el.id = 'shotpop'; const q = pid && SC ? SC.plays.find((x) => x.id === pid) : null, S = q && q.shot && q.shot.lines ? q.shot : null;
+  el.innerHTML = `<div class="shot-in${S ? ' two' : ''}"><a class="shot-x" href="#" data-shotclose aria-label="Close">&times;</a><div class="shot-k">${esc(shortName())} &middot; ${esc(k || 'the full personnel')}</div>${S ? `<div class="shot-row"><img src="${esc(src)}" alt="${esc(k || '')}"><div class="shot-side"><b>${esc(S.label)}</b><dl>${S.lines.map(([a, v]) => `<div><dt>${esc(a)}</dt><dd>${esc(v)}</dd></div>`).join('')}</dl>${S.how ? `<p>${esc(S.how)}</p>` : ''}</div></div>` : `<img src="${esc(src)}" alt="The full personnel">`}</div>`;
   el.addEventListener('click', (e) => { if (e.target === el || e.target.closest('[data-shotclose]')) { e.preventDefault(); shotClose(); } });
   document.body.appendChild(el);
 }
@@ -1423,7 +1627,7 @@ function renderNow() {
   const { sec, at: a, id } = parseHash(); const prev = SEC, prevAt = AT, prevId = PLAYID;
   /* the takeover opens and closes over the rows without rebuilding them */
   /* the takeover opens over All Plays or the intro without rebuilding them; closing over All Plays keeps the scroll, closing over the intro repaints it (a chip may have been inked) */
-  if (sec === 'play' && (prev === 'plays' || prev === 'intro' || (prev === 'drives' && DRIVEB)) && $('.stagewrap') && !$('.modal')) { UNDER = prev; SEC = 'play'; PLAYID = id; RD = 0; FILM = null; if (openModal()) { const d = $('.dock'); if (d) d.outerHTML = dockHTML(); document.title = `${SC.name} · Play`; return; } }
+  if (sec === 'play' && (prev === 'plays' || prev === 'intro' || prev === 'stop' || (prev === 'drives' && DRIVEB)) && $('.stagewrap') && !$('.modal')) { UNDER = prev === 'stop' && prevId ? 'stop/' + prevId : prev; SEC = 'play'; PLAYID = id; RD = 0; FILM = null; if (openModal()) { const d = $('.dock'); if (d) d.outerHTML = dockHTML(); document.title = `${SC.name} · Play`; return; } }
   if (sec === 'book' && prev === 'plays' && $('.stagewrap') && !$('.modal')) { UNDER = 'plays'; SEC = 'book'; if (openBook()) { const d = $('.dock'); if (d) d.outerHTML = dockHTML(); document.title = `${SC.name} · The book`; return; } }
   if (sec === 'plays' && prev === 'book' && $('.modal') && $('.stagewrap')) { closeModal(); SEC = 'plays'; }
   if (sec === 'drives' && prev === 'play' && UNDER === 'drives' && DRIVEB && $('.modal') && $('.stagewrap')) { closeModal(); SEC = 'drives'; PLAYID = ''; RD = 0; FILM = null; const d = $('.dock'); if (d) d.outerHTML = dockHTML(); document.title = `${SC.name} · Drives`; return; }
@@ -1439,14 +1643,17 @@ function renderNow() {
   document.title = `${SC.name} · ${(AREAS.find((x) => x[0] === SEC) || ['', SEC === 'play' ? 'Play' : SEC === 'book' ? 'The book' : SEC === 'role' ? 'Personnel' : SEC === 'coverage' ? 'Coverages' : 'The front'])[1]}`;
   let body = '';
   if (SEC === 'front') body = frontHTML();
+  else if (SEC === 'story' && STORY()) body = stagewrap(storyStage(), STAGE_H, 'in');
+  else if (SEC === 'intro' && NOINTRO()) { location.replace(INTRO()); return; }
   else if (SEC === 'intro') body = stagewrap(introStage(), STAGE_H, 'in');
-  else if (SEC === 'install') { const s = installSlides(); AT = Math.min(AT, s.length - 1); body = stagewrap(s[AT].html(AT, s.length), STAGE_H, 'in'); }
+  else if (SEC === 'install') { const s = installSlides(); AT = Math.min(AT, s.length - 1); instSave(AT); body = stagewrap(s[AT].html(AT, s.length), STAGE_H, 'in'); }
   else if (SEC === 'plays' || SEC === 'play') { const pg = playsPage(); body = stagewrap(pg.html, pg.h); }
   else if (SEC === 'book') { const pg = playsPage(); body = stagewrap(pg.html, pg.h); }
   else if (SEC === 'sheet') { const sh = sheetStage(); body = stagewrap(sh.html, STAGE_H, 'in', sh.live); }
   else if (SEC === 'drives' && hasBuilder()) { builderExit(); const bs = builderStage(); body = stagewrap(bs.html, STAGE_H, 'in') + bs.host; }
   else if (SEC === 'drives') { const dr = drivesStage(); body = stagewrap(dr.html, dr.h, 'in'); }
   else if (SEC === 'board') { BOARD = boardStage(); body = stagewrap(BOARD.html, STAGE_H, 'in', BOARD.live); }
+  else if (SEC === 'stop' && SC.stop) body = stagewrap(stopStage(), STAGE_H, 'in');
   else if (SEC === 'personnel' || SEC === 'role') body = stagewrap(personnelStage(), STAGE_H, 'in');
   else if (SEC === 'coverages') body = stagewrap(coveragesStage(), STAGE_H, 'in');
   else if (SEC === 'coverage') { const c = curPlay(); if (!c) { location.hash = '#coverages'; return; } body = stagewrap(covStage(c.p, 'screen', c.j, c.n, STAGE_H), STAGE_H, 'in'); }
@@ -1488,7 +1695,8 @@ function fitPapers() {
   });
 }
 const vt = (paint0) => {
-  const paint = () => { paint0(); requestAnimationFrame(fitPapers); };
+  const paint = () => { if (window.skStoryReel && $('.srhost[data-live]')) STORY_AT = parseHash().sec === 'story' ? skStoryReel.at() : 0;   /* a repaint keeps his scene; leaving the story means the next visit starts it over */
+    paint0(); introFieldBoot(); storyBoot(); liveBoot(); stopBoot(); requestAnimationFrame(fitPapers); };
   const root = document.documentElement, first = !VT_BOOTED; VT_BOOTED = true;
   const ok = !first && TURN && !matchMedia('(prefers-reduced-motion: reduce)').matches; TURN = false;
   if (!ok) { paint(); NAVDIR = 1; return; }
@@ -1501,7 +1709,7 @@ function repaint() { return vt(repaintNow); }
 function repaintNow() { if (SEC === 'role') { const st = $('.modal .stage'); if (st) { st.innerHTML = roleStage(AT); return; } }
   const c = curPlay(); if (!c && SEC !== 'install') return render();
   const st = SEC === 'play' ? $('.modal .stage') : $('.stage'); if (!st) return render();
-  const dbl = st.querySelector('.dbl') ? st.querySelector('.dbl').outerHTML : '';
+  const dbl = [...st.querySelectorAll(':scope > .dbl')].map((x) => x.outerHTML).join('');   /* every chip along the top survives a repaint: the database, the install map, full screen, who is signed in */
   if (SEC === 'install') st.innerHTML = dbl + installSlides()[AT].html(AT, installSlides().length) + camBox(STAGE_H);
   else if (SEC === 'coverage') st.innerHTML = dbl + covStage(c.p, 'screen', c.j, c.n, STAGE_H) + camBox(STAGE_H);
   else if (SEC === 'plays') { const rows = $('.rows', st); const keep = rows ? rows.outerHTML : ''; st.innerHTML = dbl + playStage(c.p, 'focus', c.j, c.n) + keep + camBox(STAGE_H); document.querySelectorAll('.rows .card').forEach((x) => x.classList.toggle('pick', +x.dataset.row === PICK)); }
@@ -1511,7 +1719,7 @@ function repaintNow() { if (SEC === 'role') { const st = $('.modal .stage'); if 
    rail, over the frame's edge, pointing at its line; never inside the paper */
 function keyPop() {
   document.querySelectorAll('.keypop').forEach((x) => x.remove());
-  const c = curPlay(); if (!c || !RD) return;
+  const c = curPlay(); if (!c || !RD) return; if (liveOn(c.p)) return;   /* a live call writes the key under its field */
   const st = SEC === 'play' ? $('.modal .stage') : $('.stage'); const li = st && st.querySelector('.keylist li.on'); if (!li) return;
   const r = (c.p.reads || [])[RD - 1]; if (!r) return;
   const sc = parseFloat(getComputedStyle(document.documentElement).getPropertyValue(SEC === 'play' ? '--s2' : '--s'));
@@ -1521,8 +1729,8 @@ function keyPop() {
 }
 const go = (n) => { location.hash = `#${SEC}/${n}`; };
 function step(d) { if (SEC !== 'install') return; const n = installSlides().length; if (!n) { location.hash = '#coverages'; return; }
-  NAVDIR = d < 0 ? -1 : 1; const nx = AT + d; if (nx < 0) { location.hash = '#intro'; return; } if (nx >= n) { location.hash = '#sheet'; return; } go(nx); }
-function landKey(d) { const c = curPlay(); if (!c) return false; const n = (c.p.reads || []).length;
+  NAVDIR = d < 0 ? -1 : 1; const nx = AT + d; if (nx < 0) { location.hash = INTRO(); return; } if (nx >= n) { location.hash = '#sheet'; return; } go(nx); }
+function landKey(d) { const c = curPlay(); if (!c) return false; if (liveOn(c.p)) return liveSet(liveAt(c.p) + d); const n = (c.p.reads || []).length;
   const nx = RD + d; if (nx < 0 || nx > n) return false; RD = nx; repaint(); if (SC.side === 'D') return true; const art = $('[data-card] .art'); if (art) { art.classList.add('flash'); setTimeout(() => art.classList.remove('flash'), 450); } return true; }
 function inkCurrent() { const c = curPlay(); if (!c || COV()) return; const on = !inkedSet().has(c.p.id);
   const from = SEC === 'play' ? $('.modal [data-ink]') : $('.stage [data-ink]'); const a = from && on ? from.getBoundingClientRect() : null;
@@ -1550,7 +1758,10 @@ function swap(d, paint) {
   setTimeout(() => { paint(); st.classList.remove('out-l', 'out-r'); st.classList.add(d > 0 ? 'in-r' : 'in-l'); void st.offsetWidth; st.classList.remove('in-r', 'in-l'); }, 230);
 }
 function pick(n, d) { const N = PICKLIST.length; if (!N) return; PICK = ((n % N) + N) % N; RD = 0; FILM = null; if (!$('.stage')) return render(); swap(d, repaint); }
+/* a paper board on an install slide (the formations) takes the arrow keys until it runs out of steps */
+const boardStep = (d) => !!(SEC === 'install' && window.skIntroField && $('.ifhost[data-live]') && skIntroField.step(d));
 function flip(d) {
+  if (SEC === 'stop') { stopFlip(d); return; }
   if (SEC === 'install') { step(d); return; }
   if (SEC === 'plays') { pick(PICK + d, d); return; }
   if (SEC === 'coverage') { const c = curPlay(); if (!c) return; const k = ((c.j + d) % c.n + c.n) % c.n; PLAYID = c.list[k].id; SPOT = null; FILM = null; COVVIEW = 'shot'; history.replaceState(null, '', '#coverage/' + PLAYID); swap(d, repaint); return; }
@@ -1559,21 +1770,26 @@ function flip(d) {
     PLAYID = c.list[k].id; RD = 0; FILM = null; history.replaceState(null, '', '#play/' + PLAYID); swap(d, repaint); }
 }
 
-addEventListener('hashchange', () => { TURN = true; render(); });
+addEventListener('hashchange', () => { TURN = !STOPSWAP; STOPSWAP = false; render(); });   /* one question to the next on the rail swaps in place, no page turn */
 addEventListener('keydown', (e) => {
   if (e.target && e.target.matches && e.target.matches('input,textarea,select,[contenteditable]')) return;
+  if ($('#instmap')) { if (e.key === 'Escape' || e.key === 'i' || e.key === 'I') { e.preventDefault(); instMapClose(); } return; }   /* the install map is open: it takes the keys */
+  if ((e.key === 'i' || e.key === 'I') && !e.ctrlKey && !e.metaKey && !e.altKey && instHas()) { e.preventDefault(); instMap(); return; }
   if (document.querySelector('#shotpop.rulespop')) { if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') { e.preventDefault(); rulesTab(e.key === 'ArrowRight' ? 1 : -1); } return; }   /* the rules sheet takes the arrows while it is open */
   if (SEC === 'sheet') { if (e.key === 'Escape' && SHEETFS) sheetFS(false); else if (e.key === 'p' || e.key === 'P') { e.preventDefault(); presentStep(); } return; }
-  if (e.key === 'ArrowRight') { e.preventDefault(); if (SEC === 'intro') { if (introPaged() && introStep(1)) return; location.hash = COV() ? '#coverages' : '#install/0'; } else if (SEC === 'coverages') location.hash = '#coverage/' + SC.plays[0].id; else flip(1); }
-  else if (e.key === 'ArrowLeft') { e.preventDefault(); if (SEC === 'intro') { if (introPaged() && introStep(-1)) return; location.hash = '#front'; } else flip(-1); }
+  if (SEC === 'stop' && window.skStop && (e.key === ' ' || e.code === 'Space' || /^Arrow/.test(e.key))) { e.preventDefault(); if (!PLAYID) { if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') skStop.key(e.key === 'ArrowLeft' ? -1 : 1); return; } skStop.key(e.key === 'ArrowLeft' ? -1 : e.key === 'ArrowUp' ? 'up' : e.key === 'ArrowDown' ? 'down' : 1); return; }   /* Stop it: space and right = the next beat, left = back, up and down = the question before or after */
+  if (e.key === 'ArrowRight') { e.preventDefault(); if (SEC === 'intro') { if (introPaged() && introStep(1)) return; location.hash = COV() ? '#coverages' : '#install/0'; } else if (SEC === 'coverages') location.hash = '#coverage/' + SC.plays[0].id; else if (!boardStep(1)) flip(1); }
+  else if (e.key === 'ArrowLeft') { e.preventDefault(); if (SEC === 'intro') { if (introPaged() && introStep(-1)) return; location.hash = STORY() ? '#story' : '#front'; } else if (!boardStep(-1)) flip(-1); }
   else if (e.key === ' ' || e.code === 'Space') { e.preventDefault(); if (SEC === 'coverage' || (SEC === 'play' && curPlay() && curPlay().p.spots)) { spotStep(1); return; } if (!landKey(1)) flip(1); }
   else if (e.key === 'ArrowUp') { e.preventDefault(); landKey(-1); }
   else if (e.key === 'ArrowDown') { e.preventDefault(); landKey(1); }
   else if (e.key === 'Enter') { e.preventDefault(); inkCurrent(); }
-  else if (e.key === 'Escape') { if (SHEETFS) { sheetFS(false); return; } if (POP) { popClose(); return; } if (dbxIsOpen()) { dbxClose(false); return; } if (drawerOpen()) { drawerClose(); return; } if ($('.modal.lineup')) { closeLineup(); return; } location.hash = SEC === 'play' ? '#' + UNDER : SEC === 'book' ? '#plays' : SEC === 'role' ? '#personnel' : SEC === 'coverage' ? '#coverages' : '#front'; }
+  else if (e.key === 'Escape') { if (SHEETFS) { sheetFS(false); return; } if (POP) { popClose(); return; } if (dbxIsOpen()) { dbxClose(false); return; } if (drawerOpen()) { drawerClose(); return; } if ($('.modal.lineup')) { closeLineup(); return; } location.hash = SEC === 'play' ? '#' + UNDER : SEC === 'stop' && PLAYID ? '#stop' : SEC === 'book' ? '#plays' : SEC === 'role' ? '#personnel' : SEC === 'coverage' ? '#coverages' : '#front'; }
   else if (e.key === 'c' || e.key === 'C') { CAM = !CAM; const st = $('.stagewrap .stage'); if (!st) return; const c = $('.cam', st); if (c) c.remove(); if (CAM) st.insertAdjacentHTML('beforeend', camBox(STAGE_H)); }
 });
 app.addEventListener('click', (e) => {
+  if (SEC === 'story' && window.skStoryReel && e.target.closest('a[href="#story"]')) { e.preventDefault(); skStoryReel.go(0); return; }   /* the story's own door, while it is open: play it again from the top */
+  if (e.target.closest('[data-instmap]')) { instMap(); return; }
   if (e.target.closest('[data-close]')) { location.hash = SEC === 'role' ? '#personnel' : '#' + UNDER; return; }
   if (e.target.closest('[data-close-lineup]')) { closeLineup(); return; }
   if (e.target.closest('[data-lineup]')) { openLineup(); return; }
@@ -1585,7 +1801,14 @@ app.addEventListener('click', (e) => {
   const dr = e.target.closest('[data-drive]'); if (dr) { const d = planRead().drives.find((x) => x.id === dr.dataset.drive); if (d) dbxOpen(SC, d, null); return; }
   if (e.target.closest('[data-newcase]')) { newCaseDrawer(SC); return; }
   if (e.target.closest('[data-newpin]')) { newPinDrawer(SC); return; }
-  const an = e.target.closest('[data-anim]'); if (an) { animateHere(an); return; }
+  const an = e.target.closest('[data-anim]'); if (an) { const c = curPlay(); if (an.dataset.anim === 'live' && c && liveOn(c.p)) { const N = liveN(c.p); if (liveAt(c.p) === N - 1) skLive.replay(); else liveSet(N - 1); return; } animateHere(an); return; }
+  if (e.target.closest('.lphost')) { if (!landKey(1)) flip(1); return; }
+  const ik = e.target.closest('[data-inkid]'); if (ik) { const q = SC.plays.find((x) => x.id === ik.dataset.inkid), on = !inkedSet().has(ik.dataset.inkid); inkPlay(ik.dataset.inkid, on); repaint(); if (q) toast(on ? `${q.name} is on the sheet` : `${q.name} pulled back off the sheet`); return; }
+  const lgo = e.target.closest('[data-lgo]'); if (lgo) { const d = +lgo.dataset.lgo; if (!landKey(d) && d > 0) flip(1); return; }
+  const lst = e.target.closest('[data-lstep]'); if (lst) { e.preventDefault(); liveSet(+lst.dataset.lstep); return; }
+  if (e.target.closest('[data-lrules]')) { e.preventDefault(); liveFlip(); return; }
+  const lr = e.target.closest('[data-lr]'); if (lr) { liveSet(liveAt(curPlay().p) === +lr.dataset.lr ? 0 : +lr.dataset.lr); return; }
+  const aj = e.target.closest('[data-aj]'); if (aj) { const c = curPlay(); if (c && liveOn(c.p)) { const k = (c.p.reads || []).length + 1 + (+aj.dataset.aj); liveSet(liveAt(c.p) === k ? 0 : k); } return; }
   const sf = e.target.closest('[data-sheetfs]'); if (sf) { sheetFS(sf.dataset.sheetfs === 'on'); return; }
   const sv = e.target.closest('[data-sheetview]'); if (sv) { SHEETVIEW = sv.dataset.sheetview; try { localStorage.setItem('sk_sheetview', SHEETVIEW); } catch (x) {}
     const r = $('.live.gp-room'); if (r) r.classList.toggle('slim', SHEETVIEW === 'slim'); document.querySelectorAll('[data-sheetview]').forEach((b) => b.classList.toggle('on', b.dataset.sheetview === SHEETVIEW)); return; }
@@ -1599,19 +1822,30 @@ app.addEventListener('click', (e) => {
   /* the breakdown opens on YouTube in a new tab (his call 2026-09-21), never inside the page; only Back closes a film */
   const fm = e.target.closest('[data-film]'); if (fm) { if (fm.dataset.film !== 'off') return; e.preventDefault(); const c = curPlay(); if (!c && !(SEC === 'install' && (fm.dataset.film === 'title' || fm.dataset.film === 'off'))) return; FILM = fm.dataset.film === 'off' ? null : c ? c.p.id : 'title'; repaint(); return; }
   const mo = e.target.closest('[data-rows]'); if (mo) { e.preventDefault(); const r = $('.rows'); if (r) { const y = (parseFloat(r.querySelector('.filt').style.top) - 40) * parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--s')); scrollTo({ top: y, behavior: 'smooth' }); } return; }
-  const sh = e.target.closest('[data-shot]'); if (sh) { e.preventDefault(); shotPop(sh.dataset.shot, sh.dataset.shotk); return; }
+  const sh = e.target.closest('[data-shot]'); if (sh) { e.preventDefault(); shotPop(sh.dataset.shot, sh.dataset.shotk, sh.dataset.shotp); return; }
   const ru = e.target.closest('[data-rules]'); if (ru) { e.preventDefault(); rulesPop(ru.dataset.rules); return; }
   const ipt = e.target.closest('[data-ip]'); if (ipt) { e.preventDefault(); NAVDIR = +ipt.dataset.ip < IP ? -1 : 1; IP = +ipt.dataset.ip; IPG = 0; TURN = true; repaint(); return; }
   const ipg = e.target.closest('[data-ipg]'); if (ipg) { e.preventDefault(); if (!introStep(+ipg.dataset.ipg) && +ipg.dataset.ipg > 0) location.hash = COV() ? '#coverages' : '#install/0'; return; }
   const se = e.target.closest('[data-sel]'); if (se) { TSEL = +se.dataset.sel; repaint(); return; }
   const bl = e.target.closest('[data-belief]'); if (bl) { const i = +bl.dataset.belief; OPEN.has(i) ? OPEN.delete(i) : OPEN.add(i); bl.classList.toggle('open', OPEN.has(i)); return; }
-  const rd = e.target.closest('[data-rd]'); if (rd) { RD = (+rd.dataset.rd === RD) ? 0 : +rd.dataset.rd; repaint(); return; }
+  const rd = e.target.closest('[data-rd]'); if (rd) { const c = curPlay(); if (c && liveOn(c.p)) { liveSet(liveAt(c.p) === +rd.dataset.rd ? 0 : +rd.dataset.rd); return; } RD = (+rd.dataset.rd === RD) ? 0 : +rd.dataset.rd; repaint(); return; }
   const ad = e.target.closest('[data-adj]'); if (ad) { const c = curPlay(); if (!c) return; if (!ADJ.has(c.p.id)) ADJ.set(c.p.id, new Set()); const set = ADJ.get(c.p.id), k = +ad.dataset.adj; set.has(k) ? set.delete(k) : set.add(k); repaint(); const art = $('[data-card] .art'); if (art) { art.classList.add('flash'); setTimeout(() => art.classList.remove('flash'), 450); } return; }
   const tp = e.target.closest('[data-type]'); if (tp) { FILT.type = tp.dataset.type; PICK = 0; render(); return; }
   const fr = e.target.closest('[data-front]'); if (fr) { FILT.front = fr.dataset.front; PICK = 0; render(); return; }
   const st = e.target.closest('[data-set]'); if (st) { FILT.set = st.dataset.set; if ($('.modal.book')) bookRepaint(); else render(); return; }
   const ad2 = e.target.closest('[data-add]'); if (ad2) { const on = !addedSet().has(ad2.dataset.add); addPlay(ad2.dataset.add, on); if ($('.modal.book')) bookRepaint(); else render(); toast(on ? 'Added to your plays' : 'Taken back out'); return; }
 });
+
+/* the place kept for this tab (see REOPEN WHERE YOU LEFT OFF in boot) */
+const PLACEK = 'sk_at_' + KEY; let PLACE0 = null, PENDPICK = null, PLACET = 0;
+function placeRead() { try { const p = JSON.parse(sessionStorage.getItem(PLACEK) || 'null'); return p && Date.now() - p.t < 12 * 3600e3 ? p : null; } catch (e) { return null; } }
+function placeSave() { if (!SC) return; try { const old = placeRead() || {}, inPlays = SEC === 'plays' || (SEC === 'play' && UNDER === 'plays'), pk = inPlays ? PICKLIST[PICK] : null;   /* a play open over All plays is still All plays underneath */
+    sessionStorage.setItem(PLACEK, JSON.stringify({ t: Date.now(), pick: inPlays ? (pk ? pk.id : null) : (old.pick || null), filt: { type: FILT.type, front: FILT.front }, y: inPlays ? Math.round(window.scrollY || 0) : (old.y || 0),
+      draft: dbxIsOpen() && DBX.dirty && DBX.drive && DBX.drive.main && DBX.drive.main.length ? DBX.drive : null })); } catch (e) {} }
+const placeSoon = () => { clearTimeout(PLACET); PLACET = setTimeout(placeSave, 300); };
+['click', 'pointerup', 'keyup', 'change'].forEach((ev) => document.addEventListener(ev, placeSoon, true));
+addEventListener('scroll', placeSoon, { passive: true });
+addEventListener('pagehide', placeSave); document.addEventListener('visibilitychange', () => { if (document.hidden) placeSave(); });
 
 /* ---------- boot ---------- */
 (async function boot() {
@@ -1632,9 +1866,19 @@ app.addEventListener('click', (e) => {
   document.documentElement.style.setProperty('--team', SC.c1 || '#9E1B32');
   document.documentElement.style.setProperty('--team2', SC.c2 || '#828A8F');
   const sets = [...new Set(SC.plays.filter((p) => p.libFamily && p.libSet).map((p) => slug(p.libFamily) + '__' + slug(p.libSet)))];
-  const [forms, ...cards] = await Promise.all([fetch('formations.json').then((r) => r.json()).catch(() => ({})), ...sets.map((k) => fetch('cards/' + k + '.json').then((r) => r.json()).catch(() => ({})))]);
-  FORMS = forms; GEO = Object.assign({}, ...cards);
+  const [forms, blocking, ...cards] = await Promise.all([fetch('formations.json').then((r) => r.json()).catch(() => ({})), introScenes() ? fetch('blocking.json').then((r) => r.json()).catch(() => null) : Promise.resolve(null), ...sets.map((k) => fetch('cards/' + k + '.json').then((r) => r.json()).catch(() => ({})))]);
+  if (SC.stop && !window.skStop) await new Promise((res) => { const me = document.querySelector('script[src$="scheme.js"]'), s = document.createElement('script'); s.src = (me ? me.getAttribute('src').replace(/scheme\.js$/, '') : '') + 'stop-it.js'; s.onload = res; s.onerror = res; document.head.appendChild(s); });   /* Stop it: its engine, only for a scheme that has the section */
+  if (SC.live && window.skLive) for (const src of [].concat(SC.live)) await new Promise((res) => { const s = document.createElement('script'); s.src = src; s.onload = res; s.onerror = res; document.head.appendChild(s); });   /* the live play staging for this scheme */
+  FORMS = forms; GEO = Object.assign({}, ...cards); BLK = blocking;   /* the game's blocking tables and run fits, only a field intro needs them */
+  /* REOPEN WHERE YOU LEFT OFF (2026-10-12): a tablet or a phone drops a page it is not showing and loads it again when he comes
+     back. The address already carries the section, the slide, the play and the Stop it question. This keeps the rest for this
+     tab: the play picked in All plays with its filters and how far down he was, and a drive script he had not saved. */
+  { const pl = placeRead(); if (pl) { if (pl.filt) Object.assign(FILT, pl.filt); PENDPICK = pl.pick || null; if (parseHash().sec === 'plays' && pl.y) ROWY = pl.y; PLACE0 = pl; } }
   if (addedSet().size) loadIndex(); /* the added calls want their names */
   render();
+  if (PLACE0 && PLACE0.y && SEC === 'play' && UNDER === 'plays') scrollTo(0, PLACE0.y);   /* the rows under an open play, where he had them */
+  if (PLACE0 && PLACE0.draft && SEC === 'drives' && !hasBuilder()) setTimeout(() => { try { dbxOpen(SC, PLACE0.draft, PLACE0.draft.slot); DBX.dirty = true; toast('Your unsaved script is back'); } catch (e) {} }, 500);
+  if (STOPQ.get('instmap')) setTimeout(instMap, 700);   /* for stills: open the install map */
+  if (STOPQ.get('shotpop')) setTimeout(() => { const q = SC.plays.find((x) => x.id === STOPQ.get('shotpop')); if (q && q.shot) shotPop(q.shot.img, q.shot.cap || q.shot.label, q.id); }, 700);   /* for stills: open a call's picture */
 })();
 })();

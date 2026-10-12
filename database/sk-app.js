@@ -160,6 +160,26 @@ async function ensureIndex(){
    whole scheme is fetched only when it opens in here. */
 async function ensureScheme(k){ const s=(SCHEMES||[]).find(x=>x.key===k); if(!s) return null;
   if(!s.plays){ try{ Object.assign(s, await (await fetch('schemes/'+encodeURIComponent(k)+'.json')).json()); }catch(e){} } return s; }
+/* REOPEN WHERE YOU LEFT OFF (2026-10-12). A phone or a tablet drops a page it is not showing (the iPad sleeps beside the
+   game, he switches apps) and loads it again from the top when he comes back: a member lost the open book and his play every
+   time. The place is kept for THIS TAB (sessionStorage: it survives a reload, not a new visit): the view, the book, the
+   formation, the filters, the search, how far down he was and the play that was open. boot() puts it back before the first
+   paint; a link that names a scheme (?scheme=) still wins. Half a day old and it is forgotten. */
+const PLACE_KEY = 'sk_place' + SKG + '_' + SIDE;
+let PLACE_PLAY = null, PLACE_BACK = null, PLACE_T = 0;
+function placeSave(){ try{ const pp=$('#playpop'), on=!!(pp&&pp.classList.contains('on'));
+  sessionStorage.setItem(PLACE_KEY, JSON.stringify({ t:Date.now(), VIEW, FAM, SET, TYPE, Q, BOOK, SORT, SHOWN, FAMPICK, CONCEPT, SCHEME, SEC, INSTALL, y:Math.round(window.scrollY||0), play:on?PLACE_PLAY:null })); }catch(e){} }
+const placeSoon = () => { clearTimeout(PLACE_T); PLACE_T = setTimeout(placeSave, 250); };
+function placeRead(){ try{ const p=JSON.parse(sessionStorage.getItem(PLACE_KEY)||'null'); return p&&Date.now()-p.t<12*3600e3?p:null; }catch(e){ return null; } }
+/* after the first paint: scroll back down once the page is tall enough, then open the play again by its own card */
+function placeBack(){ const p=PLACE_BACK; PLACE_BACK=null; if(!p) return; let n=0;
+  const tick=()=>{ n++; if(!(document.documentElement.scrollHeight>=p.y+innerHeight*.6||n>24)){ setTimeout(tick,150); return; } if(p.y>0) scrollTo(0,p.y);
+    if(p.play){ let k=0; const find=()=>{ const c=[...document.querySelectorAll('[data-slug]')].find(e=>e.dataset.slug===p.play); if(c){ c.click(); return; } if(++k<24) setTimeout(find,150); }; find(); } };
+  setTimeout(tick,60); }
+['click','input','change','keyup'].forEach(ev=>document.addEventListener(ev, placeSoon, true));
+addEventListener('scroll', placeSoon, { passive:true });
+addEventListener('pagehide', placeSave); document.addEventListener('visibilitychange', ()=>{ if(document.hidden) placeSave(); });
+
 async function boot(){
   /* a phone has no room for the switch beside the brand: it joins the banner's second row (sk-mobile.css orders it) */
   if(innerWidth<760){ const sb=$('#sidebox'), tn=$('#topnav'); if(sb&&tn&&tn.parentNode) tn.parentNode.insertBefore(sb,tn); }
@@ -174,8 +194,16 @@ async function boot(){
      they are re-housed, and lands on them by ?scheme=<key>&sec=<section> */
   { const q=new URLSearchParams(location.search), k=q.get('scheme');
     if(k&&SCHEMES.some(s=>s.key===k)){ await ensureScheme(k); VIEW='schemes'; SCHEME=k; SEC=q.get('sec')||'home'; } }
+  /* back to where he was in this tab (see REOPEN WHERE YOU LEFT OFF) */
+  { const pl = new URLSearchParams(location.search).get('scheme') ? null : placeRead();
+    if(pl){ try{ if(pl.SCHEME&&SCHEMES.some(s=>s.key===pl.SCHEME)){ await ensureScheme(pl.SCHEME); SCHEME=pl.SCHEME; SEC=pl.SEC||'home'; INSTALL=pl.INSTALL||0; }
+        if(pl.VIEW&&!(pl.VIEW==='search'&&!pl.Q)) VIEW=pl.VIEW; FAM=pl.FAM||null; SET=pl.SET||null; TYPE=pl.TYPE||'all'; BOOK=pl.BOOK||null; SORT=pl.SORT||SORT; SHOWN=Math.max(PAGE,pl.SHOWN||PAGE); FAMPICK=pl.FAMPICK||null; CONCEPT=pl.CONCEPT||null; Q=pl.Q||'';
+        if(Q){ $('#q').value=Q; const qc=$('#qclear'); if(qc) qc.hidden=false; } PLACE_BACK=pl; }catch(e){} } }
+  const placeHome=()=>{ VIEW=SK_GAMEKEY?'books':'schemes'; FAM=SET=BOOK=FAMPICK=CONCEPT=null; TYPE='all'; Q=''; SCHEME=null; PLACE_BACK=null; };
   if(sectionOf(VIEW)!=='schemes'||SCHEME) await ensureIndex();
-  buildRail(); render();
+  if(PLACE_BACK&&BOOK&&IDX&&!IDX.books.some(b=>b.key===BOOK)) placeHome();
+  buildRail(); try{ render(); }catch(e){ if(!PLACE_BACK) throw e; placeHome(); buildRail(); render(); }   /* a place that no longer draws falls back to the front door */
+  placeBack();
 }
 /* geometry for a list of plays that may span many formations */
 async function mergedGeo(list){
@@ -856,7 +884,7 @@ function runPlay(box,btn){
   if(ok){ ANIM=1; btn.textContent='Stop'; }
 }
 const RUN_LABEL='&#9654; Animate play call';
-function openPlay(p,geo){
+function openPlay(p,geo){ PLACE_PLAY = (p&&p.slug)||null; placeSoon();
   if(!p) return;
   const el=$('#playpop'), box=el.querySelector('.pp');
   const g=geo?geo[p.slug]:null;

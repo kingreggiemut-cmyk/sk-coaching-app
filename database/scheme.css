@@ -1134,3 +1134,352 @@ body.mob .rules-in{padding:22px 16px 30px;margin:0}body.mob .rcols{grid-template
 .ppage .pgn{flex:1;font:400 15px/1.3 var(--fm);color:var(--team);text-align:center}
 body.mob .ptabs{flex-direction:column;height:auto!important}body.mob .ptab{padding:10px 14px}
 body.mob .mrow{grid-template-columns:1fr;gap:8px}
+
+/* ---------- THE PRINCIPLES ON THE FIELD: THE PAPER BOARD (his pick 2026-10-09, intro-field.js) ----------
+   one sheet of paper across all twelve columns. The diagram is drawn on it in ink (the canvas); the three principles are
+   paper tags top left, the sentence is a taped strip bottom left, the controls sit under it. The top right is his camera's. */
+.ifhost{display:block}
+.pb{position:relative;width:100%;height:100%;overflow:hidden;cursor:pointer;outline:0;color:var(--ink);
+  background-color:#F1E7D0;background-image:radial-gradient(rgba(23,19,14,.07) 1px,transparent 1.3px),radial-gradient(rgba(23,19,14,.045) 1px,transparent 1.3px);background-size:7px 7px,11px 11px;background-position:0 0,3px 5px;
+  box-shadow:0 30px 80px rgba(0,0,0,.65),inset 0 0 140px rgba(120,90,40,.2)}
+.pb:focus-visible{box-shadow:0 0 0 3px var(--gold),0 30px 80px rgba(0,0,0,.65),inset 0 0 140px rgba(120,90,40,.2)}
+.pbfield{position:absolute;inset:0}
+.pbfield canvas{display:block;width:100%;height:100%}
+.pbtabs{position:absolute;left:28px;top:24px;width:400px;display:flex;flex-direction:column;align-items:flex-start;gap:9px}
+.pbtab{display:flex;align-items:baseline;gap:10px;border:0;cursor:pointer;background:#FBF6E8;color:var(--ink);padding:8px 13px 7px;font:800 15px/1.1 var(--fc);letter-spacing:.12em;text-transform:uppercase;text-align:left;box-shadow:0 4px 10px rgba(23,19,14,.24);transform:rotate(-.6deg);transition:transform .16s var(--ease)}
+.pbtab:nth-child(2){transform:rotate(.5deg)}.pbtab:nth-child(3){transform:rotate(-.3deg)}
+.pbtab b{font:400 19px/1 var(--fd);color:var(--team)}
+.pbtab:hover{transform:translateX(4px)}
+.pbtab:focus-visible,.pbb:focus-visible{outline:3px solid var(--ink);outline-offset:2px}
+.pbtab.on{background:var(--team);color:#17130E;padding:13px 20px 11px;font:400 31px/1 var(--fd);letter-spacing:.01em;box-shadow:none;filter:drop-shadow(0 6px 10px rgba(23,19,14,.3));clip-path:polygon(0 8%,4% 0,22% 5%,45% 0,70% 6%,100% 3%,98.5% 50%,100% 92%,76% 100%,48% 94%,20% 100%,2% 95%,1% 50%)}
+.pbtab.on b{color:inherit;font-size:21px}
+.pbstrip{position:absolute;left:28px;bottom:70px;width:410px;background:#FBF6E8;padding:17px 22px 19px;box-shadow:0 8px 18px rgba(23,19,14,.3);transform:rotate(-1deg)}
+.pbstrip::before{content:"";position:absolute;top:-11px;left:38%;width:96px;height:22px;background:color-mix(in srgb,var(--team) 42%,transparent);transform:rotate(-2deg)}
+.pbstrip .say{margin:0;font:500 19px/1.42 var(--fb)}
+.pbstrip .pts{margin:0;padding-left:1.25em;display:grid;gap:8px;font:500 17px/1.38 var(--fb)}
+.pbstrip .pts li::marker{font-family:var(--fd);color:var(--team)}
+.pbstrip.tick{animation:pbslap .34s var(--ease) both}
+@keyframes pbslap{from{opacity:0;transform:translateY(16px) rotate(-1deg) scale(1.07)}to{opacity:1;transform:rotate(-1deg)}}
+.pbctl{position:absolute;left:28px;bottom:20px;display:flex;align-items:center;gap:9px}
+.pbb{height:36px;min-width:40px;padding:0 13px;border:1.5px solid rgba(23,19,14,.6);background:rgba(251,246,232,.7);color:var(--ink);font:800 14px/1 var(--fc);letter-spacing:.12em;text-transform:uppercase;cursor:pointer}
+.pbb.back{font:400 24px/1 var(--fd)}
+.pbb.next{background:var(--ink);border-color:var(--ink);color:var(--cream)}
+.pbb:disabled{opacity:.3;cursor:default}
+.pbdots{display:flex;gap:7px;padding:0 3px}
+.pbdots i{width:13px;height:13px;border-radius:50%;border:2px solid rgba(23,19,14,.55);cursor:pointer}
+.pbdots i.done{background:rgba(23,19,14,.55)}
+.pbdots i.on{background:var(--team);border-color:var(--team)}
+html.turn-out .stage > .ifhost{animation:pgFade .3s ease-in both}
+html.turn-in .stage > .ifhost{animation:pgRise .46s var(--ease) .06s both}
+@media (prefers-reduced-motion:reduce){.pbstrip.tick{animation:none}.pbtab{transition:none}}
+/* a phone stacks it: the tags, the sheet, the sentence, the controls */
+body.mob .pb{height:auto;display:flex;flex-direction:column;cursor:default}
+body.mob .pbtabs{position:static;width:auto;padding:12px 12px 4px;order:1}
+body.mob .pbtab.on{font-size:22px;padding:10px 14px 8px}
+body.mob .pbfield{position:relative;inset:auto;aspect-ratio:4/3;order:2}
+body.mob .pbstrip{position:static;width:auto;margin:12px;transform:none;order:3}
+body.mob .pbstrip.tick{animation:none}
+body.mob .pbctl{position:static;padding:0 12px 14px;order:4;flex-wrap:wrap}
+
+/* the formations as a paper board (2026-10-09): a front page of paper cards, one per look; inside a look the same board */
+.pbfront{position:absolute;inset:0;display:none;grid-template-columns:repeat(var(--n,4),minmax(0,1fr));gap:30px;padding:30px 34px 34px}
+.pb.front{cursor:default}
+.pb.front .pbfront{display:grid}
+.pb.front .pbfield{visibility:hidden}
+.pb.front .pbtabs,.pb.front .pbstrip,.pb.front .pbctl{display:none}
+.fmcard{position:relative;border:0;padding:0;background:#F8F1DE;cursor:pointer;box-shadow:0 10px 22px rgba(23,19,14,.3);transform:rotate(-.7deg);transition:transform .18s var(--ease),box-shadow .18s}
+.fmcard:nth-child(2n){transform:rotate(.6deg)}.fmcard:nth-child(3n){transform:rotate(-.3deg)}
+.fmcard::before{content:"";position:absolute;top:-12px;left:36%;width:104px;height:24px;background:color-mix(in srgb,var(--team) 42%,transparent);transform:rotate(-2deg)}
+.fmcard canvas{display:block;width:100%;height:100%}
+.fmcard .open{position:absolute;left:0;right:0;bottom:16px;font:800 14px/1 var(--fc);letter-spacing:.16em;text-transform:uppercase;color:rgba(23,19,14,.62)}
+.fmcard:hover,.fmcard:focus-visible{transform:translateY(-6px) rotate(0deg);box-shadow:0 18px 30px rgba(23,19,14,.36)}
+.fmcard:focus-visible{outline:3px solid var(--ink);outline-offset:3px}
+.fmcard:hover .open,.fmcard:focus-visible .open{color:var(--ink)}
+.pbtab.all{background:transparent;box-shadow:none;border:1.5px solid rgba(23,19,14,.5);padding:6px 11px 5px;font-size:13px}
+.pbtab.all b{color:var(--ink)}
+.pbstrip .chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:11px}
+.pbstrip .chips i{font:700 12.5px/1 var(--fc);letter-spacing:.08em;text-transform:uppercase;font-style:normal;padding:6px 8px;border:1.5px solid rgba(23,19,14,.45)}
+@media (prefers-reduced-motion:reduce){.fmcard{transition:none}}
+body.mob .pbfront{position:static;grid-template-columns:1fr;padding:16px 14px}
+body.mob .pb.front .pbfield{display:none}
+body.mob .fmcard{height:460px;transform:none}
+
+/* a call's reads listed under the point (2026-10-09): numbered to match the marker numbers on the field */
+.pbstrip.reads .say{font-weight:600}
+.pbstrip.reads .pts{margin-top:11px;gap:5px;font-size:16px;padding-left:1.5em}
+.pbstrip.reads .pts li::marker{font-family:var(--fm);font-size:1.15em}
+
+/* THE STORY (2026-10-09): big paper pop-ups over the field (a stat, or a player's card) and a flag on the strip saying whose side the step is */
+.pbpops{position:absolute;left:33%;right:3%;bottom:7%;display:flex;flex-wrap:wrap;justify-content:center;align-items:flex-end;gap:22px;pointer-events:none}
+.pbpops[hidden]{display:none}
+.pop{position:relative;background:#FBF6E8;color:var(--ink);padding:16px 24px 15px;min-width:190px;max-width:310px;text-align:center;box-shadow:0 14px 30px rgba(23,19,14,.4);transform:rotate(-1.4deg);animation:popin .42s var(--ease) var(--d,0ms) both}
+.pop:nth-child(2n){transform:rotate(1.1deg)}
+.pop::before{content:"";position:absolute;top:-11px;left:36%;width:86px;height:20px;background:color-mix(in srgb,var(--team) 44%,transparent);transform:rotate(-2deg)}
+.pop > b{display:block;font:400 78px/.95 var(--fd);color:var(--team2)}
+.pop.ours > b{color:var(--ink)}
+.pop > span{display:block;margin-top:7px;font:800 17px/1.1 var(--fc);letter-spacing:.14em;text-transform:uppercase}
+.pop > i{display:block;margin-top:6px;font:400 17px/1.15 var(--fm);font-style:normal;color:rgba(23,19,14,.72)}
+.pop.player{display:grid;grid-template-columns:auto minmax(0,1fr);gap:2px 16px;align-items:center;text-align:left;min-width:330px;max-width:430px;padding:16px 20px}
+.pop.player > em{grid-row:1/3;width:92px;height:92px;border-radius:50%;background:var(--team2);border:5px solid var(--team);color:#fff;font:400 50px/82px var(--fd);text-align:center;font-style:normal}
+.pop.player > strong{align-self:end;font:400 31px/1 var(--fd);text-transform:uppercase}
+.pop.player > span{align-self:start;margin:0;font-size:14px;color:rgba(23,19,14,.7)}
+.pop.player > ul{grid-column:1/3;list-style:none;margin:10px 0 0;padding:0;display:flex;flex-wrap:wrap;gap:6px}
+.pop.player li{font:800 13.5px/1 var(--fc);letter-spacing:.08em;text-transform:uppercase;border:1.5px solid rgba(23,19,14,.45);padding:6px 8px}
+.pop.player li b{font:400 18px/1 var(--fd);margin-right:6px;color:var(--team2);letter-spacing:.02em}
+@keyframes popin{from{opacity:0;transform:translateY(28px) scale(1.12) rotate(-1.4deg)}}
+.pbstrip .flag{display:inline-block;margin:0 0 10px;padding:6px 9px 5px;font:800 12px/1 var(--fc);letter-spacing:.2em;text-transform:uppercase;background:var(--ink);color:var(--cream)}
+.pbstrip .flag[hidden]{display:none}
+.pbstrip[data-side=them] .flag{background:var(--team2);color:#fff;box-shadow:inset 0 -3px 0 var(--team)}
+@media (prefers-reduced-motion:reduce){.pop{animation:none}}
+body.mob .pbpops{position:static;padding:10px 12px;order:3;justify-content:flex-start}
+body.mob .pop{min-width:0}
+
+/* THE STORY (2026-10-09): the host of story-reel.js, which brings its own styles */
+.srhost{display:block}
+html.turn-out .stage > .srhost{animation:pgFade .3s ease-in both}
+html.turn-in .stage > .srhost{animation:pgRise .46s var(--ease) .06s both}
+body.mob .srhost{position:static!important;width:auto!important;height:auto!important;aspect-ratio:4/5;margin:12px}
+
+/* the live play page (2026-10-11): an adjustment is a step, like a key */
+.adj.lv{cursor:pointer;padding:4px 6px;margin:0 -6px;border:1.5px solid transparent}
+.adj.lv:hover{color:var(--ink)}
+.adj.lv.on{color:var(--ink);background:#fff;border-color:var(--team)}
+.adj.lv.done{color:var(--ink)}
+.adj.lv.done b::after{content:"\2713";font:400 12px/1 var(--fm);margin-left:2px}
+.tv .lphost{z-index:1}
+/* the strip under the live field: his write-up of the open step */
+.tv .lphost{bottom:92px}
+.lpline{position:absolute;left:0;right:0;bottom:0;height:92px;background:#05070a;border-top:3px solid var(--team);padding:0 20px;display:flex;align-items:center;z-index:2}
+.lpline p{margin:0;font:500 17px/1.38 var(--fb);color:#fff}
+.lpline.long p{font-size:15.5px}
+.lpline.hint p{color:rgba(243,236,217,.6);font:700 15px/1.3 var(--fc);letter-spacing:.14em;text-transform:uppercase}
+/* the rules breakdown on a call's page: two lists of rules, each a step */
+.two.rl .keylist li{padding:4px 8px}
+.two.rl .keylist li.done{color:var(--ink)}
+
+/* ---------- THE BOARD (2026-10-11): a live call's page. Dark, the game's zone colours; the office stays behind it ---------- */
+.lpboard{background:#07090c;border:8px solid #15161A;box-shadow:0 30px 80px rgba(0,0,0,.7),inset 0 0 0 2px #2A2C33;overflow:hidden;color:#f3ecd9}
+.lpboard .lphost{background:#07090c;bottom:0}
+.lpshade{position:absolute;left:0;top:0;bottom:0;width:560px;background:linear-gradient(90deg,rgba(7,9,12,.94) 0,rgba(7,9,12,.78) 58%,transparent);pointer-events:none;z-index:2}
+.lpcol{position:absolute;left:28px;top:22px;width:440px;z-index:3;display:grid;gap:12px;transform-origin:0 0}
+.lptabs{display:flex;flex-wrap:wrap;gap:6px}
+.lptab{font:800 13px/1 var(--fc);letter-spacing:.2em;text-transform:uppercase;padding:10px 13px 9px;background:rgba(243,236,217,.12);color:rgba(243,236,217,.7);cursor:pointer;text-decoration:none}
+.lptab:hover{color:#fff}
+.lptab.on{background:#f3ecd9;color:var(--ink)}
+.lptab.bk{background:none;outline:1.5px solid rgba(243,236,217,.4);outline-offset:-1.5px}
+.lpslips{display:grid;gap:7px;justify-items:start}
+.lpslip{display:flex;align-items:baseline;gap:12px;background:rgba(8,10,14,.92);padding:10px 15px 9px;font:800 16px/1.2 var(--fc);letter-spacing:.1em;text-transform:uppercase;color:#f3ecd9;cursor:pointer;text-decoration:none;max-width:440px}
+.lpslip i{font:400 21px/1 var(--fd);font-style:normal;color:var(--gold);flex:none}
+.lpslip:hover{background:#1b2028}
+.lpslip.on{background:var(--team);color:#fff;font:400 30px/1.02 var(--fd);letter-spacing:.01em;padding:13px 19px 10px;transform:rotate(-.8deg);text-shadow:0 2px 0 rgba(0,0,0,.2)}
+.lpslip.on i{color:var(--ink);font-size:23px}
+.lpslip.tight{padding:7px 13px 6px;font-size:15px}
+.lpslip.tight.on{font-size:25px;padding:10px 16px 8px}
+.lpslip.txt{font:500 15.5px/1.34 var(--fb);letter-spacing:0;text-transform:none}
+.lpslip.txt.done i::after{content:"\2713";font:400 13px/1 var(--fm);margin-left:3px;color:var(--team)}
+.lpslip.txt.on{background:#f3ecd9;color:var(--ink);font:600 16.5px/1.34 var(--fb);transform:none;text-shadow:none;padding:12px 16px 11px;box-shadow:0 10px 22px rgba(0,0,0,.5)}
+.lpslip.txt.on i{color:var(--team)}
+.lpnote{position:relative;background:#f8f2e2;color:var(--ink);padding:18px 20px 17px;font:500 17px/1.42 var(--fb);box-shadow:0 12px 26px rgba(0,0,0,.55);transform:rotate(.5deg);margin-top:6px}
+.lpnote b{display:block;font:400 22px/1 var(--fd);text-transform:uppercase;margin-bottom:8px}
+.lpnote .tape,.ldnote .tape,.ldcard .tape{position:absolute;left:40%;top:-11px;width:104px;height:22px;background:rgba(105,190,40,.6);transform:rotate(-2deg)}
+.lpctl{position:absolute;left:28px;bottom:20px;z-index:4;display:flex;align-items:center;gap:12px}
+.lpsq{width:46px;height:44px;border:1.5px solid rgba(243,236,217,.5);background:rgba(7,9,12,.7);color:#f3ecd9;font:400 22px/1 var(--fd);cursor:pointer}
+.lpnx{height:44px;border:0;background:var(--gold);color:var(--ink);font:800 15px/1 var(--fc);letter-spacing:.18em;text-transform:uppercase;padding:0 18px;cursor:pointer}
+.lppips{display:flex;gap:6px;max-width:330px;flex-wrap:wrap}
+.lppips i{width:11px;height:11px;border-radius:50%;border:2px solid rgba(243,236,217,.55)}
+.lppips i.done{background:rgba(243,236,217,.55)}
+.lppips i.on{background:var(--team);border-color:var(--team)}
+.lpacts{position:absolute;right:20px;bottom:20px;z-index:4;display:flex;gap:10px;align-items:center}
+.lpacts .btn{height:44px;font-size:13px;padding:0 15px;background-color:rgba(7,9,12,.72)}
+.lpacts .btn.anim{background:#1f9d4d}
+html.turn-out .stage > .lpboard,html.turn-out .stage > .ldboard{animation:pgFade .3s ease-in both}
+html.turn-in .stage > .lpboard,html.turn-in .stage > .ldboard{animation:pgRise .46s var(--ease) .06s both}
+body.mob .lpboard,body.mob .ldboard{position:relative!important;left:auto!important;top:auto!important;width:auto!important;height:auto!important;min-height:560px;margin:12px}
+/* ---------- THE SECTION LEAD IN: a paper board in team colours ---------- */
+.ldboard{background-color:#efe5cc;background-image:radial-gradient(rgba(23,19,14,.075) 1px,transparent 1.4px);background-size:7px 7px;box-shadow:0 30px 80px rgba(0,0,0,.6);color:var(--ink);overflow:hidden}
+.ldcol{position:absolute;left:30px;top:14px;width:452px;display:grid;gap:10px;transform-origin:0 0}
+.ldnum{font:400 150px/.82 var(--fd);color:var(--team)}
+.ldnote{position:relative;background:#f8f2e2;padding:17px 19px 16px;font:500 16.5px/1.42 var(--fb);box-shadow:0 10px 22px rgba(23,19,14,.25);transform:rotate(-.4deg);margin:6px 0}
+.ldchk{display:grid;gap:7px}
+.ldchk div{display:grid;grid-template-columns:24px minmax(0,1fr);gap:8px;background:#f8f2e2;padding:9px 13px 8px;font:600 15px/1.3 var(--fb);box-shadow:0 5px 12px rgba(23,19,14,.16)}
+.ldchk b{font:400 19px/1 var(--fd);color:var(--team)}
+.ldcards{position:absolute;left:520px;right:28px;top:66px;bottom:26px;display:grid;grid-template-columns:repeat(var(--cols),minmax(0,1fr));grid-auto-rows:minmax(0,1fr);gap:22px 20px}
+.ldcard{position:relative;display:flex;flex-direction:column;align-items:center;gap:5px;min-height:0;background:#f8f2e2;padding:14px 14px 13px;box-shadow:0 14px 30px rgba(23,19,14,.3);color:var(--ink);text-decoration:none;text-align:center;transition:transform .18s var(--ease)}
+.ldcard.r0{transform:rotate(-.6deg)}.ldcard.r1{transform:rotate(.6deg)}.ldcard.r2{transform:rotate(-.3deg)}
+.ldcard:hover{transform:translateY(-6px)}
+.ldcard canvas{flex:1 1 0;min-height:0;width:100%;display:block}
+.ldcard .nm{font:400 38px/.98 var(--fd);text-transform:uppercase}
+.ldcard .op{font:800 13px/1 var(--fc);letter-spacing:.3em;text-transform:uppercase;color:rgba(23,19,14,.6);margin-top:2px}
+.ldcards.many .ldcard .nm{font-size:25px}
+.ldcards.many .ldcard{padding:11px 11px 9px;gap:3px}
+.ldcards.many .ldcard .k{font-size:11px}
+.ldcards.many .ldcard .op{display:none}
+/* the opening on the whole stage: nothing of it sits in the camera corner */
+.srhost.full .sr-man{height:70%}
+
+.srhost.full .sr-ours h3{font-size:30px}
+/* five fronts on the fronts board: the slips and the note tighten so the last slip is not under the note */
+.pb.forms .pbtabs:has(> :nth-child(6)){gap:4px;top:16px}
+.pb.forms .pbtabs:has(> :nth-child(6)) .pbtab:not(.on){padding:5px 11px 4px;font-size:13px}
+.pb.forms .pbtabs:has(> :nth-child(6)) ~ .pbstrip{padding:13px 18px 14px}
+.pb.forms .pbtabs:has(> :nth-child(6)) ~ .pbstrip .say{font-size:16.5px}
+.pb.forms .pbtabs:has(> :nth-child(6)) ~ .pbstrip .pts{font-size:15px;gap:5px}
+
+/* the end of a section, on the same paper board */
+.ldnum small{display:inline-block;margin-left:14px;font:800 17px/1 var(--fc);letter-spacing:.24em;text-transform:uppercase;color:var(--ink);vertical-align:20px}
+.ldslots{display:grid;gap:8px}
+.ldslots div{border:2px dashed rgba(23,19,14,.34);min-height:48px;padding:11px 14px 8px;font:400 24px/1 var(--fd);text-transform:uppercase}
+.ldslots div.on{border-style:solid;border-color:var(--team);background:#f8f2e2;box-shadow:0 5px 12px rgba(23,19,14,.16)}
+.ldslots.many{grid-template-columns:1fr 1fr}
+.ldslots.many div{min-height:40px;font-size:18px;padding:10px 10px 7px}
+.ldopen{display:flex;flex-direction:column;align-items:center;gap:5px;flex:1 1 0;min-height:0;width:100%;color:inherit;text-decoration:none}
+.ldink{flex:none;border:0;background:var(--gold);color:var(--ink);font:800 14px/1 var(--fc);letter-spacing:.16em;text-transform:uppercase;padding:12px 18px 10px;cursor:pointer;margin-top:4px}
+.ldcard.inked .ldink{background:var(--team);color:#fff}
+.ldcard.inked{box-shadow:0 0 0 3px var(--team),0 14px 30px rgba(23,19,14,.3)}
+.ldcards.bk .ldcard:hover{transform:none}
+.ldcards.many .ldink{font-size:12px;padding:8px 12px 7px}
+
+/* THE PHONE: the board stacks. The field on top at its own shape, then the tabs, the slips and the card, then the buttons */
+body.mob .lpboard{display:flex;flex-direction:column;min-height:0;border-width:5px;margin:0 0 14px}
+body.mob .lpboard .lphost{position:relative;inset:auto;width:100%;height:76vw;min-height:250px;flex:none}
+body.mob .lpshade{display:none}
+body.mob .lpcol{position:static;width:auto;padding:12px 12px 4px;zoom:1!important;gap:10px}
+body.mob .lptab{padding:11px 12px 10px;font-size:12.5px;letter-spacing:.14em}
+body.mob .lpslip{max-width:none;font-size:15px}
+body.mob .lpslip.on{font-size:24px}
+body.mob .lpnote{font-size:16px;transform:none}
+body.mob .lpctl{position:static;padding:8px 12px 6px}
+body.mob .lpacts{position:static;padding:4px 12px 14px;flex-wrap:wrap}
+body.mob .lpacts .btn{flex:1 1 auto;justify-content:center}
+body.mob .ldboard{padding:14px 12px 16px;display:grid;gap:16px}
+body.mob .ldcol{position:static;width:auto;zoom:1!important}
+body.mob .ldnum{font-size:110px}
+body.mob .ldcards{position:static;grid-template-columns:minmax(0,1fr);grid-auto-rows:auto;gap:22px}
+body.mob .ldcard{transform:none!important}
+body.mob .ldcard canvas{flex:none;height:60vw;max-height:320px}
+body.mob .ldopen{flex:none}
+body.mob .ldcards.many .ldcard .nm{font-size:30px}
+body.mob .srhost.full{aspect-ratio:4/5}
+
+/* All plays: a divider between the groups of calls (one video, then the other) */
+.rowdiv{position:absolute;height:56px;display:flex;align-items:baseline;gap:18px;border-top:3px solid var(--team);padding-top:12px}
+.rowdiv span{font:400 34px/1 var(--fd);text-transform:uppercase;color:#fff}
+.rowdiv i{font:800 14px/1 var(--fc);font-style:normal;letter-spacing:.24em;text-transform:uppercase;color:var(--gold)}
+body.mob .rowdiv{position:relative!important;left:auto!important;top:auto!important;width:auto!important;margin:18px 0 10px}
+
+/* STOP IT (2026-10-12): the wall of questions and the rail. Dark, the game's zone colours, the same board as a play page */
+.sbboard{background:#07090c;border:8px solid #15161A;box-shadow:0 30px 80px rgba(0,0,0,.7),inset 0 0 0 2px #2A2C33;overflow:hidden;color:#f3ecd9}
+.sbhost{position:absolute;inset:0}
+.sbhost.rail{display:grid;grid-template-columns:250px minmax(0,1fr) 410px}
+.sbrail{background:#0b0e13;border-right:2px solid #1c222b;padding:12px 14px 0 18px;display:grid;gap:4px;align-content:start;transform-origin:0 0}
+.sball{font:800 12.5px/1 var(--fc);letter-spacing:.2em;text-transform:uppercase;color:rgba(243,236,217,.7);text-decoration:none;padding:8px 0 4px}
+.sball:hover{color:#fff}
+.sbgh{font:800 12px/1 var(--fc);letter-spacing:.26em;text-transform:uppercase;color:var(--team);margin-top:9px;padding-bottom:4px;border-bottom:1.5px solid #1c222b}
+.sbq{font:800 16.5px/1 var(--fc);letter-spacing:.1em;text-transform:uppercase;padding:9px 10px 7px;color:#f3ecd9;text-decoration:none;border-left:4px solid transparent;cursor:pointer}
+.sbq:hover{background:#151a22}
+.sbq.on{background:#f3ecd9;color:var(--ink);border-left-color:var(--team)}
+.sbfield{position:relative;min-width:0;min-height:0}
+.sbfield canvas{position:absolute;inset:0;width:100%;height:100%;display:block;cursor:pointer}
+.sbcap{position:absolute;left:18px;top:16px;display:flex;gap:10px;align-items:baseline;background:rgba(5,7,10,.88);padding:9px 14px 8px;font:800 15px/1.15 var(--fc);letter-spacing:.14em;text-transform:uppercase;max-width:calc(100% - 36px);pointer-events:none}
+.sbcap b{color:var(--gold);white-space:nowrap}
+.sbavoid{position:absolute;left:18px;bottom:70px;background:rgba(5,7,10,.9);border-left:5px solid #FF6B5E;padding:9px 13px 7px;font:800 13.5px/1.15 var(--fc);letter-spacing:.14em;text-transform:uppercase;pointer-events:none}
+.sbctl{position:absolute;left:18px;bottom:16px;display:flex;gap:6px}
+.sbctl button{font:800 12.5px/1 var(--fc);letter-spacing:.2em;text-transform:uppercase;padding:12px 13px 10px;background:rgba(243,236,217,.12);color:rgba(243,236,217,.75);border:0;cursor:pointer}
+.sbctl button.on{background:#f3ecd9;color:var(--ink)}
+.sbctl button.rp{background:none;outline:1.5px solid rgba(243,236,217,.45);outline-offset:-1.5px;margin-left:6px}
+.sbans{background:#0b0e13;border-left:2px solid #1c222b;padding:16px 16px 0;display:grid;gap:9px;align-content:start;transform-origin:0 0}
+.sbcard{display:grid;gap:6px;width:100%;text-align:left;padding:11px 14px 10px;background:rgba(243,236,217,.06);border:0;border-left:5px solid var(--kc);color:#f3ecd9;cursor:pointer;font:inherit}
+.sbcard:hover{background:rgba(243,236,217,.11)}
+.sbcard>b{font:400 25px/1 var(--fd);text-transform:uppercase}
+.sbkd{font:800 12px/1 var(--fc);letter-spacing:.22em;text-transform:uppercase;color:var(--kc)}
+.sbcard.on{background:#f8f2e2;color:var(--ink);cursor:default}
+.sbcard.on>b{font-size:31px}
+.sbcard.on .sbkd{color:var(--ink);opacity:.7}
+.sbcard p{margin:4px 0 0;font:500 15.5px/1.4 var(--fb)}
+.sbdo{font:600 14.5px/1.36 var(--fb);border-top:1.5px solid rgba(23,19,14,.2);padding-top:7px}
+.sbdo b{display:block;font:800 12px/1 var(--fc);letter-spacing:.22em;text-transform:uppercase;color:#3f7a14;margin-bottom:3px}
+.sbcard .btn{justify-self:start;margin-top:6px;background:var(--ink);color:#f3ecd9}
+/* the wall (his pick 2026-10-12): one group in the middle, the others blurred beside it, arrows to bring them round */
+.sbhost.wall{overflow:hidden}
+.sbspot{position:absolute;top:14px;bottom:14px;width:980px;left:calc(50% - 490px);display:grid;grid-template-rows:auto minmax(0,1fr);gap:12px;padding:14px 18px 16px;background:#0a0d12;outline:1px solid #1c222b;transition:transform .45s cubic-bezier(.2,.7,.2,1),filter .45s,opacity .45s}
+.sbspot h3{margin:0;font:400 56px/1 var(--fd);text-transform:uppercase;display:flex;align-items:baseline;gap:16px;color:#f3ecd9}
+.sbspot h3 small{font:800 13px/1 var(--fc);letter-spacing:.26em;color:var(--team)}
+.sbcards{display:flex;flex-wrap:wrap;justify-content:center;gap:14px;min-height:0}
+.sbcards .sbtile{flex:0 0 calc((100% - 28px) / 3);height:calc((100% - 14px * (var(--rows) - 1)) / var(--rows))}
+.sbcards.two .sbtile{flex-basis:calc((100% - 14px) / 2)}
+.sbspot.off{filter:blur(4px) brightness(.8);opacity:.8;pointer-events:none}
+.sbspot.l{transform:translateX(-880px) scale(.86)}
+.sbspot.r{transform:translateX(880px) scale(.86)}
+.sbspot.rr{transform:translateX(1760px) scale(.8);opacity:0}
+.sbtile{display:grid;grid-template-rows:minmax(0,1fr) auto auto;background:#0b0e13;outline:1px solid #1c222b;padding:10px 12px 11px;color:#f3ecd9;text-decoration:none;min-height:0;min-width:0;transition:transform .15s}
+.sbtile:hover{outline:3px solid var(--team);transform:translateY(-2px)}
+.sbpic{position:relative;min-height:0}
+.sbpic canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+.sbtile b{font:400 34px/1 var(--fd);text-transform:uppercase;font-weight:400;margin-top:9px}
+.sbtile small{font:800 12.5px/1 var(--fc);letter-spacing:.2em;text-transform:uppercase;color:var(--team);margin-top:6px}
+.sbarr{position:absolute;top:50%;width:64px;height:64px;margin-top:-32px;border-radius:50%;border:0;background:#f3ecd9;color:var(--ink);font:400 34px/1 var(--fd);display:grid;place-items:center;z-index:5;box-shadow:0 10px 24px rgba(0,0,0,.6);cursor:pointer}
+.sbarr.l{left:172px}.sbarr.r{right:172px}
+.sbarr:hover{background:var(--gold)}
+.sbpg{position:absolute;right:18px;top:18px;display:flex;gap:6px;z-index:5}
+.sbpg button{font:800 12.5px/1 var(--fc);letter-spacing:.2em;text-transform:uppercase;padding:10px 12px 8px;border:0;background:rgba(20,22,28,.92);color:rgba(243,236,217,.75);cursor:pointer}
+.sbpg button.on{background:#f3ecd9;color:var(--ink)}
+@media (prefers-reduced-motion:reduce){ .sbspot,.sbtile{transition:none} }
+.sbhost.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));grid-auto-rows:300px;gap:6px;overflow:auto}
+.sbg{position:relative}.sbg canvas{position:absolute;inset:0;width:100%;height:100%}.sbg span{position:absolute;left:6px;top:4px;font:800 13px/1 var(--fc);letter-spacing:.1em;text-transform:uppercase;background:#000;color:#fff;padding:4px 7px 3px}
+/* the phone: the field on top, then the answers, then the questions; the wall goes to two across */
+body.mob .sbboard{position:relative!important;left:auto!important;top:auto!important;width:auto!important;height:auto!important;margin:0 0 14px;border-width:5px}
+body.mob .sbhost{position:relative;inset:auto}
+body.mob .sbhost.rail{display:flex;flex-direction:column}
+body.mob .sbfield{order:1;aspect-ratio:4/3.4}
+body.mob .sbans{order:2;border-left:0;padding:14px 12px;zoom:1!important}
+body.mob .sbrail{order:3;border-right:0;border-top:2px solid #1c222b;padding:10px 12px 14px;zoom:1!important}
+body.mob .sbcap{font-size:13px}
+body.mob .sbhost.wall{display:grid;gap:12px;padding:12px;overflow:visible}
+body.mob .sbspot{position:static;width:auto;transform:none!important;filter:none!important;opacity:1!important;pointer-events:auto}
+body.mob .sbspot h3{font-size:38px}
+body.mob .sbcards .sbtile,body.mob .sbcards.two .sbtile{flex-basis:calc((100% - 14px) / 2);height:auto}
+body.mob .sbtile{grid-template-rows:auto auto auto}
+body.mob .sbtile b{font-size:26px}
+body.mob .sbpic{aspect-ratio:16/9}
+body.mob .sbarr,body.mob .sbpg{display:none}
+
+/* a picture with what is on it listed beside it (the run defense macro, 2026-10-12) */
+.shot-in.two{width:min(92vw,1500px)}
+.shot-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(280px,340px);gap:22px;align-items:start;width:100%}
+.shot-row img{width:100%;max-height:calc(80vh - 34px);object-fit:contain}
+.shot-side{background:#f8f2e2;color:var(--ink);padding:20px 22px 18px;box-shadow:0 20px 50px rgba(0,0,0,.6);transform:rotate(.4deg)}
+.shot-side b{display:block;font:400 30px/1 var(--fd);text-transform:uppercase;margin-bottom:14px}
+.shot-side dl{margin:0;display:grid;gap:9px}
+.shot-side dl div{display:grid;gap:2px;border-left:5px solid var(--team);padding-left:11px}
+.shot-side dt{font:800 12.5px/1 var(--fc);letter-spacing:.22em;text-transform:uppercase;color:rgba(23,19,14,.62)}
+.shot-side dd{margin:0;font:400 26px/1.05 var(--fd);text-transform:uppercase}
+.shot-side p{margin:14px 0 0;padding-top:12px;border-top:1.5px solid rgba(23,19,14,.2);font:600 15.5px/1.4 var(--fb)}
+@media (max-width:760px){ .shot-row{grid-template-columns:minmax(0,1fr)} .shot-in.two{max-height:none} .shotpop{overflow:auto;align-items:flex-start} }
+
+/* THE INSTALL MAP (2026-10-12): the chip beside The database, and the full screen list of the whole install it opens */
+.dbl.idx{left:236px;cursor:pointer}
+.dbl.idx:hover{color:#fff}
+.instmap{position:fixed;inset:0;z-index:390;background:rgba(6,7,10,.78);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);display:flex;align-items:center;justify-content:center;padding:32px;cursor:zoom-out}
+.im-in{position:relative;width:min(1560px,96vw);max-height:92vh;overflow:auto;cursor:default;display:grid;gap:18px;padding:14px 16px 6px 0;scrollbar-width:thin}
+.im-in .shot-x{right:0;top:0}
+.im-h{display:flex;align-items:baseline;gap:18px;flex-wrap:wrap;padding-right:56px}
+.im-h b{font:400 54px/1 var(--fd);text-transform:uppercase;color:#f3ecd9}
+.im-h .mk{font:400 22px/1 var(--fm);color:#f3ecd9}
+.im-cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(248px,1fr));gap:14px;align-items:start}
+.im-col{background:#0b0e13;outline:1px solid #1c222b;border-top:5px solid var(--team);padding:14px 12px 10px;display:grid;gap:3px}
+.im-col h4{margin:0 0 8px;font:400 31px/1.04 var(--fd);text-transform:uppercase;color:#f3ecd9;display:flex;gap:12px;align-items:baseline}
+.im-col h4 em{font-style:normal;color:var(--team);font-size:38px;line-height:.9}
+.imrow{display:grid;grid-template-columns:22px minmax(0,1fr) auto;gap:8px;align-items:baseline;padding:9px 10px 8px;color:#f3ecd9;text-decoration:none;font:800 19px/1.12 var(--fc);letter-spacing:.07em;text-transform:uppercase;border-left:4px solid transparent}
+.imrow:hover{background:#151a22}
+.imrow b{font:400 20px/1 var(--fd);color:var(--gold)}
+.imrow small{display:block;font:800 12.5px/1.2 var(--fc);letter-spacing:.2em;color:rgba(243,236,217,.55);margin-top:4px}
+.imrow i{font:400 15px/1 var(--fm);font-style:normal;color:var(--team);text-transform:none;letter-spacing:0;white-space:nowrap}
+.imrow .ck{color:var(--team)}
+.imrow.lead,.imrow.end{font-size:15.5px;color:rgba(243,236,217,.78)}
+.imrow.on,.imrow.was{background:#f3ecd9;color:var(--ink);border-left-color:var(--team)}
+.imrow.on small,.imrow.was small{color:rgba(23,19,14,.6)}
+.imrow.on b,.imrow.was b,.imrow.on i,.imrow.was i,.imrow.on .ck,.imrow.was .ck{color:#3f7a14}
+body.mob .dbl.idx{left:auto}
+body.mob .instmap{padding:14px;align-items:flex-start}
+body.mob .im-in{max-height:none;width:100%}
+body.mob .im-h b{font-size:38px}

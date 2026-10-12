@@ -23,7 +23,7 @@ function mountGpSheet(GPX, host){
      {ok:false, reason:'unavailable'} and keep the local draft */
   const SK_AUTH = GPX.auth || null, skRequireLogin = GPX.requireLogin || (async () => false);
 
-const GP_STORE = 'gp-sheet-' + SCHEME_CONFIG.schemeKey;   // per-scheme: a new scheme never inherits sheets
+const GP_STORE = 'gp-sheet-' + SCHEME_CONFIG.schemeKey + (GP.rev ? '-' + GP.rev : '');   // per-scheme: a new scheme never inherits sheets
 
 /* ---- state ---- */
 let gpSheet = null;
@@ -35,9 +35,25 @@ function gpBlankSheet(){
   GP_SECTIONS.forEach(x=>{ if(x.kind === 'plays') s[x.id] = []; });
   return s;
 }
+/* a sheet that starts from another scheme's saved sheet (GP.seedFrom), topped up with the recommended calls, the new ones first */
+const gpFilled = (s)=>GP_SECTIONS.some(x=>x.kind === 'plays' && (s[x.id] || []).length);
+function gpSeed(){
+  if(!GP.seedFrom) return null;
+  const Rc = GP.recommended || {}, fresh = GP.seedNew || [], has = (id)=>(GPX.plays || []).some(p=>p.id === id); let base = null;
+  try{ const raw = localStorage.getItem('gp-sheet-' + GP.seedFrom); if(raw) base = JSON.parse(raw); }catch(e){}
+  const s = gpBlankSheet();
+  GP_SECTIONS.forEach(x=>{ if(x.kind !== 'plays') return; const rec = (Rc[x.id] || []).filter(has), mine = ((base && base[x.id]) || []).filter(has);
+    const want = rec.filter(id=>fresh.includes(id)), out = mine.slice(0, Math.max(0, (x.n || 9) - want.filter(id=>!mine.includes(id)).length));
+    rec.filter(id=>fresh.includes(id)).concat(rec).forEach(id=>{ if(out.length < (x.n || 9) && !out.includes(id)) out.push(id); }); s[x.id] = out; });
+  s.constraints = (base && base.constraints && base.constraints.length ? base.constraints : (Rc.constraints || [])).slice();
+  if(base){ s.key = base.key == null ? null : base.key; s.stickyTags = base.stickyTags || {}; }
+  s.xFactor = (base && base.xFactor) || (Rc.xFactor ? Object.assign({}, Rc.xFactor) : null);
+  return s;
+}
 function gpLoad(){
   try{
     const raw = localStorage.getItem(GP_STORE);
+    if(GP.seedFrom && !(raw && gpFilled(Object.assign(gpBlankSheet(), JSON.parse(raw))))){ const sd = gpSeed(); if(sd) return sd; }
     if(raw){
       const s = Object.assign(gpBlankSheet(), JSON.parse(raw));
       if(!s.formations || !s.formations.length)
@@ -215,7 +231,7 @@ function gpViewHTML(){
     </aside>
     <div class="gp-sheet">
       <div class="gp-ph">
-        <img class="gp-ph-o" src="${assetUrl('Bama Assets/Bama Logo 1.webp')}" alt="">
+        <img class="gp-ph-o" src="${assetUrl('Bama Assets/Bama Logo 1.webp')}" alt="" onerror="this.style.display='none'">
         ${GP.headerArt
           ? `<img class="gp-head-art" src="${assetUrl(GP.headerArt)}" alt="${GP.title}">`
           : `<b class="gp-ph-t">${GP.title}</b>`}
@@ -557,7 +573,7 @@ function wireGp7(){
     const rot = i=>(((i*37) % 5) - 2)*0.9;
     return `<div class="gp-sheet gpf-sheet">
         <div class="gp-ph">
-          <img class="gp-ph-o" src="${assetUrl('Bama Assets/Bama Logo 1.webp')}" alt="">
+          <img class="gp-ph-o" src="${assetUrl('Bama Assets/Bama Logo 1.webp')}" alt="" onerror="this.style.display='none'">
           <b class="gp-ph-t">${f.name}</b>
           <span class="gpf-count">${plays2.length} CALLS</span>
           <span class="gp-sweep" aria-hidden="true"></span>
