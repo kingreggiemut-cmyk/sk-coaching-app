@@ -645,15 +645,21 @@
     .dtodo.over { background-color: var(--blue-tint); }
     .dtd-h { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; padding: 0 2px 6px; border-bottom: 2px solid var(--ink); }
     .dtd-h h3 { margin: 0; font: 400 26px/1 var(--fd); letter-spacing: .02em; text-transform: uppercase; }
-    .dtd-add { display: grid; grid-template-columns: minmax(0, 1fr) 32px; gap: 6px; }
+    .dtd-add { display: grid; grid-template-columns: minmax(0, 1fr) 32px 32px; gap: 6px; }
     .dtd-add input { height: 36px; min-width: 0; border: 2px solid var(--ink2); border-radius: 2px; background: #fffaf0; padding: 0 8px; font: 600 13px/1 var(--fb); color: var(--ink); outline: 0; }
     .dtd-add input:focus { border-color: var(--skb); box-shadow: 0 0 0 3px rgba(27,110,245,.25); }
-    .dtd-by { grid-column: 1 / -1; display: flex; align-items: center; gap: 8px; font: 800 12px/1 var(--fc); letter-spacing: .12em; text-transform: uppercase; color: var(--mute); }
+    .dtd-by { grid-column: 1 / -1; grid-row: 2; display: flex; align-items: center; gap: 8px; font: 800 12px/1 var(--fc); letter-spacing: .12em; text-transform: uppercase; color: var(--mute); }
     .dtd-by .mk { font-size: 13px; color: var(--mute); }
     .dtd-add input[type="date"] { flex: 0 1 150px; height: 32px; font: 700 12px/1 var(--fc); letter-spacing: .06em; color: var(--mute); }
     .dtd-add input[type="date"].set { color: var(--ink); }
-    .dtd-add button { grid-row: 1; grid-column: 2; width: 32px; height: 36px; border-radius: 2px; background: var(--sky); font: 400 22px/1 var(--fd); box-shadow: 0 3px 0 #a97a08; }
-    .dtd-add button:active { transform: translateY(2px); box-shadow: 0 1px 0 #a97a08; }
+    .dtd-add .dtd-plus { grid-row: 1; grid-column: 3; width: 32px; height: 36px; border-radius: 2px; background: var(--sky); font: 400 22px/1 var(--fd); box-shadow: 0 3px 0 #a97a08; }
+    .dtd-add .dtd-plus:active { transform: translateY(2px); box-shadow: 0 1px 0 #a97a08; }
+    .dtd-add .dtd-mic { grid-row: 1; grid-column: 2; width: 32px; height: 36px; border-radius: 2px; background: var(--ink); color: var(--paper); display: flex; align-items: center; justify-content: center; box-shadow: 0 3px 0 #000; }
+    .dtd-add .dtd-mic:active { transform: translateY(2px); box-shadow: 0 1px 0 #000; }
+    body.todo-mic[data-mic="listening"] .dtd-mic { background: var(--skb); box-shadow: 0 3px 0 var(--skb-deep), 0 0 0 4px rgba(27,110,245,.3); animation: todoMic 1.2s ease-in-out infinite; }
+    body.todo-mic[data-mic="busy"] .dtd-mic { background: var(--mute); }
+    @keyframes todoMic { 50% { box-shadow: 0 3px 0 var(--skb-deep), 0 0 0 9px rgba(27,110,245,0); } }
+    body.todo-mic.sec-week #live { right: auto; left: 50%; transform: translateX(-50%); bottom: 40px; top: auto; }
     .dtd-list { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; scrollbar-width: thin; scrollbar-color: var(--rule) transparent; }
     .dtd { flex: 0 0 auto; display: grid; grid-template-columns: 32px minmax(0, 1fr); align-items: start; gap: 4px; padding: 4px 0; border-bottom: 1.5px dotted var(--rule); cursor: grab; transition: background-color .12s, transform .12s; }
     .dtd:hover { background: rgba(23,19,14,.05); }
@@ -938,7 +944,7 @@ const SB_URL = 'https://ksgxrxqvnfpfhidxsxcs.supabase.co';
 const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzZ3hyeHF2bmZwZmhpZHhzeGNzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE0MzkxMTgsImV4cCI6MjA5NzAxNTExOH0.pUD6sbkjhhTlgl5x4KHFJsThoHVlNkNBlSFES_8HHvM';
 const BRAIN = '/.netlify/functions/day-brain';
 const STORE_KEY = 'daily-board';
-const APP_VERSION = '3.3';
+const APP_VERSION = '3.4';
 const ROW_ID = 'reggie';
 /*
  * A copy served from localhost or opened off the disk is a test copy, and a test
@@ -2427,6 +2433,7 @@ const voice = { rec: null, mode: 'command', text: '', on: false, busy: false, on
 const mic = $('#mic'), live = $('#live'), liveText = $('#live-text'), micLab = $('#mic-lab');
 
 function setMic(state, label) {
+  if (state === 'idle') document.body.classList.remove('todo-mic');
   mic.classList.toggle('open', state !== 'idle');
   mic.classList.toggle('listening', state === 'listening');
   mic.classList.toggle('busy', state === 'busy');
@@ -2453,7 +2460,7 @@ function startListening(mode = 'command', onDone = null) {
   try { r.start(); } catch { voice.on = false; openTyped(mode, onDone); return; }
   liveText.textContent = '...';
   live.classList.add('show');
-  setMic('listening', mode === 'wrap' ? 'Listening · wrap it up' : mode === 'food' ? 'Listening · what did you eat' : 'Listening · tap when done');
+  setMic('listening', mode === 'wrap' ? 'Listening · wrap it up' : mode === 'food' ? 'Listening · what did you eat' : document.body.classList.contains('todo-mic') ? 'Listening · your to-do' : 'Listening · tap when done');
   buzz([8]);
 }
 function stopListening() { if (voice.rec) { try { voice.rec.stop(); } catch {} } }
@@ -3526,7 +3533,7 @@ function deskTop() {
   const wx = ($('#wx') || {}).textContent || '';
   return `<div class="dtl">${CROWN}<div class="dclock" id="dclock">${((d.getHours() + 11) % 12) + 1}:${pad(d.getMinutes())}</div><div><div class="lbl">${WDL[d.getDay()]}, ${MO[d.getMonth()]} ${d.getDate()}</div><div class="lbl" style="font-weight:600;letter-spacing:.06em">${esc(wx)}</div></div></div>
     <div class="dtabs" role="tablist">${[['week', 'Week'], ['fuel', 'Fuel'], ['body', 'Body'], ['talk', 'Talk'], ['income', 'Income'], ['sports', 'Sports']].map(([k, n]) => `<button class="dtab${desk.sec === k ? ' on' : ''}" role="tab" aria-selected="${desk.sec === k}" data-dact="sec" data-sec="${k}">${n}</button>`).join('')}</div>
-    <div class="dtr">${deskSyncPill()}</div>`;
+    <div class="dtr"><button class="dchip ar dreload" data-dact="reload" title="Refresh (F5)" aria-label="Refresh the board"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12a8 8 0 1 1-2.34-5.66"></path><path d="M20 4v5h-5"></path></svg></button>${deskSyncPill()}</div>`;
 }
 function deskWeekNav() {
   const dates = deskDates(), a = fromYmd(dates[0]), b = fromYmd(dates[6]);
@@ -3774,9 +3781,15 @@ function deskTodo() {
     return `<div class="dtd${struck ? ' struck' : ''}${b && b.c === 'late' ? ' late' : ''}${isJust(r.id) ? ' just' : ''}" ${struck ? '' : 'draggable="true"'} data-todo="${r.id}"><button class="dck sm${struck ? ' on' : ''}" data-dact="todo-tick" data-id="${r.id}" aria-label="${struck ? 'Bring back' : 'Strike out'} ${esc(r.text)}">${struck ? DCHECK(10) : ''}</button><button class="dtd-t" data-dact="todo-edit" data-id="${r.id}">${struck ? `<span class="sx">${esc(r.text)}</span>` : esc(r.text)}${b ? `<em class="${b.c}">${b.t}</em>` : ''}</button></div>`;
   };
   return `<div class="dtd-h"><h3>To do</h3><span class="mk">${open.length ? `${open.length} open` : 'all clear'}</span></div>
-    <div class="dtd-add"><input id="dtd-new" autocomplete="off" placeholder="Add a to-do" value="${esc(desk.todoNew)}" aria-label="New to-do"><button data-dact="todo-add" aria-label="Add the to-do">+</button><label class="dtd-by"><span>By</span><input id="dtd-by" type="date" class="${desk.todoBy ? 'set' : ''}" value="${desk.todoBy}" aria-label="By, optional" title="Optional"><span class="mk">optional</span></label></div>
+    <div class="dtd-add"><input id="dtd-new" autocomplete="off" placeholder="Add a to-do, or say it" value="${esc(desk.todoNew)}" aria-label="New to-do"><button class="dtd-mic" data-dact="todo-mic" aria-label="Say a to-do" title="Say it: one thing or several, with a day if it has one"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><rect x="9" y="3" width="6" height="11" rx="3"></rect><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21"></path></svg></button><button class="dtd-plus" data-dact="todo-add" aria-label="Add the to-do">+</button><label class="dtd-by"><span>By</span><input id="dtd-by" type="date" class="${desk.todoBy ? 'set' : ''}" value="${desk.todoBy}" aria-label="By, optional" title="Optional"><span class="mk">optional</span></label></div>
     <div class="dtd-list">${open.map((r) => row(r, false)).join('') + today.map((r) => row(r, true)).join('') || '<div class="dtd-none">Nothing on the list. Add one above, say it, or drag a thing off a day onto here.</div>'}</div>
     ${past.length ? `<button class="dtd-done-h" data-dact="todo-done" aria-expanded="${desk.todoDone}"><span>Done · ${past.length}</span><span>${desk.todoDone ? 'hide' : 'show'}</span></button>${desk.todoDone ? `<div class="dtd-done">${past.slice(0, 60).map((r) => row(r, true)).join('')}</div>` : ''}` : ''}`;
+}
+function todoMic() {
+  if (voice.busy) return;
+  if (voice.on) { stopListening(); return; }
+  document.body.classList.add('todo-mic');
+  startListening('command', (text) => handleSpeech('command', `Put this on my to-do list (one item per thing I mention, with a by date only if I name a day): ${text}`, null));
 }
 function todoAdd() {
   const inp = $('#dtd-new'), text = (inp ? inp.value : desk.todoNew).trim();
@@ -3942,6 +3955,8 @@ function openSavedMeals() {
     const a = b.dataset.dact, id = b.dataset.id, date = b.dataset.date;
     if (incAct(a, b)) return;
     if (a === 'todo-add') { todoAdd(); return; }
+    if (a === 'todo-mic') { todoMic(); return; }
+    if (a === 'reload') { location.reload(); return; }
     if (a === 'todo-tick') { todoTick(id); return; }
     if (a === 'todo-edit') { openTodoPop(id, b.closest('.dtd')); return; }
     if (a === 'todo-done') { desk.todoDone = !desk.todoDone; renderDesk(); return; }
