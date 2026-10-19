@@ -239,24 +239,28 @@ const ICON = {
   coverages: '<path d="M12 3 4 6v6c0 5 3.5 8.5 8 9 4.5-.5 8-4 8-9V6z"/><path d="M8 12l3 3 5-6"/>',
   stop: '<path d="M12 3 4 6v6c0 5 3.5 8.5 8 9 4.5-.5 8-4 8-9V6z"/><path d="M9.2 9.2l5.6 5.6M14.8 9.2l-5.6 5.6"/>',
 };
+ICON.attack = '<path d="M4 20 20 4"/><path d="M13 4h7v7"/><path d="M4 13l7 7"/>';
 const ico = (k) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${ICON[k]}</svg>`;
 /* THE STORY (2026-10-09): who the real team is and how we recreate it, its own door ahead of the intro (story-reel.js) */
-const STORY = () => (SC && SC.about && SC.about.story && SC.about.story.scenes && window.skStoryReel ? SC.about.story : null);
+const STORY = () => (SC && SC.about && SC.about.story && (SC.about.story.placeholder || (SC.about.story.scenes && window.skStoryReel)) ? SC.about.story : null);   /* a placeholder holds the door until the story is written */
 ICON.story = '<rect x="3" y="5" width="18" height="14" rx="1.5"/><path d="M10 9.5v5l4.5-2.5z"/>';
-const AREAS_ALL = [['story', 'The team'], ['intro', 'Intro'], ['install', 'Install'], ['coverages', 'Coverages'], ['plays', 'All plays'], ['stop', 'Stop it'], ['sheet', 'Call sheet'], ['drives', 'Drives'], ['board', 'Board'], ['personnel', 'Personnel']];
+const AREAS_ALL = [['story', 'The team'], ['intro', 'Intro'], ['install', 'Install'], ['coverages', 'Coverages'], ['plays', 'All plays'], ['attack', 'Attack it'], ['stop', 'Stop it'], ['sheet', 'Call sheet'], ['drives', 'Drives'], ['board', 'Board'], ['personnel', 'Personnel']];
 /* an offense's last door is History & Personnel (his call 2026-09-14); a defense keeps Personnel */
 const HIST = () => !!(SC && SC.side !== 'D' && (SC.personnel && SC.personnel.players || []).some((p) => p.player));
 /* a scheme of coverages (mode: 'coverages') has no install: the coverages are its section */
 const COV = () => !!(SC && SC.mode === 'coverages');
 const NOINTRO = () => !!(SC && SC.noIntro), INTRO = () => (NOINTRO() ? (STORY() ? '#story' : '#front') : '#intro');   /* a scheme with no intro page: its opening stands in for it */
-const AREAS_OF = () => AREAS_ALL.filter(([k]) => k !== 'stop' || (SC && SC.stop)).filter(([k]) => k !== 'story' || STORY()).filter(([k]) => k !== 'intro' || !NOINTRO()).filter(([k]) => k !== 'personnel' || !(SC && SC.noPersonnel)).filter(([k]) => COV() ? !['install', 'sheet', 'board'].includes(k) : k !== 'coverages').map(([k, a]) => [k, k === 'personnel' && HIST() ? 'History & Personnel' : k === 'story' && STORY().door ? STORY().door : a]);   /* a story may name its own door (The mind) */
+const AREAS_OF = () => AREAS_ALL.filter(([k]) => k !== 'stop' || (SC && SC.stop)).filter(([k]) => k !== 'attack' || (SC && SC.attack)).filter(([k]) => k !== 'story' || STORY()).filter(([k]) => k !== 'intro' || !NOINTRO()).filter(([k]) => k !== 'personnel' || !(SC && SC.noPersonnel)).filter(([k]) => !(SC && SC.byo) || ['plays', 'sheet', 'drives'].includes(k)).filter(([k]) => COV() ? !['install', 'sheet', 'board'].includes(k) : k !== 'coverages').map(([k, a]) => [k, k === 'attack' && SC.attack.door ? SC.attack.door : k === 'personnel' && HIST() ? 'History & Personnel' : k === 'story' && STORY().door ? STORY().door : a]);   /* a story may name its own door (The mind) */
 let AREAS = AREAS_ALL;
 const OLD = (sec) => `${SC.side === 'D' ? 'defense' : 'index'}.html?scheme=${encodeURIComponent(KEY)}&sec=${sec}`;
 /* THE DOCK: the crest, the areas, the count. Chrome only; never a button. */
+const SHELL = new Set(['seahawks-coverages', 'olemiss']);   /* the schemes on the new shell; the rest follow once it is signed off */
+const SHELLED = () => !!(SC && SHELL.has(SC.key));
+const formOf = (p) => (p.formation && p.libSet && SC.side !== 'D' && SHELLED() && p.libSet !== p.formation ? p.formation + ' · ' + p.libSet : (p.formation || p.libSet || ''));   /* one card for three sets (Ole Miss Spread): the real set beside it */
 function dockHTML() {
   const ink = inkedSet(), all = taught(); AREAS = AREAS_OF();
   return `<nav class="dock"><div class="in">
-    <div class="home"><a href="#front"><img src="logos/${esc(SC.logo)}.png" alt="">${esc(SC.name)}</a></div>
+    <div class="home"><a href="${SC.byo ? '#sheet' : '#front'}"><img src="logos/${esc(SC.logo)}.png" alt="">${esc(SC.name)}</a></div>
     <div class="areas">${AREAS.filter(([k]) => !(k === 'drives' && SC.side === 'D')).map(([k, a]) => `<a class="${SEC === k || ((SEC === 'play' || SEC === 'book') && k === 'plays') || (SEC === 'role' && k === 'personnel') || (SEC === 'coverage' && k === 'coverages') ? 'on' : ''}" href="#${k}">${ico(k)}<b>${a}</b></a>`).join('')}</div>
     <div class="meter">${COV() ? `<b>${SC.plays.length}</b><i>coverages</i>` : `<b>${all.filter((p) => ink.has(p.id)).length}</b><i>of ${all.length} inked</i>`}</div>
   </div></nav>`;
@@ -295,20 +299,20 @@ function parallax() {
   addEventListener('pointermove', (e) => { mx = (e.clientX / innerWidth - .5) * 2; my = (e.clientY / innerHeight - .5) * 2; if (!raf) raf = requestAnimationFrame(apply); }, { passive: true });
 }
 const camBox = (H) => CAM ? `<div class="cam" style="height:176px"><span>Face cam</span></div>` : '';
-const stagewrap = (inner, h = STAGE_H, cls = '', extra = '') => `<div class="stagewrap" style="--h:${h}"><div class="stage${cls ? ' ' + cls : ''}" style="--h:${h}"><a class="dbl" href="${SC.side === 'D' ? 'defense' : 'index'}.html">&larr; The database</a>${instHas() ? '<button class="dbl idx" data-instmap>&#9776; The install</button>' : ''}<button class="dbl fsr${(typeof skFsActive === 'function' ? skFsActive() : document.fullscreenElement) ? ' on' : ''}" data-fullscreen>${(typeof skFsActive === 'function' ? skFsActive() : document.fullscreenElement) ? '&#x2716; Exit full screen' : '&#x26F6; Full screen'}</button><span class="dbl who" data-skwho hidden></span>${inner}${camBox(h)}</div>${extra}</div>`;
+const stagewrap = (inner, h = STAGE_H, cls = '', extra = '') => `<div class="stagewrap" style="--h:${h}"><div class="stage${cls ? ' ' + cls : ''}" style="--h:${h}"><a class="dbl" href="${SC.byo ? esc(SC.byo.back) : (SC.side === 'D' ? 'defense' : 'index') + '.html'}">&larr; ${SC.byo ? 'Your board' : 'The database'}</a>${instHas() ? '<button class="dbl idx" data-instmap>&#9776; The install</button>' : ''}<button class="dbl fsr${(typeof skFsActive === 'function' ? skFsActive() : document.fullscreenElement) ? ' on' : ''}" data-fullscreen>${(typeof skFsActive === 'function' ? skFsActive() : document.fullscreenElement) ? '&#x2716; Exit full screen' : '&#x26F6; Full screen'}</button><span class="dbl who" data-skwho hidden></span>${inner}${camBox(h)}</div>${extra}</div>`;
 
 /* ---------- THE FRONT: the one screen off the regions ---------- */
 function frontHTML() {
   const ab = SC.about || {}, H = STAGE_H;
   const words = SC.name.replace(/\s+(Offense|Defense|Defence)$/i, '').split(' ');
   const last = words.pop();
-  const letters = (w, d0) => w.split('').map((ch, i) => `<span style="transition-delay:${d0 + i * 70}ms">${ch === '-' ? '&#8209;' : esc(ch)}</span>`).join('');
+  const letters = (w, d0) => w.split('').map((ch, i) => `<span style="transition-delay:${d0 + i * 70}ms">${ch === '-' ? '&#8209;' : ch === ' ' ? '&nbsp;' : esc(ch)}</span>`).join('');   /* a space needs to be a real one: an inline block span swallows it (the title read TENNESSEEVEERN) */
   const tagWords = (`${SIDEWORD(SC)[0].toUpperCase() + SIDEWORD(SC).slice(1)}. ` + (SC.tagline || '')).trim().split(' ');
-  const nameY = Math.round(H * 0.28), size = Math.min(240, Math.round(H * 0.27));
+  const nameY = Math.round(H * 0.28), longest = Math.max(words.join(' ').length, last.length + 2), size = Math.min(240, Math.round(H * 0.27), Math.floor(1480 / (longest * .5)));   /* a long name shrinks to fit the stage instead of running off it */
   return stagewrap(`
     <div class="pennant" style="left:${X(1)}px;transform:rotate(-6deg)"></div><div class="pennant cream" style="left:${X(9)}px;transform:rotate(5deg)"></div>
     <div class="series"><img src="logos/${esc(SC.logo)}.png" alt=""><span class="k">${esc(SC.series || 'Scheme Kings')}</span></div>
-    <div class="name" style="top:${nameY}px;--fs:${size}px">
+    <div class="name" style="top:${nameY}px;--fs:${size}px;--len:${words.join(' ').length}">
       <div class="line">${letters(words.join(' '), 80)}</div>
       <div class="line slamline"><span class="slab"><span class="h">${letters(last, 80 + words.join(' ').length * 70)}</span></span></div>
       <div class="crest"><img src="logos/${esc(SC.logo)}.png" alt=""></div>
@@ -383,13 +387,15 @@ function liveAt(p) { if (LIVE.id !== p.id) { LIVE = { id: p.id, i: 0, rules: LPQ
 function liveSet(i) { const c = curPlay(); if (!c || !liveOn(c.p)) return false; if (i < 0 || i >= liveN(c.p)) return false; const n = (c.p.reads || []).length;
   const rules = liveRules(c.p); LIVE = { id: c.p.id, i, rules }; RD = !rules && i >= 1 && i <= n ? i : 0; repaint(); return true; }
 function liveFlip() { const c = curPlay(); if (!c || !liveOn(c.p) || !RL(c.p) || c.p.guide) return; LIVE = { id: c.p.id, i: 0, rules: !liveRules(c.p) }; RD = 0; repaint(); }
-function liveBoot() { liveFit(); leadBoot(); if (!window.skLive) return; const st = SEC === 'play' ? $('.modal .stage') : $('.stage'), h = st && st.querySelector('.lphost'); if (!h) { skLive.unmount(); return; }
+function liveBoot() { liveFit(); leadBoot(); if (!window.skLive) return; const st = SEC === 'play' ? $('.modal .stage') : $('.stage'), h = st && st.querySelector('.lphost'); if (!h) { if (SEC !== 'attack') skLive.unmount(); return; }   /* Attack it keeps its own film board */
   const c = curPlay(); if (!c) return; const p = c.p, i = liveAt(p); if (liveId(p) !== h.dataset.live) return;
   if (skLive.adopt(h)) { if (skLive.at() !== i) skLive.go(i); return; }
   const rl = liveRules(p) ? RL(p) : null, rid = p.id + ':rules';
+  if (!rl && window.skOffFilm && skOffFilm.has(SC.key, p.id)) { const op = fieldPlays(new Set([p.id]))[p.id]; if (!op) return;   /* an offense on the film board (offense-film.js) */
+    skLive.mount(h, { scheme: SC.key, id: p.id, offense: true, play: op, blocking: BLK, reads: p.reads || [], adj: p.adjustments || [], start: i, still: LPSTILL, left: document.body.classList.contains('mob') ? 0 : .32, team: SC.film || { body: SC.c2 || '#111', trim: SC.c1 || '#fff' } }); return; }
   const fp = rl ? fieldPlays(new Set([rid]), [{ id: rid, slug: rl.slug, libFamily: rl.libFamily, libSet: rl.libSet, name: rl.title, reads: [] }])[rid] : fieldPlays(new Set([p.id]))[p.id]; if (!fp || !fp.def) return;
-  const cfg = rl ? { scheme: SC.key, id: rid, name: rl.title, men: fp.men, forms: FORMS || {}, reads: rl.groups[0].items, adj: rl.groups.slice(1).flatMap((g) => g.items).map((x) => x.text), adjLabels: rl.groups.slice(1).flatMap((g) => g.items).map((x) => x.label), labels: { call: ['The rules', rl.title], key: rl.groups[0].chip || rl.groups[0].head, adj: rl.groups[1] ? (rl.groups[1].chip || rl.groups[1].head) : '' }, noRun: true, start: i, still: LPSTILL, left: document.body.classList.contains('mob') ? 0 : .2 }
-    : { scheme: SC.key, id: p.id, name: p.name, men: fp.men, forms: FORMS || {}, reads: p.reads || [], adj: p.adjustments || [], start: i, still: LPSTILL, left: document.body.classList.contains('mob') ? 0 : .2, auto: LIVEAUTO(p) };
+  const cfg = rl ? { scheme: SC.key, id: rid, name: rl.title, men: fp.men, forms: FORMS || {}, reads: rl.groups[0].items, adj: rl.groups.slice(1).flatMap((g) => g.items).map((x) => x.text), adjLabels: rl.groups.slice(1).flatMap((g) => g.items).map((x) => x.label), labels: { call: ['The rules', rl.title], key: rl.groups[0].chip || rl.groups[0].head, adj: rl.groups[1] ? (rl.groups[1].chip || rl.groups[1].head) : '' }, noRun: true, start: i, still: LPSTILL, left: document.body.classList.contains('mob') ? 0 : .2, theme: SHELLED() ? 'film' : null, team: { body: SC.c2 || '#111', trim: SC.c1 || '#fff' } }
+    : { scheme: SC.key, id: p.id, name: p.name, men: fp.men, forms: FORMS || {}, reads: p.reads || [], adj: p.adjustments || [], start: i, still: LPSTILL, left: document.body.classList.contains('mob') ? 0 : .2, auto: LIVEAUTO(p), theme: SHELLED() ? 'film' : null, team: { body: SC.c2 || '#111', trim: SC.c1 || '#fff' } };
   skLive.mount(h, cfg); if (LPGRID) { const m = LPGRID.split('-'); skLive.grid(cfg, +m[0] || 0, m[1] ? +m[1] : 99, +LPQ.get('lpcols') || 3); } }
 /* his words for the step that is open, under the field */
 function liveLine(p) { const i = liveAt(p), rd = p.reads || [], ad = p.adjustments || []; let tx = '';
@@ -426,6 +432,19 @@ function stopStage() { const lay = L(), top = lay.frame.y, bh = lay.foot.y + lay
   if (!T) return `${head(esc(SC.name), 'How do I stop...', 'pick what is giving you trouble')}<div class="sbboard" style="${at(X(1), top, CW(12), bh)}"><div class="sbhost wall" data-stop="wall"></div></div>`;
   const j = S.threats.indexOf(T);
   return `${head(`${esc(S.name)} &middot; ${esc(T.group)}`, esc(T.q), '', headRight('', arrowsHTML(j + 1, S.threats.length)))}<div class="sbboard" style="${at(X(1), top, CW(12), bh)}"><div class="sbhost rail" data-stop="${esc(T.id)}"></div></div>`; }
+/* ATTACK IT (2026-10-18, his idea for the offenses): #attack is the wall, #attack/<question> the rail; attack-it.js draws both,
+   every answer plays a read already staged on the offense film board */
+function attackStage() { const lay = L(), top = lay.frame.y, bh = lay.foot.y + lay.foot.h - top, A = SC.attack, T = PLAYID ? A.threats.find((x) => x.id === PLAYID) : null;
+  if (!T) return `${head(esc(SC.name), esc(A.title || 'How do I attack...'), esc(A.sub || ''))}<div class="sbboard" style="${at(X(1), top, CW(12), bh)}"><div class="sbhost wall" data-attack="wall"></div></div>`;
+  const j = A.threats.indexOf(T);
+  return `${head(`${esc(A.name)} &middot; ${esc(T.group)}`, esc(T.q), '', headRight('', arrowsHTML(j + 1, A.threats.length)))}<div class="sbboard" style="${at(X(1), top, CW(12), bh)}"><div class="sbhost rail" data-attack="${esc(T.id)}"></div></div>`; }
+function attackGo(id) { const h = '#attack/' + id; if (location.hash !== h) location.hash = h; }
+function attackFlip(d) { const l = SC.attack.threats, n = l.findIndex((x) => x.id === PLAYID); if (n < 0) { location.hash = '#attack/' + l[0].id; return; } attackGo(l[((n + d) % l.length + l.length) % l.length].id); }
+function attackBoot() { if (!window.skAttack) return; const h = $('.stagewrap .stage .sbhost[data-attack]'); if (!h) { if (SEC !== 'attack') skAttack.unmount(); return; } if (skAttack.adopt(h)) return;
+  const A = SC.attack, ids = new Set(A.threats.flatMap((t) => t.answers.map((a) => a.call))), plays = fieldPlays(ids), calls = {}; SC.plays.forEach((p) => { if (ids.has(p.id)) calls[p.id] = p; });
+  const cfg = { scheme: SC.key, attack: A, plays, calls, blocking: BLK, team: SC.film || { body: SC.c2, trim: SC.c1 }, mark: SC.c1, nav: attackGo };
+  if (h.dataset.attack === 'wall') { skAttack.wall(h, cfg); return; }
+  const Q = new URLSearchParams(location.search); skAttack.mount(h, Object.assign(cfg, { th: h.dataset.attack, still: Q.get('ats') != null ? +Q.get('ats') : null, ans: Q.get('ata') != null ? +Q.get('ata') : null })); }
 function stopGo(id) { const h = '#stop/' + id; if (location.hash === h) return; STOPSWAP = true; location.hash = h; }
 function stopFlip(d) { const l = SC.stop.threats, n = l.findIndex((x) => x.id === PLAYID); if (n < 0) { location.hash = '#stop/' + l[0].id; return; } stopGo(l[((n + d) % l.length + l.length) % l.length].id); }
 function stopBoot() { if (!window.skStop) return; const h = $('.stagewrap .stage .sbhost'); if (!h) { skStop.unmount(); return; } if (skStop.adopt(h)) return;
@@ -437,7 +456,7 @@ function stopBoot() { if (!window.skStop) return; const h = $('.stagewrap .stage
 /* THE BOARD: a live call's page. Tabs pick the list, the list is slips, the open slip grows, one card has his words */
 function liveStage(p, mode, j, n, pl, H) { const lay = L(H), ink = inkedSet().has(p.id), i = liveAt(p), rules = liveRules(p), rd = p.reads || [], ad = p.adjustments || [];
   const inkBtn = p.guide ? '' : `<button class="btn sm${ink ? ' gh' : ''}" data-ink>${ink ? 'On the sheet &#10003;' : 'Add to call sheet'}</button>`;
-  const eyebrow = p.guide ? `${mode === 'install' && pl ? esc(pl.name) : 'Scheme Kings'} &middot; The rules` : mode === 'install' ? `${esc(pl.name)} &middot; ${esc(p.formation || p.libSet || '')}` : `${mode === 'modal' ? 'The play' : 'All plays'} &middot; ${esc(p.formation || p.libSet || '')}${p.libType ? ' &middot; ' + esc(p.libType) : ''}`;
+  const eyebrow = p.guide ? `${mode === 'install' && pl ? esc(pl.name) : 'Scheme Kings'} &middot; The rules` : mode === 'install' ? `${esc(pl.name)} &middot; ${esc(formOf(p))}` : `${mode === 'modal' ? 'The play' : 'All plays'} &middot; ${esc(formOf(p))}${p.libType ? ' &middot; ' + esc(p.libType) : ''}`;
   const top = lay.frame.y, bh = lay.foot.y + lay.foot.h - top, adjOn = !rules && i > rd.length && i <= rd.length + ad.length, runOn = !rules && i === rd.length + ad.length + 1, callOn = !rules && (i === 0 || runOn);   /* the Play call tab: the call by itself, and the snap */
   const slip = (on, num, txt, attr, cls) => `<a class="lpslip${on ? ' on' : ''}${cls ? ' ' + cls : ''}" ${attr}><i>${num}</i><span>${esc(txt)}</span></a>`;
   let tabs = '', slips = '', note = '', nk = '';
@@ -448,10 +467,11 @@ function liveStage(p, mode, j, n, pl, H) { const lay = L(H), ink = inkedSet().ha
     slips = callOn ? '' : adjOn ? ad.map((a, k) => slip(i === rd.length + 1 + k, k + 1, a, `data-lstep="${rd.length + 1 + k}"`, 'txt' + (i > rd.length + 1 + k ? ' done' : ''))).join('') : rd.map((x, k) => slip(i === k + 1, k + 1, x.label, `data-lstep="${k + 1}"`)).join('');
     if (i === 0) { note = p.whenToUse || ''; nk = 'When to call it'; } else if (runOn) { note = 'Everything on, and the snap.'; nk = 'Run it'; } else if (!adjOn) note = (rd[i - 1] || {}).text || ''; }
   const N = liveN(p), more = `${p.rules ? `<a class="btn gh sm" href="#" data-rules="${esc(p.id)}">The rules</a>` : ''}${p.checks ? `<a class="btn gh sm" href="#" data-shot="${esc(p.checks)}" data-shotk="the Cover 4 checks">The Cover 4 checks</a>` : ''}${p.shot && p.shot.img ? `<a class="btn gh sm" href="#" data-shot="${esc(p.shot.img)}" data-shotp="${esc(p.id)}" data-shotk="${esc(p.shot.cap || p.shot.label)}">${esc(p.shot.label)}</a>` : ''}`;
-  return `${head(eyebrow, esc(p.name), '', headRight(inkBtn, arrowsHTML(j + 1, n)))}<div class="lpboard" style="${at(X(1), top, CW(12), bh)}"><div class="lphost" data-live="${esc(liveId(p))}" data-scheme="${esc(SC.key)}"></div><div class="lpshade"></div>
+  const acts = `${more}<button class="btn anim sm" data-anim="live">&#9654; Animate play call</button>${ytId(p.videoUrl) ? `<a class="btn sm lpfilm" href="${esc(p.videoUrl)}" target="_blank" rel="noopener"><span class="lpth"><img src="https://img.youtube.com/vi/${esc(ytId(p.videoUrl))}/mqdefault.jpg" alt=""><i></i></span><span>Watch the full breakdown</span><span class="lptag">Play</span></a>` : ''}${mode === 'focus' ? `<a class="btn gh sm" href="#plays" data-rows>See all ${n} plays</a>` : ''}`, up = SHELLED();   /* on the shell they sit in the head, off the field (his note 2026-10-18) */
+  return `${head(eyebrow, esc(p.name), '', headRight((up ? `<span class="lpup">${acts}</span>` : '') + inkBtn, arrowsHTML(j + 1, n)))}<div class="lpboard" style="${at(X(1), top, CW(12), bh)}"><div class="lphost" data-live="${esc(liveId(p))}" data-scheme="${esc(SC.key)}"></div><div class="lpshade"></div>
     <div class="lpcol"><div class="lptabs">${tabs}</div><div class="lpslips">${slips}</div>${note ? `<div class="lpnote"><span class="tape"></span>${nk ? `<b>${esc(nk)}</b>` : ''}${esc(note)}</div>` : ''}</div>
-    <div class="lpctl"><button class="lpsq" data-lgo="-1" aria-label="Back">&lsaquo;</button><span class="lppips">${Array.from({ length: N }, (_, k) => `<i class="${k === i ? 'on' : k < i ? 'done' : ''}"></i>`).join('')}</span><button class="lpnx" data-lgo="1">Next &rsaquo;</button></div>
-    <div class="lpacts">${more}<button class="btn anim sm" data-anim="live">&#9654; Animate play call</button>${ytId(p.videoUrl) ? `<a class="btn gh sm" href="${esc(p.videoUrl)}" target="_blank" rel="noopener">&#9654; Watch the full breakdown</a>` : ''}${mode === 'focus' ? `<a class="btn gh sm" href="#plays" data-rows>See all ${n} plays</a>` : ''}</div></div>`; }
+    <div class="lpctl"><button class="lpsq" data-lgo="-1" aria-label="Back">&lsaquo;</button><span class="lppips">${Array.from({ length: N }, (_, k) => `<i class="${k === i ? 'on' : k < i ? 'done' : ''}"></i>`).join('')}</span><button class="lpnx" data-lgo="1">Next &rsaquo;</button>${window.skOffFilm && skOffFilm.has(SC.key, p.id) && !rules ? `<button class="lpsq lppause" data-lpause aria-label="Pause">${skOffFilm.paused() ? '&#9654;' : '&#10074;&#10074;'}</button>` : ''}</div>
+    ${up ? '' : `<div class="lpacts">${acts}</div>`}</div>`; }
 /* the board's column never runs past the board: it is scaled down until it fits (a short, wide window) */
 function liveFit() { document.querySelectorAll('.lpboard,.ldboard').forEach((b) => { const col = b.querySelector('.lpcol,.ldcol'); if (!col) return; col.style.zoom = ''; const avail = b.clientHeight - (b.classList.contains('lpboard') ? 96 : 40), h = col.scrollHeight; if (h > avail && avail > 80) col.style.zoom = Math.max(.56, avail / h).toFixed(3); }); }
 /* THE SECTION LEAD IN (his pick 2026-10-11): a paper board in team colours. His line for the section on one card, the checks under it, and the section's calls as cards drawn from the game's art; a card opens its play */
@@ -465,7 +485,7 @@ function bucketStage(pl, i, pls, plays, k, tot) { const ALLP = plays; plays = pl
     <div class="ldboard" style="${at(X(1), top, CW(12), bh)}"><div class="ldcol"><span class="ldnum">${done}<small>of ${n} on the sheet</small></span><div class="ldnote"><span class="tape"></span>${done === n ? 'Every call landed in the bucket it belongs to.' : 'The rest are waiting on you. Add them here, or open a call to go back over it.'}</div><div class="ldslots${n > 4 ? ' many' : ''}">${plays.map((p) => `<div class="${ink.has(p.id) ? 'on' : ''}">${ink.has(p.id) ? esc(p.name) : '&nbsp;'}</div>`).join('')}</div></div>
     <div class="ldcards bk${n > 3 ? ' many' : ''}" style="--cols:${n > 3 ? Math.ceil(n / 2) : Math.max(n, 2)}">${plays.map((q, kk) => `<div class="ldcard r${kk % 3}${ink.has(q.id) ? ' inked' : ''}"><span class="tape"></span><a class="ldopen" href="#install/${k - ALLP.length + ALLP.indexOf(q)}"><canvas data-ldcall="${esc(q.id)}"></canvas><span class="nm">${esc(q.name)}</span><span class="k team">${esc(q.formation || '')}${q.type ? ' &middot; ' + esc(q.type) : ''}</span></a><button class="ldink" data-inkid="${esc(q.id)}">${ink.has(q.id) ? 'On the sheet &#10003;' : 'Add to call sheet'}</button></div>`).join('')}</div></div>`; }
 function leadBoot() { const cvs = document.querySelectorAll('canvas[data-ldcall]'); if (!cvs.length || !window.skLive || !skLive.card) return; const ids = new Set([...cvs].map((c) => c.dataset.ldcall)), fp = fieldPlays(ids);
-  cvs.forEach((cv) => { const c = fp[cv.dataset.ldcall]; if (c && c.def && !cv.dataset.on) { cv.dataset.on = '1'; skLive.card(cv, { men: c.men, off: (FORMS && FORMS['shotgun__doubles']) || [], small: cvs.length > 3 }); } }); }
+  cvs.forEach((cv) => { const c = fp[cv.dataset.ldcall]; if (!c || cv.dataset.on) return; if (c.def) { cv.dataset.on = '1'; skLive.card(cv, { men: c.men, off: (FORMS && FORMS['shotgun__doubles']) || [], small: cvs.length > 3 }); } else if (window.skOffFilm && skOffFilm.card) { cv.dataset.on = '1'; skOffFilm.card(cv, { play: c, mark: SC.c1 }); } }); }   /* an offense's calls in ink on the sheet (Ole Miss 2026-10-18) */
 /* THE PLAY BLOCK, three ways: on the install ('install'), open at the top
    of All Plays ('focus'), in the takeover ('modal') */
 function playStage(p, mode, j, n, pl, H) {
@@ -473,7 +493,7 @@ function playStage(p, mode, j, n, pl, H) {
   if (liveOn(p)) return liveStage(p, mode, j, n, pl, H);
   const lay = L(H), ink = inkedSet().has(p.id);
   const inkBtn = `<button class="btn sm${ink ? ' gh' : ''}" data-ink>${ink ? 'On the sheet &#10003;' : 'Add to call sheet'}</button>`;
-  const eyebrow = mode === 'install' ? `${esc(pl.name)} &middot; ${esc(p.formation || p.libSet || '')}` : `${mode === 'modal' ? 'The play' : 'All plays'} &middot; ${esc(p.formation || p.libSet || '')}${p.libType ? ' &middot; ' + esc(p.libType) : ''}`;
+  const eyebrow = mode === 'install' ? `${esc(pl.name)} &middot; ${esc(formOf(p))}` : `${mode === 'modal' ? 'The play' : 'All plays'} &middot; ${esc(formOf(p))}${p.libType ? ' &middot; ' + esc(p.libType) : ''}`;
   const film = FILM === p.id && ytId(p.videoUrl);
   const still = SC.side === 'D';
   const inner = film ? `<div class="film"><iframe src="https://www.youtube-nocookie.com/embed/${encodeURIComponent(ytId(p.videoUrl))}?autoplay=1&rel=0&modestbranding=1" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe></div><button class="btn gh" data-film="off" style="position:absolute;right:12px;top:12px;height:40px;padding:0 14px;font-size:13px;z-index:3">Back to the drawing &times;</button>` : liveOn(p) ? `<div class="lphost" data-live="${esc((liveAt(p), liveId(p)))}" data-scheme="${esc(SC.key)}"></div>${liveLine(p)}` : cardHTML(p, still ? 0 : RD);
@@ -506,7 +526,7 @@ let IP = 0, IPG = 0;
    2026-10-09): a click-through ink diagram on a tilting sheet, words stamped on the field, the count in marker */
 const introScenes = () => !!(SC && SC.about && (SC.about.principles || []).some((p) => p.deck && p.deck.steps && p.deck.steps.length) && window.skIntroField);
 /* THE FRONTS AS A PAPER BOARD (2026-10-09): a defense whose fronts carry a show list opens its install on the board */
-const frontsBoard = () => !!(window.skIntroField && SC && SC.side === 'D' && (SC.formations || []).some((f) => f.show && f.show.length));
+const frontsBoard = () => !!(window.skIntroField && SC && (SC.side === 'D' || SHELLED()) && (SC.formations || []).some((f) => f.show && f.show.length));   /* a shelled offense gets the paper formations board too (Ole Miss 2026-10-18) */
 const introPaged = () => introScenes() || !!(SC && SC.about && (SC.about.principles || []).some((p) => p.pages && p.pages.length));
 function introStep(d) {
   if (introScenes()) return skIntroField.step(d);
@@ -575,7 +595,9 @@ function introFieldBoot() {
   if (h.dataset.kind === 'forms') { const fr = (SC.formations || []).filter((f) => f.desc && !f.extra), first = (SC.install.pillars || [])[0];
     skIntroField.mount(h, { kind: 'forms', side: SC.side === 'D' ? 'D' : 'O', offense: (FORMS && FORMS['shotgun__doubles']) || [], formations: fr.map((f) => ({ name: f.name, desc: f.desc, bullets: f.bullets || [], show: f.show || [], setups: f.setups || null, plays: SC.plays.filter((p) => p.formation === f.name).map((p) => p.id) })),
       plays: fieldPlays(new Set(SC.plays.map((p) => p.id))), tiles: Object.fromEntries(fr.map((f) => [f.name, (FORMS && f.lib && FORMS[slug(f.lib[0]) + '__' + slug(f.lib[1])]) || null])),
-      endLabel: first ? 'Start with ' + first.name : 'On to the install', onEnd: () => flip(1), start: skIntroField.state() }); return; }
+      endLabel: first ? 'Start with ' + first.name : 'On to the install', onEnd: () => flip(1), start: skIntroField.state(),
+      /* on the shell an offense's calls play out on the sheet, from the film staging (his note 2026-10-18) */
+      act: SHELLED() && SC.side !== 'D' && window.skOffFilm ? (id, n, p) => skOffFilm.sceneFor(SC.key, id, n, p) : null, blocking: BLK, markName: SHELLED() ? 'Marker' : null }); return; }
   const pr = ((SC.about && SC.about.principles) || []).slice(0, 3).filter((p) => p.deck && p.deck.steps && p.deck.steps.length);
   const ids = new Set(); pr.forEach((p) => ids.add(p.deck.play || p.deck.call));   /* a defense's deck names one of its own calls */
   /* THE STORY (2026-10-09): who the real team is and how we recreate it, told on the board in front of the three principles */
@@ -586,6 +608,8 @@ function introFieldBoot() {
 /* the story's screen: the head, then one host on all twelve columns that story-reel.js fills */
 function storyStage() { const lay = L(), s = STORY();
   const nx = s.next || { hash: '#intro', label: 'The principles' };   /* where the story hands off: the principles, unless it says otherwise */
+  if (s.placeholder) { const im = s.img || {}, H = lay.H - 80 - 176 - 16;   /* THE STORY TO COME (Ole Miss 2026-10-18): the people in it over their stadium, a card that says it is on its way */
+    return `${head(esc(s.door || 'The story'), esc(s.title || 'The story'), esc(SC.tagline || ''), headRight(`<a class="btn sm" href="${esc(nx.hash)}">${esc(nx.label)} <em>&rarr;</em></a>`))}<div class="sph" style="${at(X(1), 176, CW(12), H)}">${im.bg ? `<img class="bg" src="${esc(im.bg)}" alt="">` : ''}<span class="vl"></span>${im.coach ? `<img class="cut a" src="${esc(im.coach)}" alt="">` : ''}${im.qb ? `<img class="cut b" src="${esc(im.qb)}" alt="">` : ''}<div class="spc"><span class="tape"></span><span class="k">Coming soon</span><b>${esc(s.title || '')}</b><p>${esc(s.text || '')}</p><a class="btn" href="${esc(nx.hash)}">${esc(nx.label)} <em>&rarr;</em></a></div></div>`; }
   if (s.full) return `<div class="srhost full" style="${at(X(1), 58, CW(12), lay.H - 80 - 58 - 16)}"></div>`;   /* the whole stage, the title inside the reel */
   return `${head(esc(s.door || 'The team'), esc(s.title || 'The story'), esc(SC.tagline || ''), headRight(`<a class="btn sm" href="${esc(nx.hash)}">${esc(nx.label)} <em>&rarr;</em></a>`))}<div class="srhost" style="${at(X(1), 176, CW(12), lay.H - 80 - 176 - 16)}"></div>`; }
 /* after a paint: the host is there, mount the reel in it (keeping the scene he was on); gone, let it go */
@@ -594,7 +618,9 @@ function storyBoot() { if (!window.skStoryReel) return; const h = $('.srhost'); 
   if (skStoryReel.adopt(h)) return;
   const s = STORY(), used = new Set(s.scenes.flatMap((x) => [x.call, x.callL]).filter(Boolean)), calls = fieldPlays(used), pic = (p) => (p ? new URL(p, location.href).href : ''), img = {}; Object.keys(s.img || {}).forEach((k) => { img[k] = pic(s.img[k]); });
   const dbg = new URLSearchParams(location.search).get('srs');
-  skStoryReel.mount(h, { story: s, calls, img, tile: (FORMS && s.tile && FORMS[slug(s.tile[0]) + '__' + slug(s.tile[1])]) || [], off: (FORMS && FORMS['shotgun__doubles']) || [], dark: SC.c2, bright: SC.c1, start: dbg != null ? parseInt(dbg, 10) || 0 : STORY_AT, still: dbg != null && /x$/.test(dbg),
+  /* an offense plays its own calls in the story on the offense film board (Ole Miss 2026-10-18): kind 'play' scenes */
+  const film = s.scenes.some((x) => x.kind === 'play' || x.off) ? { scheme: SC.key, plays: calls, calls: Object.fromEntries(SC.plays.filter((p) => used.has(p.id)).map((p) => [p.id, p])), blocking: BLK, team: SC.film || { body: SC.c2, trim: SC.c1 } } : null;
+  skStoryReel.mount(h, { story: s, calls, img, film, hot: s.hot || SC.c1, tile: (FORMS && s.tile && FORMS[slug(s.tile[0]) + '__' + slug(s.tile[1])]) || [], off: (FORMS && FORMS['shotgun__doubles']) || [], dark: SC.c2, bright: s.bright || SC.c1, start: dbg != null ? parseInt(dbg, 10) || 0 : STORY_AT, still: dbg != null && /x$/.test(dbg),
     onEnd: () => { STORY_AT = 0; location.hash = (s.next && s.next.hash) || '#intro'; }, onStart: () => { location.hash = '#front'; } }); }
 function introStage() {
   if (introScenes()) return introField();
@@ -640,7 +666,7 @@ function installSlides() {
        number, the crest and the plate; the wide paper beside it carries the
        write-up and the checks on the left, the calls and the fronts on the
        right; the section's film sits in the foot when the section has one */
-    out.push({ t: 'title', pl, i, html: (k, tot) => { if (SC.live && window.skLive && SC.side === 'D') return leadStage(pl, i, pls, plays, k, tot);
+    out.push({ t: 'title', pl, i, html: (k, tot) => { if (SC.live && window.skLive && (SC.side === 'D' || SHELLED())) return leadStage(pl, i, pls, plays, k, tot);
       const lay = L(), fh = lay.frame.h, ink = inkedSet();
       const game = (pl.game && Array.isArray(pl.game.checks)) ? pl.game.checks.filter((x) => typeof x === 'string') : [];
       const fronts = [...new Set(plays.map((q) => q.formation).filter(Boolean))], done = plays.filter((q) => ink.has(q.id)).length;
@@ -657,7 +683,7 @@ function installSlides() {
         </div></div>
         ${foot(watch, '', lay)}`; } });
     plays.forEach((p, j) => out.push({ t: 'play', pl, i, p, j, n: plays.length, html: (k, tot) => playStage(p, 'install', k, tot, pl) }));
-    out.push({ t: 'bucket', pl, i, html: (k, tot) => { if (SC.live && window.skLive && SC.side === 'D') return bucketStage(pl, i, pls, plays, k, tot);
+    out.push({ t: 'bucket', pl, i, html: (k, tot) => { if (SC.live && window.skLive && (SC.side === 'D' || SHELLED())) return bucketStage(pl, i, pls, plays, k, tot);
       const lay = L(), ink = inkedSet(), next = pls[i + 1], done = plays.filter((p) => ink.has(p.id)).length;
       return `${head('On the sheet', `${esc(pl.name.replace(/^The /, ''))} calls`, done === plays.length ? `${esc(pl.name)} is installed` : `${done} of ${plays.length} inked`, headRight(next ? `<button class="btn sm" data-next="1">Next section: ${esc(next.name)} <em>&rarr;</em></button>` : `<a class="btn sm" href="#sheet">Open the call sheet <em>&rarr;</em></a>`, arrowsHTML(k + 1, tot)))}${callsHTML(plays, (p) => ink.has(p.id) ? '<span class="chip ink">On the sheet</span>' : '<span class="chip">Not yet</span>', lay)}${rail('', { html: `<div class="k team">${esc(pl.name.replace(/^The /, ''))} calls &middot; ${done} of ${plays.length}</div>${plays.map((p) => `<div class="slot${ink.has(p.id) ? ' on' : ''}"><div class="h26">${ink.has(p.id) ? esc(p.name) : '&nbsp;'}</div></div>`).join('')}<div class="rule"></div><div class="t" style="font-size:15px">${done === plays.length ? 'Every call landed in the bucket it belongs to.' : 'The rest are waiting on you. Go back with the arrows.'}</div>`, cls: plays.length > 7 ? 'many' : '' }, lay)}`; } });
   });
@@ -1444,10 +1470,10 @@ const posShort = (pl) => { const s = String(pl.name || ''); for (const [re, k] o
 const posSize = (k, big) => big ? (k.length <= 1 ? 320 : k.length === 2 ? 270 : k.length === 3 ? 210 : 180) : 100;
 const crestHTML = () => `<span class="crest"><img src="logos/${esc(SC.logo)}.png" alt=""></span>`;
 const placeName = () => { const team = String((SC.about && SC.about.team) || SC.name).replace(/^THE\s+/i, ''); const nick = String(SC.nick || '').trim();
-  const t = (nick && team.toUpperCase().endsWith(nick.toUpperCase()) ? team.slice(0, team.length - nick.length).trim() : team.split(/\s+/)[0]) || team.split(/\s+/)[0]; return tcase(t); };
+  const t = (nick && team.toUpperCase().endsWith(nick.toUpperCase()) ? team.slice(0, team.length - nick.length).trim() : nick && team.toUpperCase().startsWith(nick.toUpperCase() + ' ') ? nick : team.split(/\s+/)[0]) || team.split(/\s+/)[0]; return tcase(t); };
 const whoBuilt = () => { const team = String((SC.about && SC.about.team) || SC.name).replace(/^THE\s+/i, ''); const nick = String(SC.nick || '').trim();
   /* the place is the team name with the nickname taken off (New England, Alabama); the first word only when there is no nickname to take off */
-  const t = (nick && team.toUpperCase().endsWith(nick.toUpperCase()) ? team.slice(0, team.length - nick.length).trim() : team.split(/\s+/)[0]) || team.split(/\s+/)[0]; return `${tcase(t)} built them`; };
+  const t = (nick && team.toUpperCase().endsWith(nick.toUpperCase()) ? team.slice(0, team.length - nick.length).trim() : nick && team.toUpperCase().startsWith(nick.toUpperCase() + ' ') ? nick : team.split(/\s+/)[0]) || team.split(/\s+/)[0]; return `${tcase(t)} built them`; };
 /* ---------- HISTORY & PERSONNEL (the offenses, built to the board 2026-09-14):
    the story of the offense on eight columns (what they do, what they like to
    do, the numbers, what we take from it), the players as a rail of five rows
@@ -1462,6 +1488,8 @@ function historyStage() {
     ${pr.length ? `<div class="rule"></div><div class="k team">What we take from it</div><div class="take">${pr.map((p) => `<div><div class="h26 s22">${esc(tcase(p.title))}</div><div class="t s15">${esc(p.blurb || '')}</div></div>`).join('')}</div>` : ''}
     ${quote ? `<div class="quote">&ldquo;${esc(quote.text)}&rdquo;</div>` : ''}`;
   const rows = players.map((g, i) => { const pl = g.player || {}; const pos = pl.pos || posShort(g);
+    /* (2026-10-19) the shell's roster: jersey tiles with the number, the role and the year */
+    if (SHELLED()) return `<a class="prow" href="#role/${i}"><span class="posbox jersey"><b>${esc(String(pl.number || pos))}</b><i>${esc(pos)}</i></span><span class="pt"><span class="nm">${esc(nice(pl.name || g.name, true))}</span><span class="tags"><span class="pos">${esc(g.name ? nice(g.name, true) : POSNAME[pos] || '')}</span>${pl.era ? `<span class="era">${esc(tcase(String(pl.era).toLowerCase()))}</span>` : ''}</span><span class="ln">${esc(pl.line || '')}</span></span><span class="go">&rsaquo;</span></a>`;
     return `<a class="prow" href="#role/${i}"><span class="posbox"><b>${esc(pos)}</b>${pl.number ? `<i>#${esc(String(pl.number))}</i>` : ''}</span><span class="pt"><span class="nm">${esc(nice(pl.name || g.name, true))}</span><span class="pos">${esc(g.name ? nice(g.name, true) : POSNAME[pos] || '')}</span><span class="ln">${esc(pl.line || '')}</span></span><span class="go">&rsaquo;</span></a>`; }).join('');
   return `${head('History &amp; Personnel', `The ${esc(SC.nick || shortName())} Offense`, esc(tcase(String(ab.era || '').toLowerCase())))}
     <div class="paper t3 hist2" style="${at(X(1), 176, CW(8), lay.H - 80 - 176 - 16)}"><span class="tape" style="left:300px;top:-14px"></span><div class="in">${paper}</div></div>
@@ -1510,7 +1538,7 @@ function playerStage(i, H = 900) {
   const good = (pl.goodAt || []).map((x) => `<div class="quote tight">${esc(x)}</div>`).join('');
   const nums = (pl.nums || []).slice(0, 3);
   return `${head(`History &amp; Personnel &middot; player ${i + 1} of ${n}`, esc(nice(pl.name || g.name, true)), esc(g.name ? nice(g.name, true) : POSNAME[pos] || '') + (era ? ' &middot; ' + esc(era) : ''), headRight('', arrowsHTML(i + 1, n)))}
-    <div class="frame" style="${at(X(1), 176, CW(4), 644)}"><div class="tv locker big"><img class="wm" src="logos/${esc(SC.logo)}.png" alt=""><span class="k">The position</span><span class="pos" style="font-size:${posSize(pos, true)}px">${esc(pos)}</span>${pl.number ? `<span class="jersey">#${esc(String(pl.number))}</span>` : ''}<span class="plate2">${esc(g.name ? nice(g.name, true) : POSNAME[pos] || '')}</span></div></div>
+    ${SHELLED() ? `<div class="frame" style="${at(X(1), 176, CW(4), 644)}"><div class="pcard2${g.cut ? ' hascut' : ''}"><span class="pnum">${esc(String(pl.number || pos))}</span>${g.cut ? `<img class="pcut" src="${esc(g.cut)}" alt="">` : ''}<div class="pfoot"><b>${esc(nice(pl.name || g.name, true))}</b><span>${esc(g.name ? nice(g.name, true) : POSNAME[pos] || '')}${era ? ' &middot; ' + esc(era) : ''}</span></div></div></div>` : `<div class="frame" style="${at(X(1), 176, CW(4), 644)}"><div class="tv locker big"><img class="wm" src="logos/${esc(SC.logo)}.png" alt=""><span class="k">The position</span><span class="pos" style="font-size:${posSize(pos, true)}px">${esc(pos)}</span>${pl.number ? `<span class="jersey">#${esc(String(pl.number))}</span>` : ''}<span class="plate2">${esc(g.name ? nice(g.name, true) : POSNAME[pos] || '')}</span></div></div>`}
     <div class="paper t3 pp" style="${at(X(5), 176, CW(4), 644)}"><span class="tape" style="left:150px;top:-14px"></span><div class="in"><div class="h26">Who he is</div><div class="t">${stampify(pl.bio || '')}</div>
       ${good ? `<div class="rule"></div><div class="k team">What he is good at</div>${good}` : ''}
       ${nums.length ? `<div class="rule"></div><div class="nums n3">${nums.map(([v, l]) => `<div class="num"><b>${esc(v)}</b><u>${esc(l)}</u></div>`).join('')}</div>` : ''}</div></div>
@@ -1627,7 +1655,7 @@ function renderNow() {
   const { sec, at: a, id } = parseHash(); const prev = SEC, prevAt = AT, prevId = PLAYID;
   /* the takeover opens and closes over the rows without rebuilding them */
   /* the takeover opens over All Plays or the intro without rebuilding them; closing over All Plays keeps the scroll, closing over the intro repaints it (a chip may have been inked) */
-  if (sec === 'play' && (prev === 'plays' || prev === 'intro' || prev === 'stop' || (prev === 'drives' && DRIVEB)) && $('.stagewrap') && !$('.modal')) { UNDER = prev === 'stop' && prevId ? 'stop/' + prevId : prev; SEC = 'play'; PLAYID = id; RD = 0; FILM = null; if (openModal()) { const d = $('.dock'); if (d) d.outerHTML = dockHTML(); document.title = `${SC.name} · Play`; return; } }
+  if (sec === 'play' && (prev === 'plays' || prev === 'intro' || prev === 'stop' || prev === 'attack' || (prev === 'drives' && DRIVEB)) && $('.stagewrap') && !$('.modal')) { UNDER = (prev === 'stop' || prev === 'attack') && prevId ? prev + '/' + prevId : prev; SEC = 'play'; PLAYID = id; RD = 0; FILM = null; if (openModal()) { const d = $('.dock'); if (d) d.outerHTML = dockHTML(); document.title = `${SC.name} · Play`; return; } }
   if (sec === 'book' && prev === 'plays' && $('.stagewrap') && !$('.modal')) { UNDER = 'plays'; SEC = 'book'; if (openBook()) { const d = $('.dock'); if (d) d.outerHTML = dockHTML(); document.title = `${SC.name} · The book`; return; } }
   if (sec === 'plays' && prev === 'book' && $('.modal') && $('.stagewrap')) { closeModal(); SEC = 'plays'; }
   if (sec === 'drives' && prev === 'play' && UNDER === 'drives' && DRIVEB && $('.modal') && $('.stagewrap')) { closeModal(); SEC = 'drives'; PLAYID = ''; RD = 0; FILM = null; const d = $('.dock'); if (d) d.outerHTML = dockHTML(); document.title = `${SC.name} · Drives`; return; }
@@ -1654,6 +1682,7 @@ function renderNow() {
   else if (SEC === 'drives') { const dr = drivesStage(); body = stagewrap(dr.html, dr.h, 'in'); }
   else if (SEC === 'board') { BOARD = boardStage(); body = stagewrap(BOARD.html, STAGE_H, 'in', BOARD.live); }
   else if (SEC === 'stop' && SC.stop) body = stagewrap(stopStage(), STAGE_H, 'in');
+  else if (SEC === 'attack' && SC.attack) body = stagewrap(attackStage(), STAGE_H, 'in');
   else if (SEC === 'personnel' || SEC === 'role') body = stagewrap(personnelStage(), STAGE_H, 'in');
   else if (SEC === 'coverages') body = stagewrap(coveragesStage(), STAGE_H, 'in');
   else if (SEC === 'coverage') { const c = curPlay(); if (!c) { location.hash = '#coverages'; return; } body = stagewrap(covStage(c.p, 'screen', c.j, c.n, STAGE_H), STAGE_H, 'in'); }
@@ -1696,7 +1725,7 @@ function fitPapers() {
 }
 const vt = (paint0) => {
   const paint = () => { if (window.skStoryReel && $('.srhost[data-live]')) STORY_AT = parseHash().sec === 'story' ? skStoryReel.at() : 0;   /* a repaint keeps his scene; leaving the story means the next visit starts it over */
-    paint0(); introFieldBoot(); storyBoot(); liveBoot(); stopBoot(); requestAnimationFrame(fitPapers); };
+    paint0(); introFieldBoot(); storyBoot(); liveBoot(); attackBoot(); stopBoot(); requestAnimationFrame(fitPapers); };
   const root = document.documentElement, first = !VT_BOOTED; VT_BOOTED = true;
   const ok = !first && TURN && !matchMedia('(prefers-reduced-motion: reduce)').matches; TURN = false;
   if (!ok) { paint(); NAVDIR = 1; return; }
@@ -1762,6 +1791,7 @@ function pick(n, d) { const N = PICKLIST.length; if (!N) return; PICK = ((n % N)
 const boardStep = (d) => !!(SEC === 'install' && window.skIntroField && $('.ifhost[data-live]') && skIntroField.step(d));
 function flip(d) {
   if (SEC === 'stop') { stopFlip(d); return; }
+  if (SEC === 'attack') { attackFlip(d); return; }
   if (SEC === 'install') { step(d); return; }
   if (SEC === 'plays') { pick(PICK + d, d); return; }
   if (SEC === 'coverage') { const c = curPlay(); if (!c) return; const k = ((c.j + d) % c.n + c.n) % c.n; PLAYID = c.list[k].id; SPOT = null; FILM = null; COVVIEW = 'shot'; history.replaceState(null, '', '#coverage/' + PLAYID); swap(d, repaint); return; }
@@ -1777,6 +1807,7 @@ addEventListener('keydown', (e) => {
   if ((e.key === 'i' || e.key === 'I') && !e.ctrlKey && !e.metaKey && !e.altKey && instHas()) { e.preventDefault(); instMap(); return; }
   if (document.querySelector('#shotpop.rulespop')) { if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') { e.preventDefault(); rulesTab(e.key === 'ArrowRight' ? 1 : -1); } return; }   /* the rules sheet takes the arrows while it is open */
   if (SEC === 'sheet') { if (e.key === 'Escape' && SHEETFS) sheetFS(false); else if (e.key === 'p' || e.key === 'P') { e.preventDefault(); presentStep(); } return; }
+  if (SEC === 'attack' && window.skAttack && (e.key === ' ' || e.code === 'Space' || /^Arrow/.test(e.key))) { e.preventDefault(); if (!PLAYID) { if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') skAttack.key(e.key === 'ArrowLeft' ? -1 : 1); return; } skAttack.key(e.key === 'ArrowLeft' ? -1 : e.key === 'ArrowUp' ? 'up' : e.key === 'ArrowDown' ? 'down' : 1); return; }   /* Attack it: the same keys as Stop it */
   if (SEC === 'stop' && window.skStop && (e.key === ' ' || e.code === 'Space' || /^Arrow/.test(e.key))) { e.preventDefault(); if (!PLAYID) { if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') skStop.key(e.key === 'ArrowLeft' ? -1 : 1); return; } skStop.key(e.key === 'ArrowLeft' ? -1 : e.key === 'ArrowUp' ? 'up' : e.key === 'ArrowDown' ? 'down' : 1); return; }   /* Stop it: space and right = the next beat, left = back, up and down = the question before or after */
   if (e.key === 'ArrowRight') { e.preventDefault(); if (SEC === 'intro') { if (introPaged() && introStep(1)) return; location.hash = COV() ? '#coverages' : '#install/0'; } else if (SEC === 'coverages') location.hash = '#coverage/' + SC.plays[0].id; else if (!boardStep(1)) flip(1); }
   else if (e.key === 'ArrowLeft') { e.preventDefault(); if (SEC === 'intro') { if (introPaged() && introStep(-1)) return; location.hash = STORY() ? '#story' : '#front'; } else if (!boardStep(-1)) flip(-1); }
@@ -1801,6 +1832,7 @@ app.addEventListener('click', (e) => {
   const dr = e.target.closest('[data-drive]'); if (dr) { const d = planRead().drives.find((x) => x.id === dr.dataset.drive); if (d) dbxOpen(SC, d, null); return; }
   if (e.target.closest('[data-newcase]')) { newCaseDrawer(SC); return; }
   if (e.target.closest('[data-newpin]')) { newPinDrawer(SC); return; }
+  const lpz = e.target.closest('[data-lpause]'); if (lpz) { e.preventDefault(); const on = skOffFilm.pause(); lpz.innerHTML = on ? '&#9654;' : '&#10074;&#10074;'; lpz.setAttribute('aria-label', on ? 'Play' : 'Pause'); return; }   /* pause the film board where it is (his ask 2026-10-18) */
   const an = e.target.closest('[data-anim]'); if (an) { const c = curPlay(); if (an.dataset.anim === 'live' && c && liveOn(c.p)) { const N = liveN(c.p); if (liveAt(c.p) === N - 1) skLive.replay(); else liveSet(N - 1); return; } animateHere(an); return; }
   if (e.target.closest('.lphost')) { if (!landKey(1)) flip(1); return; }
   const ik = e.target.closest('[data-inkid]'); if (ik) { const q = SC.plays.find((x) => x.id === ik.dataset.inkid), on = !inkedSet().has(ik.dataset.inkid); inkPlay(ik.dataset.inkid, on); repaint(); if (q) toast(on ? `${q.name} is on the sheet` : `${q.name} pulled back off the sheet`); return; }
@@ -1850,8 +1882,14 @@ addEventListener('pagehide', placeSave); document.addEventListener('visibilitych
 /* ---------- boot ---------- */
 (async function boot() {
   /* one scheme, its own file (build-schemes.js writes them); the whole book only as a fallback */
-  let one = null; try { const r = await fetch('schemes/' + encodeURIComponent(KEY) + '.json'); if (r.ok) one = await r.json(); } catch (e) {}
-  if (!one) { const S = await (await fetch('schemes.json')).json(); one = (S.schemes || []).find((s) => s.key === KEY); }
+  let one = null;
+  /* BUILD YOUR OFFENSE (2026-10-14): a member's custom offense (key byo-...) is written into this browser by the builder. It opens here
+     with the real call sheet and the drive builder, nothing recommended, and only All plays, Call sheet and Drives in the dock. */
+  if (/^byo-/.test(KEY)) { try { one = JSON.parse(localStorage.getItem('sk.byo.scheme.' + KEY) || 'null'); } catch (e) {}
+    if (!one) { app.innerHTML = '<div class="sk-boot">This custom offense is not saved in this browser. Open it from Build Your Offense.</div>'; return; }
+    document.body.classList.add('byo'); if (!location.hash || location.hash === '#front') history.replaceState(null, '', '#sheet'); }
+  else { try { const r = await fetch('schemes/' + encodeURIComponent(KEY) + '.json'); if (r.ok) one = await r.json(); } catch (e) {}
+  if (!one) { const S = await (await fetch('schemes.json')).json(); one = (S.schemes || []).find((s) => s.key === KEY); } }
   /* THE SHEET MODULE IS THE SIDE'S (2026-09-21): an offense mounts the offensive sheet (lifted from the Bears book), a defense the
      defensive one (lifted from Alabama). The college page loads neither up front; the Madden page loads the offensive one itself. */
   /* a Madden page loads the offensive sheet itself, so a Madden DEFENSE (the Seahawks, 2026-09-28) loads the defensive one over it */
@@ -1863,10 +1901,15 @@ addEventListener('pagehide', placeSave); document.addEventListener('visibilitych
   await skPlanPull(); /* the account's plan, if it is newer than this browser's */
   if (!SC) { app.innerHTML = `<div class="sk-boot">No scheme called ${esc(KEY)}</div>`; return; }
   if (window.SK_GAME) document.body.classList.add('g-' + window.SK_GAME);
+  /* THE NEW SHELL (2026-10-15): the schemes listed here wear it (scheme.css body.shell); a light team colour carries ink */
+  if (SHELLED()) { document.body.classList.add('shell'); const c = (SC.c1 || '#000').replace('#', ''), n = parseInt(c.length === 3 ? c.split('').map((x) => x + x).join('') : c, 16), lum = (0.299 * (n >> 16 & 255) + 0.587 * (n >> 8 & 255) + 0.114 * (n & 255)) / 255;
+    if (lum > .55) document.body.classList.add('shell-light');
+    const fl = document.createElement('link'); fl.rel = 'stylesheet'; fl.href = 'https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=Barlow+Semi+Condensed:wght@500;600;700;800&display=swap'; document.head.appendChild(fl); }
   document.documentElement.style.setProperty('--team', SC.c1 || '#9E1B32');
   document.documentElement.style.setProperty('--team2', SC.c2 || '#828A8F');
+  if (SC.film && SC.film.body) document.documentElement.style.setProperty('--team3', SC.film.body);   /* the team's light colour (Ole Miss powder blue) */
   const sets = [...new Set(SC.plays.filter((p) => p.libFamily && p.libSet).map((p) => slug(p.libFamily) + '__' + slug(p.libSet)))];
-  const [forms, blocking, ...cards] = await Promise.all([fetch('formations.json').then((r) => r.json()).catch(() => ({})), introScenes() ? fetch('blocking.json').then((r) => r.json()).catch(() => null) : Promise.resolve(null), ...sets.map((k) => fetch('cards/' + k + '.json').then((r) => r.json()).catch(() => ({})))]);
+  const [forms, blocking, ...cards] = await Promise.all([fetch('formations.json').then((r) => r.json()).catch(() => ({})), (introScenes() || (SC.side !== 'D' && SC.live)) ? fetch('blocking.json').then((r) => r.json()).catch(() => null) : Promise.resolve(null), ...sets.map((k) => fetch('cards/' + k + '.json').then((r) => r.json()).catch(() => ({})))]);
   if (SC.stop && !window.skStop) await new Promise((res) => { const me = document.querySelector('script[src$="scheme.js"]'), s = document.createElement('script'); s.src = (me ? me.getAttribute('src').replace(/scheme\.js$/, '') : '') + 'stop-it.js'; s.onload = res; s.onerror = res; document.head.appendChild(s); });   /* Stop it: its engine, only for a scheme that has the section */
   if (SC.live && window.skLive) for (const src of [].concat(SC.live)) await new Promise((res) => { const s = document.createElement('script'); s.src = src; s.onload = res; s.onerror = res; document.head.appendChild(s); });   /* the live play staging for this scheme */
   FORMS = forms; GEO = Object.assign({}, ...cards); BLK = blocking;   /* the game's blocking tables and run fits, only a field intro needs them */

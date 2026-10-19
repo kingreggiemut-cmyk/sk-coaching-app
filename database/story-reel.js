@@ -139,6 +139,92 @@ const CSS = `
 .sr-wipe{position:absolute;top:-10%;bottom:-10%;left:-30%;width:160%;z-index:9;pointer-events:none;transform:translateX(-112%) skewX(-16deg);background:linear-gradient(90deg,var(--sr-b) 0 7%,var(--sr-d) 7% 93%,var(--sr-b) 93%)}
 .sr-wipe.sr-go{animation:sr-wipe .62s cubic-bezier(.55,.1,.4,.95) both}
 @keyframes sr-wipe{0%{transform:translateX(-112%) skewX(-16deg)}46%,54%{transform:translateX(0) skewX(-16deg)}100%{transform:translateX(112%) skewX(-16deg)}}
+/* BIG (Ole Miss 2026-10-18, his note: "look how much open space", "everything should stay relatively the same size on each
+   screen"): a story with big:1 fills the stage on every graphic screen, out to the stripes, all at one scale */
+@container (min-width:701px){
+.sr-big .sr-gs{padding:13cqh 23% 18cqh 6%;gap:{1.4}}
+.sr-big .sr-k{font-size:clamp(12px,{2},24px)}
+.sr-big .sr-gs h3{font-size:clamp(28px,{7.4},100px)}
+.sr-big .sr-gs h3.sr-sm{font-size:clamp(22px,{5.4},74px)}
+.sr-big .sr-gn{font-size:clamp(14px,{2.05},27px);max-width:none}
+.sr-big .sr-path{max-width:none;gap:{2.4}}
+.sr-big .sr-path::before{top:clamp(10px,{1.2},16px)}
+.sr-big .sr-path em{font-size:clamp(28px,{6},84px)}
+.sr-big .sr-path strong{font-size:clamp(14px,{2.6},34px)}
+.sr-big .sr-path small{font-size:clamp(13px,{1.95},26px)}
+.sr-big .sr-path img{width:clamp(40px,{8},110px);height:clamp(40px,{8},110px)}
+.sr-big .sr-chips{gap:{1.2}}
+.sr-big .sr-chips span{font-size:clamp(13px,{2.6},34px)}
+.sr-big .sr-huge{font-size:clamp(70px,{22},300px)}
+.sr-big .sr-bugs{width:100%;gap:{1.5}}
+.sr-big .sr-bug{height:clamp(40px,{6.5},88px);grid-template-columns:minmax(0,.62fr) minmax(0,1.12fr) minmax(0,1.12fr) minmax(0,1.14fr)}
+.sr-big .sr-tm{font-size:clamp(14px,{2.9},40px);gap:{.9};padding:0 {1.1}}
+.sr-big .sr-tm b{font-size:clamp(20px,{4.5},60px)}
+.sr-big .sr-tm img{width:clamp(26px,{5.2},70px);height:clamp(26px,{5.2},70px)}
+.sr-big .sr-bug .sr-rd{font-size:clamp(11px,{1.7},23px);padding:0 {1.3}}
+.sr-big .sr-bug .sr-nt{font-size:clamp(12px,{1.75},24px);padding:0 {1.3}}
+.sr-big .sr-gg{grid-template-columns:34% minmax(0,1fr) 18%}
+.sr-big .sr-gt{gap:{1.4};padding:8cqh {1} 15cqh {3}}
+.sr-big .sr-gt h3{font-size:clamp(24px,{5},70px)}
+.sr-big .sr-rows{gap:{1.2}}
+.sr-big .sr-rows li{gap:0 {1.6}}
+.sr-big .sr-rows em{width:clamp(34px,{5},70px);font-size:clamp(15px,{2.5},34px)}
+.sr-big .sr-rows strong{font-size:clamp(16px,{3},40px)}
+.sr-big .sr-rows small{font-size:clamp(11px,{1.65},22px)}
+.sr-big .sr-why{font-size:clamp(13px,{1.85},25px);padding:{1.1} {1.5}}
+.sr-big .sr-gph img{height:104%}
+.sr-big .sr-bn{font-size:62cqh}
+.sr-big .sr-man.sr-m0{right:22%;height:100%}
+.sr-big .sr-take .sr-sub{max-width:44%}
+.sr-big .sr-man.sr-m1{right:-3%;height:104%;bottom:-4%}
+.sr-big .sr-hot .sr-man{height:128%;bottom:-30%;right:1%}
+.sr-big .sr-gs.sr-hasside{padding:11cqh 45% 18cqh 6%;gap:{1.2}}
+.sr-big .sr-hasside .sr-huge{font-size:clamp(56px,{14},200px)}
+.sr-big .sr-hasside h3.sr-sm{font-size:clamp(20px,{4.6},62px)}
+.sr-big .sr-hasside .sr-chips span{font-size:clamp(12px,{1.9},26px)}
+.sr-big .sr-hasside .sr-gn{font-size:clamp(13px,{1.85},25px)}
+.sr-ghost{position:absolute;right:15%;bottom:0;height:98%;max-width:44%;object-fit:contain;object-position:bottom;opacity:.2;filter:grayscale(1) contrast(1.15);pointer-events:none;animation:sr-ghost .9s var(--sr-ease) .15s both}
+@keyframes sr-ghost{from{opacity:0;transform:translateX(6%)}}
+.sr-side{position:absolute;z-index:1;right:23%;top:50%;width:25%;transform:translateY(-58%);display:grid;justify-items:center;gap:{1.6}}
+.sr-side img.sr-crest{width:78%;filter:drop-shadow(0 14px 26px rgba(0,0,0,.45));animation:sr-slam .5s var(--sr-ease) .3s both}
+.sr-side .sr-bug{width:100%;grid-template-columns:minmax(0,1fr) minmax(0,1fr);height:clamp(40px,{6.4},86px);animation-delay:1.1s}
+.sr-big .sr-side .sr-tm{font-size:clamp(13px,{2.4},32px);gap:{.6};padding:0 {.8}}
+.sr-big .sr-side .sr-tm b{font-size:clamp(18px,{3.8},50px)}
+.sr-big .sr-side .sr-tm img{width:clamp(22px,{4},54px);height:clamp(22px,{4},54px)}
+.sr-side .sr-gm{font:800 clamp(11px,{1.5},20px)/1 var(--sr-fc);letter-spacing:.2em;text-transform:uppercase;color:var(--sr-b);animation:sr-rise .45s var(--sr-ease) 1.4s both}
+.sr-big .sr-stamp{width:{21};right:33%;top:5%;background:#fff;color:var(--sr-d);border:{.8} solid var(--sr-d);box-shadow:0 0 0 {.6} #fff,0 22px 46px rgba(0,0,0,.35)}
+.sr-big .sr-stamp img{width:60%}
+.sr-big .sr-stamp span{font-size:clamp(13px,{2.1},28px)}
+.sr-big .sr-half h3{font-size:clamp(20px,{3.6},46px)}
+.sr-big .sr-split{bottom:11cqh}
+}
+/* (Ole Miss 2026-10-18) a take in the hot colour, smaller title lines, two cutouts side by side, a date stamp */
+.sr-take.sr-hot{background:var(--sr-r);color:#fff}
+.sr-hot .sr-ln.sr-g{color:var(--sr-d)}
+.sr-take.sr-small .sr-ln{font-size:clamp(30px,{9.4},130px)}
+.sr-man.sr-m0{right:25%;height:88%;animation-delay:.1s}
+.sr-man.sr-m1{right:-1%;height:97%;animation-delay:.35s}
+.sr-man.sr-col{filter:drop-shadow(0 20px 40px rgba(0,0,0,.6))}
+.sr-stamp{position:absolute;right:31%;top:13%;z-index:3;width:{17};aspect-ratio:1;border-radius:50%;border:{.5} solid #fff;display:grid;place-items:center;align-content:center;text-align:center;color:#fff;background:rgba(0,0,0,.14);animation:sr-stamp .42s cubic-bezier(.3,1.5,.5,1) var(--d,1.2s) both}
+.sr-stamp img{width:46%;display:block;margin:0 auto 6%}
+.sr-stamp span{font:800 clamp(11px,{1.4},18px)/1.1 var(--sr-fc);letter-spacing:.14em;text-transform:uppercase}
+@keyframes sr-stamp{0%{opacity:0;transform:rotate(-12deg) scale(2.4)}70%{opacity:1;transform:rotate(-12deg) scale(.93)}100%{opacity:1;transform:rotate(-12deg)}}
+/* a path stop can carry the school's logo, which lands as the line reaches it */
+.sr-path img{display:block;width:clamp(34px,{6.2},86px);height:clamp(34px,{6.2},86px);object-fit:contain;margin-bottom:{.4};filter:drop-shadow(0 6px 10px rgba(0,0,0,.45));animation:sr-slam .45s var(--sr-ease) var(--d,0ms) both}
+/* score bugs: the round, our cell, theirs, how it ended; each one swooshes in and the scores count up */
+.sr-bugs{display:grid;gap:{1.1};width:min(100%,{80})}
+.sr-bug{display:grid;grid-template-columns:minmax(0,.8fr) minmax(0,1fr) minmax(0,1fr) minmax(0,1.5fr);height:clamp(36px,{6.2},84px);overflow:hidden;animation:sr-swoosh .55s var(--sr-ease) var(--d,0ms) both}
+.sr-bug .sr-rd{background:#03080f;color:var(--sr-b);font:800 clamp(10px,{1.3},17px)/1.1 var(--sr-fc);letter-spacing:.16em;text-transform:uppercase;display:flex;align-items:center;padding:0 {1.2}}
+.sr-tm{display:flex;align-items:center;gap:{1};padding:0 {1.2};min-width:0;overflow:hidden;font:400 clamp(13px,{2.3},31px)/1 var(--sr-fd);color:#fff;background:rgba(255,255,255,.1);white-space:nowrap}
+.sr-tm img{flex:none;width:clamp(22px,{4.2},58px);height:clamp(22px,{4.2},58px);object-fit:contain}
+.sr-tm b{margin-left:auto;font:400 clamp(18px,{3.5},48px)/1 var(--sr-fd);font-variant-numeric:tabular-nums}
+.sr-tm.sr-w{background:var(--sr-b);color:var(--sr-d)}
+.sr-tm.sr-l{opacity:.6}
+.sr-bug .sr-nt{background:#FBF6E8;color:${INK};font:600 clamp(11px,{1.35},18px)/1.25 var(--fb,'Barlow',sans-serif);display:flex;align-items:center;padding:0 {1.3}}
+@keyframes sr-swoosh{from{opacity:0;transform:translateX(-30%) skewX(-14deg)}}
+/* our call on the offense film board (offense-film.js), under a title that lifts away */
+.sr-play{background:var(--sr-night)}
+.sr-play .lp-root{position:absolute;inset:0}
 .sr.sr-still *{animation:none!important;transition:none!important}
 @container (max-width:700px){
   .sr-split{grid-template-columns:1fr;grid-template-rows:1fr 1fr}
@@ -157,13 +243,19 @@ const CSS = `
   .sr-pops{gap:2%;bottom:19%}.sr-pop{flex-basis:31%}
   .sr-banner{bottom:22%}
   .sr-lower p{font-size:3.4cqw}
+  .sr-man.sr-m0{right:38%}
+  .sr-stamp{right:6%;top:8%}
+  .sr-bug{grid-template-columns:minmax(0,1fr) minmax(0,1fr) minmax(0,1fr)}.sr-bug .sr-nt{display:none}
+  .sr-side{display:none}
+  .sr-ghost{right:-8%;height:70%;max-width:70%;opacity:.13}
+  .sr-big .sr-split{bottom:18cqh}
 }
 @media (prefers-reduced-motion:reduce){ .sr *{animation:none!important;transition:none!important} }
 `.replace(/\{([\d.]+)\}/g, (m, n) => 'min(' + n + 'cqw,' + (n * 1.778).toFixed(2) + 'cqh)');
 function styles() { if (document.getElementById('sr-style')) return; const s = document.createElement('style'); s.id = 'sr-style'; s.textContent = CSS; document.head.appendChild(s); }
 
 let S = null;
-function unmount() { if (!S) return; S.dead = true; S.timers.forEach(clearTimeout); clearTimeout(S.pend); S.ros.forEach((r) => r.disconnect()); document.removeEventListener('keydown', S.onKey, true); S = null; }
+function unmount() { if (!S) return; if (S.film && window.skOffFilm) skOffFilm.unmount(); S.dead = true; S.timers.forEach(clearTimeout); clearTimeout(S.pend); S.ros.forEach((r) => r.disconnect()); document.removeEventListener('keydown', S.onKey, true); S = null; }
 
 function mount(host, cfg) {
   unmount(); styles();
@@ -172,9 +264,9 @@ function mount(host, cfg) {
   const STILL = !!cfg.still, REDUCED = STILL || matchMedia('(prefers-reduced-motion: reduce)').matches;
   const NIGHT = { night: 1, sheet: NIGHTC, line: 'rgba(255,255,255,.15)', strong: 'rgba(255,255,255,.85)', hash: 'rgba(255,255,255,.2)', side: 'rgba(255,255,255,.42)', ghost: 'rgba(255,255,255,.42)', text: '#fff', mk: BRIGHT, red: '#ff7a66', alt: '#fff' };
   const PAPER = { sheet: '#f8f1de', line: 'rgba(23,19,14,.2)', strong: 'rgba(23,19,14,.85)', hash: 'rgba(23,19,14,.26)', side: 'rgba(23,19,14,.5)', ghost: 'rgba(23,19,14,.34)', text: INK, mk: PAPERMK, red: '#7d1d10', alt: DARK };
-  const st = S = { host, timers: [], pend: 0, ros: [], dead: false, cur: 0 };
-  host.innerHTML = `<div class="sr${STILL ? ' sr-still' : ''}" tabindex="0" role="group" aria-label="${esc(ST.title || 'The story')}. Press space for the next scene." style="--sr-d:${DARK};--sr-b:${BRIGHT};--sr-night:${NIGHTC};--sr-fd:${FD};--sr-fc:${FC};--sr-fm:${FM};--sr-ease:cubic-bezier(.2,.9,.25,1)">
-    <div class="sr-layer sr-film"><canvas></canvas></div>
+  const st = S = { host, timers: [], pend: 0, ros: [], dead: false, cur: 0, film: false };
+  host.innerHTML = `<div class="sr${STILL ? ' sr-still' : ''}${ST.big ? ' sr-big' : ''}" tabindex="0" role="group" aria-label="${esc(ST.title || 'The story')}. Press space for the next scene." style="--sr-d:${DARK};--sr-b:${BRIGHT};--sr-r:${cfg.hot || BRIGHT};--sr-night:${NIGHTC};--sr-fd:${FD};--sr-fc:${FC};--sr-fm:${FM};--sr-ease:cubic-bezier(.2,.9,.25,1)">
+    <div class="sr-layer sr-film"><canvas></canvas></div><div class="sr-layer sr-play" hidden></div>
     <div class="sr-layer sr-split" hidden><section class="sr-half sr-them"><header><span class="sr-flag sr-fthem">${esc(ST.label || 'The real thing')}</span><h3></h3></header><div class="sr-cv"><canvas></canvas></div></section><section class="sr-half sr-ours"><header><span class="sr-flag">Our install</span><h3></h3></header><div class="sr-cv"><canvas></canvas></div></section></div>
     <div class="sr-layer sr-graphic" hidden></div><div class="sr-layer sr-take" hidden></div>
     <div class="sr-inset" hidden><canvas></canvas></div><div class="sr-pops"></div><div class="sr-banner" hidden></div><div class="sr-slate"></div>
@@ -215,7 +307,7 @@ function mount(host, cfg) {
       g.textAlign = 'center'; if (pos2) { g.fillStyle = 'rgba(23,19,14,.8)'; g.font = '700 ' + clamp(z[2] * .95, 9.5, 16) + 'px ' + FC; g.textBaseline = 'top'; g.fillText(pos2, z[0], z[1] + rr + 2); }
       if (tag) { g.font = '400 ' + clamp(z[2] * 1.4, 13, 26) + 'px ' + FM; g.textBaseline = 'alphabetic'; g.lineJoin = 'round'; g.strokeStyle = th.sheet; g.lineWidth = 5; g.strokeText(tag, z[0], z[1] - rr - 8); g.fillStyle = th.mk; g.fillText(tag, z[0], z[1] - rr - 8); } g.restore(); }
     /* their men: a cream disc ringed in the bright colour with his number, and his name when asked */
-    function disc(x, y, num, o) { o = o || {}; const z = P([x, y]); if (!z) return; const rr = clamp(z[2] * .9, 8.5, 26); g.save(); g.globalAlpha = o.dim ? .22 : 1; g.beginPath(); g.arc(z[0], z[1], rr, 0, 7); g.fillStyle = CREAM; g.fill(); g.strokeStyle = BRIGHT; g.lineWidth = Math.max(2, rr * .2); g.stroke(); g.textAlign = 'center';
+    function disc(x, y, num, o) { o = o || {}; const z = P([x, y]); if (!z) return; const rr = o.big ? clamp(z[2] * 1.2, 12, 28) : clamp(z[2] * .9, 8.5, 26); g.save(); g.globalAlpha = o.dim ? .22 : 1; g.beginPath(); g.arc(z[0], z[1], rr, 0, 7); g.fillStyle = CREAM; g.fill(); g.strokeStyle = BRIGHT; g.lineWidth = Math.max(2, rr * .2); g.stroke(); g.textAlign = 'center';
       if (num != null) { g.fillStyle = DARK; g.font = '400 ' + (rr * (String(num).length > 1 ? 1.05 : 1.2)) + 'px ' + FD; g.textBaseline = 'middle'; g.fillText(String(num), z[0], z[1] + rr * .06); }
       if (o.tag) { g.font = '400 ' + clamp(z[2] * 1.4, 13, 26) + 'px ' + FM; g.textBaseline = 'alphabetic'; g.lineJoin = 'round'; g.strokeStyle = th.sheet; g.lineWidth = 5; g.strokeText(o.tag, z[0], z[1] - rr - 8); g.fillStyle = th.mk; g.fillText(o.tag, z[0], z[1] - rr - 8); }
       if (o.name && !o.dim) { g.font = '800 ' + clamp(z[2] * .8, 10, 16) + 'px ' + FC; g.lineJoin = 'round'; g.strokeStyle = th.sheet; g.lineWidth = 4; g.fillStyle = th.text; const up = o.up && !o.tag, Y = up ? z[1] - rr - 6 : z[1] + rr + 3; g.textBaseline = up ? 'alphabetic' : 'top'; g.strokeText(o.name, z[0], Y); g.fillText(o.name, z[0], Y); }
@@ -310,37 +402,103 @@ function mount(host, cfg) {
     four(B) { const t = B.T(), u = u01(t, SNAP0, SNAP1); offense(B, { qb: [0, -6 - 1.6 * ease(u)], push: ease(u) }); const pos = rush4(B, t, SNAP0, SNAP1); B.label('four rush', 0, -9.4, B.th.mk, u01(t, SNAP1, SNAP1 + .3), big(B), FM); them(B, { pos, names: FRONT }); },
   };
 
+  /* ---- AN OFFENSE SIDE BY SIDE (Ole Miss 2026-10-18, his note: "side by side, them running things with our offense", like the
+     Seahawks): both halves play the SAME snap, the film board's own simulation of the read (skOffFilm.simFor). The left is the
+     real team at night, their numbers on the discs (story.cast) and the path each one has run behind him; the right is our
+     call on paper, the routes drawn the way the database draws them, then the snap, his words landing as they do on the
+     film board. The play holds for a beat at the moment of the read. ---- */
+  const LEAD = 1.15, HOLDF = 1.1;
+  function osim(s) { if (st.osim && st.osim.id === s.id) return st.osim.v; const F = cfg.film; let v = null;
+    if (F && window.skOffFilm && skOffFilm.simFor) { try { v = skOffFilm.simFor(F.scheme, s.call, s.read, (F.plays || {})[s.call], F.blocking); } catch (e) { console.error('story: the side by side failed', e); } }
+    if (v) { const men = v.p.men, ol = men.filter((m) => m.role === 'ol').map((m) => m.x).sort((a, c) => a - c), cx = ol.length ? ol[2] : 0, CAST = ST.cast || {}, back = (m) => m.role === 'rb' || (m.role !== 'qb' && m.role !== 'ol' && m.y < -3);
+      const rec = men.map((m, i) => ({ m, i })).filter(({ m }) => m.role !== 'ol' && m.role !== 'qb' && !back(m)), right = rec.filter((r) => r.m.x > cx), left = rec.filter((r) => r.m.x <= cx), trips = right.length >= left.length ? right : left, solo = trips === right ? left : right;
+      v.cast = men.map((m) => (m.role === 'qb' ? CAST.qb : back(m) ? CAST.rb : null)); v.olN = men.map((m) => (m.role === 'ol' ? ['LT', 'LG', 'C', 'RG', 'RT'][ol.indexOf(m.x)] || '' : ''));
+      trips.sort((a, c) => Math.abs(c.m.x - cx) - Math.abs(a.m.x - cx)).forEach((r, j) => { v.cast[r.i] = (CAST.trips || [])[j] || null; });
+      solo.sort((a, c) => Math.abs(c.m.x - cx) - Math.abs(a.m.x - cx)).forEach((r, j) => { v.cast[r.i] = (CAST.solo || [])[j] || null; });
+      const lit = new Set(v.lit); v.hot = men.map((m) => lit.has(m.k) || (lit.has('pull') && m.pull) || (v.R.run && v.R.run.who === m.k) || (v.R.run && v.R.run.who === 'qb' && m.role === 'qb') || (v.R.throws || []).some((th) => th.man === m.k));
+      v.ringI = v.shell.map((d, j) => v.ring.includes(d.lb) || v.ring.includes(v.names[j]));
+      /* the camera: the formation, the routes and wherever anybody goes, from behind the quarterback */
+      let x0 = cx - 4, x1 = cx + 4, y0 = -6, y1 = 8; const take = (q) => { x0 = Math.min(x0, q[0]); x1 = Math.max(x1, q[0]); y0 = Math.min(y0, q[1]); y1 = Math.max(y1, Math.min(q[1], 24)); };
+      v.frames.forEach((f, k) => { if (k % 3) return; f.o.forEach(take); f.d.forEach(take); if (f.ball) take(f.ball); });
+      men.forEach((m) => { (m.r || []).forEach(take); (m.alts || []).forEach((a) => a.forEach(take)); (m.mot || []).forEach(take); });
+      v.view = [Math.max(-27.4, x0 - 2), y0 - 2.2, Math.min(27.4, x1 + 2), Math.min(25.5, y1 + 2)];
+      v.trail = men.map((m, i) => v.frames.map((f) => f.o[i])); }
+    st.osim = { id: s.id, v }; return v; }
+  /* the sim's clock: the routes draw in first, then the snap, then a beat held at the moment of the read */
+  function simT(v, t) { const raw = Math.max(0, t - LEAD + (v.snap - .35)); if (v.moment == null || raw < v.moment) return raw; return raw < v.moment + HOLDF ? v.moment : raw - HOLDF; }
+  const fidx = (v, T) => clamp(Math.round(T * 30), 0, v.frames.length - 1);
+  function oball(B, v, f, k) { const bl = f.ball; if (!bl) return; const held = v.frames[k].o.some((o) => Math.hypot(o[0] - bl[0], o[1] - bl[1]) < .9); if (!held || k === 0) B.ball(bl[0], bl[1] + (bl[2] || 0) * .3); else B.ball(bl[0] + .4, bl[1] - .1); }
+  function osideNight(B, s) { const v = osim(s); if (!v) return; const t = B.T(), T = simT(v, t), k = fidx(v, T), f = v.frames[k], c = B.th, lw = lwOf(B);
+    v.p.men.forEach((m, i) => { if (m.role === 'ol' || k < 2) return; const pts = v.trail[i].slice(0, k + 1).filter((q, j) => j % 2 === 0 || j === k); if (pts.length > 1) { const L = B.line(pts, v.hot[i] ? c.mk : 'rgba(255,255,255,.45)', v.hot[i] ? lw : 2, null, .95, 1); if (v.hot[i]) B.tip(L, c.mk, 10, 1); } });
+    if (t < LEAD + .4) v.ringI.forEach((on, j) => { if (on) B.scribble(f.d[j][0], f.d[j][1], u01(t, .5, 1), c.alt, j + .3, .9); });
+    f.d.forEach((d, j) => B.ghost(d[0], d[1], v.pos[j]));
+    v.p.men.slice().map((m, i) => i).sort((a, b2) => f.o[b2][1] - f.o[a][1]).forEach((i) => { const m = v.p.men[i], o = f.o[i], who = v.cast[i]; B.disc(o[0], o[1], who ? who[0] : (v.olN[i] || ''), { name: v.hot[i] && who && m.role !== 'ol' ? who[1] : '', dim: false, big: 1 }); });
+    oball(B, v, f, k); }
+  function osidePaper(B, s) { const v = osim(s); if (!v) return; const t = B.T(), T = simT(v, t), k = fidx(v, T), f = v.frames[k], c = B.th, lw = lwOf(B), pr = ease(u01(t, .15, LEAD)), fade = k > 0 ? .55 : 1, INKA = 'rgba(23,19,14,.82)';
+    v.p.men.forEach((m, i) => { const hot = v.hot[i], st0 = m.mot ? m.mot[m.mot.length - 1] : [m.x, m.y];
+      if (m.mot) B.line([[m.x, m.y]].concat(m.mot), 'rgba(23,19,14,.55)', 1.8, [5, 5], .9, pr);
+      if (m.role === 'ol') { const path = m.rel && m.rel.length ? [st0].concat(m.rel) : null, e = path ? path[path.length - 1] : st0, L = m.bk === 'r' ? 1.5 : .85;
+        if (path) B.line(path, m.pull ? c.mk : 'rgba(23,19,14,.6)', m.pull ? lw : 2, m.pull ? null : [3, 4], pr * fade, 1); B.line([e, [e[0], e[1] + L]], INKA, 2, null, pr * fade, 1); B.line([[e[0] - .6, e[1] + L], [e[0] + .6, e[1] + L]], INKA, 2, null, pr * fade, 1); return; }
+      if (m.r && m.r.length > 1) { const path = Math.hypot(m.r[0][0] - st0[0], m.r[0][1] - st0[1]) > .4 ? [st0].concat(m.r) : m.r, L = B.line(path, hot ? c.mk : INKA, hot ? lw : 2.2, null, hot ? 1 : fade, pr); B.tip(L, hot ? c.mk : INK, hot ? 10 : 7, pr > .98 ? (hot ? 1 : fade) : 0);
+        (m.alts || []).forEach((a) => B.line(Math.hypot(a[0][0] - path[path.length - 1][0], a[0][1] - path[path.length - 1][1]) > 3 ? a : a, hot ? c.mk : 'rgba(23,19,14,.5)', 1.8, [5, 5], .9 * fade, pr)); } });
+    if (v.R.run && v.R.run.path) B.tip(B.line(v.R.run.path, c.mk, lw, [8, 6], .9, pr), c.mk, 10, pr > .98 ? .9 : 0);
+    if (t < LEAD + .4) v.ringI.forEach((on, j) => { if (on) B.scribble(f.d[j][0], f.d[j][1], u01(t, .5, 1), c.mk, j + .3, .9); });
+    f.d.forEach((d, j) => B.ghost(d[0], d[1], v.pos[j]));
+    const g = B.g; v.p.men.forEach((m, i) => { const o = f.o[i], z = B.P(o); if (!z) return; const rr = clamp(z[2] * .8, 8, 16); g.save(); g.beginPath(); g.arc(z[0], z[1], rr, 0, 7); g.fillStyle = m.role === 'qb' ? c.mk : '#f8f1de'; g.fill(); g.lineWidth = Math.max(1.8, rr * .3); g.strokeStyle = INK; g.stroke();
+      const lab = m.role === 'qb' ? 'QB' : m.role === 'ol' ? v.olN[i] : (m.role === 'rb' || m.y < -3) ? 'RB' : 'WR'; if (lab && z[2] > 4.2) { g.fillStyle = 'rgba(23,19,14,.78)'; g.font = '700 ' + clamp(z[2] * .82, 9, 14) + 'px ' + FC; g.textAlign = 'center'; g.textBaseline = 'top'; g.fillText(lab, z[0], z[1] + rr + 2); } g.restore(); });
+    const boxes = []; v.words.forEach((w) => { if (T < w.at) return; const z = B.P([w.x, Math.min(w.y, 21.5)]); if (!z) return; const g = B.g, px = big(B) * .78; g.save(); g.globalAlpha = u01(T, w.at, w.at + .3); g.font = '400 ' + px + 'px ' + FM; const tw = g.measureText(w.t).width, X = clamp(z[0], tw / 2 + 8, B.b.W - tw / 2 - 8); let Y = clamp(z[1], px + 4, B.b.H - px);
+      while (boxes.some((b2) => Math.abs(b2[0] - X) < (b2[2] + tw) / 2 + 28 && Math.abs(b2[1] - Y) < px * 1.1)) Y += px * 1.25; boxes.push([X, Y, tw]);   /* two of his phrases never sit on each other */
+      g.textAlign = 'center'; g.textBaseline = 'middle'; g.lineJoin = 'round'; g.strokeStyle = c.sheet; g.lineWidth = 5; g.strokeText(w.t, X, Y); g.fillStyle = c.mk; g.fillText(w.t, X, Y); g.restore(); });
+    oball(B, v, f, k); }
+
   /* ---- the boards ---- */
   const sc = () => SCENES[st.cur];
   const BA = makeBoard(q('.sr-film canvas'), (B) => { const s = sc(), c = CLIPS[s.clip]; if (s.kind === 'film' && c) c(B, s); }, NIGHT);
   const BI = makeBoard(q('.sr-inset canvas'), (B) => { const s = sc(), c = s.group && CLIPS[s.group.clip]; if (c) c(B, s); }, NIGHT);
   /* the left half is the real team at night, unless the scene puts one of our calls there too: then it is paper like the right */
   const LT = Object.assign({}, NIGHT), leftTheme = (paper) => { Object.keys(LT).forEach((k) => { delete LT[k]; }); Object.assign(LT, paper ? PAPER : NIGHT); };
-  const BL = makeBoard(q('.sr-them canvas'), (B) => { const s = sc(), c = CLIPS[s.clip]; if (s.kind !== 'split') return; if (s.callL) ours(B, Object.assign({}, s, { tags: null, ring: null, sack: 0, outs: null }, s.L || {}, { call: s.callL })); else if (c) c(B, s); }, LT);
-  const BR = makeBoard(q('.sr-ours canvas'), (B) => { const s = sc(); if (s.kind === 'split') ours(B, s); }, PAPER);
+  const BL = makeBoard(q('.sr-them canvas'), (B) => { const s = sc(), c = CLIPS[s.clip]; if (s.kind !== 'split') return; if (s.off) osideNight(B, s); else if (s.callL) ours(B, Object.assign({}, s, { tags: null, ring: null, sack: 0, outs: null }, s.L || {}, { call: s.callL })); else if (c) c(B, s); }, LT);
+  const BR = makeBoard(q('.sr-ours canvas'), (B) => { const s = sc(); if (s.kind === 'split') { if (s.off) osidePaper(B, s); else ours(B, s); } }, PAPER);
   const boards = [BA, BI, BL, BR]; st.root = root; st.boards = boards;
 
   /* ---- the graphics ---- */
   function count(el) { const str = el.dataset.n, m = /^(-?)(\d+)(\.\d+)?(%?)$/.exec(str); if (!m || REDUCED) { el.textContent = str; return; } const to = parseFloat(m[2] + (m[3] || '')), dec = m[3] ? m[3].length - 1 : 0, t0 = performance.now(); const f = () => { if (st.dead) return; const k = clamp((performance.now() - t0) / 650, 0, 1); el.textContent = m[1] + (to * (1 - Math.pow(1 - k, 3))).toFixed(dec) + m[4]; if (k < 1) requestAnimationFrame(f); else el.textContent = str; }; requestAnimationFrame(f); }
-  function takeHTML(t) { return (t.man && IMG[t.man] ? `<img class="sr-man" src="${esc(IMG[t.man])}" alt="">` : '') + t.lines.map(([w, c], j) => `<span class="sr-ln${c ? ' sr-g' : ''}" style="--d:${j * 170}ms">${esc(w)}</span>`).join('') + (t.sub ? `<span class="sr-sub" style="--d:${t.lines.length * 170 + 120}ms">${esc(t.sub)}</span>` : '') + (t.slips ? `<div class="sr-slips">${t.slips.map((x, j) => `<span style="--d:${700 + j * 160}ms"><b>${j + 1}</b>${esc(x)}</span>`).join('')}</div>` : ''); }
-  function setTake(t) { const lt = q('.sr-take'); lt.className = 'sr-layer sr-take' + (t.paper ? ' sr-paper' : '') + (t.flood ? ' sr-flood' : '') + (t.center ? ' sr-center' : ''); lt.style.backgroundImage = t.photo && IMG[t.photo] ? `linear-gradient(100deg,${shade(DARK, .8)} 0 30%,rgba(0,0,0,.35)),url("${IMG[t.photo]}")` : ''; lt.innerHTML = takeHTML(t); lt.hidden = false; }
+  function takeHTML(t) { return (t.man && IMG[t.man] ? `<img class="sr-man" src="${esc(IMG[t.man])}" alt="">` : '')
+    + (t.men || []).map((k, j) => (IMG[k] ? `<img class="sr-man sr-m${j}${(t.color || []).includes(k) ? ' sr-col' : ''}" src="${esc(IMG[k])}" alt="">` : '')).join('')
+    + (t.stamp ? `<div class="sr-stamp" style="--d:${t.stamp.at || 1.2}s">${t.stamp.img && IMG[t.stamp.img] ? `<img src="${esc(IMG[t.stamp.img])}" alt="">` : ''}<span>${esc(t.stamp.text || '')}</span></div>` : '') + t.lines.map(([w, c], j) => `<span class="sr-ln${c ? ' sr-g' : ''}" style="--d:${j * 170}ms">${esc(w)}</span>`).join('') + (t.sub ? `<span class="sr-sub" style="--d:${t.lines.length * 170 + 120}ms">${esc(t.sub)}</span>` : '') + (t.slips ? `<div class="sr-slips">${t.slips.map((x, j) => `<span style="--d:${700 + j * 160}ms"><b>${j + 1}</b>${esc(x)}</span>`).join('')}</div>` : ''); }
+  function setTake(t) { const lt = q('.sr-take'); lt.className = 'sr-layer sr-take' + (t.paper ? ' sr-paper' : '') + (t.flood ? ' sr-flood' : '') + (t.hot ? ' sr-hot' : '') + (t.small ? ' sr-small' : '') + (t.center ? ' sr-center' : ''); lt.style.backgroundImage = t.photo && IMG[t.photo] ? `linear-gradient(100deg,${shade(DARK, .8)} 0 30%,rgba(0,0,0,.35)),url("${IMG[t.photo]}")` : ''; lt.innerHTML = takeHTML(t); lt.hidden = false; }
   function chartHTML(c) { const u = c.unit || '';
     if (c.type === 'bars') return `<div class="sr-gs"><span class="sr-k">${esc(c.k)}</span><h3>${esc(c.h)}</h3><div class="sr-bars">${c.bars.map(([tm, v, me], j) => `<div class="sr-bar${me ? ' sr-me' : ''}"><span>${esc(tm)}</span><u><i style="--w:${(v / c.max * 100).toFixed(1)}%;--d:${250 + j * 170}ms"></i></u><b data-n="${v.toFixed(1)}${u}">${v.toFixed(1)}${u}</b></div>`).join('')}</div><p class="sr-gn">${esc(c.note || '')}</p></div>`;
-    if (c.type === 'path') return `<div class="sr-gs"><span class="sr-k">${esc(c.k)}</span><h3 class="sr-sm">${esc(c.h)}</h3><ol class="sr-path" style="--n:${c.stops.length}">${c.stops.map(([y, t, x], j) => `<li style="--d:${350 + j * 280}ms"><em>${esc(y)}</em><strong>${esc(t)}</strong><small>${esc(x)}</small></li>`).join('')}</ol><p class="sr-gn" style="animation-delay:${(.6 + c.stops.length * .28).toFixed(2)}s">${esc(c.note || '')}</p></div>`;
-    return `<div class="sr-gs${c.tight ? ' sr-tight' : ''}"><span class="sr-k">${esc(c.k)}</span><div class="sr-huge" data-n="${esc(c.n)}">${esc(c.n)}</div><h3 class="sr-sm">${esc(c.h)}</h3><div class="sr-chips">${(c.chips || []).map((x, j) => `<span style="--d:${700 + j * 170}ms">${esc(x)}</span>`).join('')}</div><p class="sr-gn">${esc(c.note || '')}</p></div>`; }
+    if (c.type === 'path') return `<div class="sr-gs"><span class="sr-k">${esc(c.k)}</span><h3 class="sr-sm">${esc(c.h)}</h3><ol class="sr-path" style="--n:${c.stops.length}">${c.stops.map(([y, t, x, lg], j) => `<li style="--d:${350 + j * 280}ms">${lg && IMG[lg] ? `<img src="${esc(IMG[lg])}" alt="" style="--d:${450 + j * 280}ms">` : ''}<em>${esc(y)}</em><strong>${esc(t)}</strong><small>${esc(x)}</small></li>`).join('')}</ol><p class="sr-gn" style="animation-delay:${(.6 + c.stops.length * .28).toFixed(2)}s">${esc(c.note || '')}</p></div>`;
+    /* (Ole Miss 2026-10-18) score bugs: games [[round, their name, their logo, our score, their score, how it ended]] */
+    if (c.type === 'bugs') { const us = c.us || {};
+      return `<div class="sr-gs"><span class="sr-k">${esc(c.k)}</span><h3 class="sr-sm">${esc(c.h)}</h3><div class="sr-bugs">${c.games.map(([rd, nm, lg, a, b, nt], j) => { const won = a > b, d = 350 + j * 650;
+        return `<div class="sr-bug" style="--d:${d}ms"><span class="sr-rd">${esc(rd)}</span><span class="sr-tm${won ? ' sr-w' : ' sr-l'}">${us.img && IMG[us.img] ? `<img src="${esc(IMG[us.img])}" alt="">` : ''}${esc(us.name || '')}<b data-n="${a}" data-at="${(d / 1000 + .35).toFixed(2)}">${a}</b></span><span class="sr-tm${won ? ' sr-l' : ' sr-w'}">${lg && IMG[lg] ? `<img src="${esc(IMG[lg])}" alt="">` : ''}${esc(nm)}<b data-n="${b}" data-at="${(d / 1000 + .45).toFixed(2)}">${b}</b></span><span class="sr-nt">${esc(nt || '')}</span></div>`; }).join('')}</div>`
+        + `<div class="sr-chips">${(c.chips || []).map((x, j) => `<span style="--d:${450 + c.games.length * 650 + j * 170}ms">${esc(x)}</span>`).join('')}</div><p class="sr-gn" style="animation-delay:${(.7 + c.games.length * .65).toFixed(2)}s">${esc(c.note || '')}</p></div>`; }
+    const sideH = c.side ? `<div class="sr-side">${c.side.img && IMG[c.side.img] ? `<img class="sr-crest" src="${esc(IMG[c.side.img])}" alt="">` : ''}${c.side.game ? (([na, ia, a, nb, ib, b]) => `<div class="sr-bug" style="--d:1100ms"><span class="sr-tm${a > b ? ' sr-w' : ' sr-l'}">${ia && IMG[ia] ? `<img src="${esc(IMG[ia])}" alt="">` : ''}${esc(na)}<b data-n="${a}" data-at="1.4">${a}</b></span><span class="sr-tm${a > b ? ' sr-l' : ' sr-w'}">${ib && IMG[ib] ? `<img src="${esc(IMG[ib])}" alt="">` : ''}${esc(nb)}<b data-n="${b}" data-at="1.5">${b}</b></span></div>`)(c.side.game) : ''}${c.side.cap ? `<span class="sr-gm">${esc(c.side.cap)}</span>` : ''}</div>` : '';
+    const ghostH = c.ghost && IMG[c.ghost] ? `<img class="sr-ghost" src="${esc(IMG[c.ghost])}" alt="">` : '';
+    return ghostH + sideH + `<div class="sr-gs${c.tight ? ' sr-tight' : ''}${c.side ? ' sr-hasside' : ''}"><span class="sr-k">${esc(c.k)}</span><div class="sr-huge" data-n="${esc(c.n)}">${esc(c.n)}</div><h3 class="sr-sm">${esc(c.h)}</h3><div class="sr-chips">${(c.chips || []).map((x, j) => `<span style="--d:${700 + j * 170}ms">${esc(x)}</span>`).join('')}</div><p class="sr-gn">${esc(c.note || '')}</p></div>`; }
   function groupHTML(gp) { return `<div class="sr-gg"><div class="sr-gph"><span class="sr-bn">${esc(gp.num)}</span>${IMG[gp.cut] ? `<img src="${esc(IMG[gp.cut])}" alt="">` : ''}</div><div class="sr-gt"><span class="sr-k">${esc(gp.k)}</span><h3>${esc(gp.h)}</h3><ul class="sr-rows">${gp.rows.map(([n, nm, x], j) => `<li style="--d:${300 + j * 130}ms"><em>${esc(n)}</em><strong>${esc(nm)}</strong><small>${esc(x)}</small></li>`).join('')}</ul><p class="sr-why"><b>Why it worked</b>${esc(gp.why)}</p></div></div>`; }
 
+  /* ---- our call, played on the offense film board (offense-film.js); cfg.film = { scheme, plays, calls, blocking, team } ---- */
+  function startPlay(s) { const F = cfg.film, host = q('.sr-play'); if (!F || !window.skOffFilm || st.dead) return; const c = (F.calls || {})[s.call] || {};
+    host.textContent = ''; host.dataset.live = s.call; host.dataset.scheme = F.scheme;
+    st.film = !!skOffFilm.mount(host, { scheme: F.scheme, id: s.call, offense: true, play: (F.plays || {})[s.call], blocking: F.blocking, reads: c.reads || [], adj: c.adjustments || [], start: s.read || 0, still: STILL, left: 0, team: F.team, look: false }); }
+  function stopPlay() { if (st.film && window.skOffFilm) skOffFilm.unmount(); st.film = false; const h = q('.sr-play'); if (h) h.textContent = ''; }
   /* ---- one scene ---- */
   function paintScene() { const s = sc(), nr = narrow(), hold = s.intro && !REDUCED ? (s.intro.hold || 2.4) : 0;
-    root.dataset.kind = s.kind; q('.sr-film').hidden = s.kind !== 'film'; q('.sr-split').hidden = s.kind !== 'split'; q('.sr-graphic').hidden = !(s.kind === 'chart' || s.kind === 'group'); q('.sr-inset').hidden = s.kind !== 'group';
+    root.dataset.kind = s.kind; q('.sr-film').hidden = s.kind !== 'film'; q('.sr-split').hidden = s.kind !== 'split'; q('.sr-graphic').hidden = !(s.kind === 'chart' || s.kind === 'group'); q('.sr-inset').hidden = s.kind !== 'group' || !s.group.clip;
+    stopPlay(); q('.sr-play').hidden = s.kind !== 'play';
     const lt = q('.sr-take'); lt.hidden = true; lt.classList.remove('sr-lift');
     q('.sr-slate').innerHTML = `<b>${String(st.cur + 1).padStart(2, '0')}</b>${esc(s.slate || '')}`;
     if (s.kind === 'take') setTake(s.take);
     /* a film scene can open under a title that lifts away, so the title and the first snap are one scene */
     if (s.kind === 'film' && s.intro && !REDUCED) { setTake(s.intro); later(hold, () => lt.classList.add('sr-lift')); later(hold + .8, () => { lt.hidden = true; }); }
+    /* our call on the offense film board, at the read the scene names; under a title it waits until the title lifts */
+    if (s.kind === 'play') { if (s.intro && !REDUCED) { setTake(s.intro); later(hold, () => lt.classList.add('sr-lift')); later(hold + .8, () => { lt.hidden = true; }); } later(s.intro ? Math.max(0, hold - .3) : 0, () => startPlay(s)); }
     if (s.kind === 'chart') { q('.sr-graphic').innerHTML = chartHTML(s.chart); }
     if (s.kind === 'group') { q('.sr-graphic').innerHTML = groupHTML(s.group); }
-    q('.sr-graphic').querySelectorAll('[data-n]').forEach((el, j) => later(.25 + j * .17, () => count(el)));
+    q('.sr-graphic').querySelectorAll('[data-n]').forEach((el, j) => later(el.dataset.at ? +el.dataset.at : .25 + j * .17, () => count(el)));
     const pops = q('.sr-pops'); pops.innerHTML = (s.pops || []).map(([, n, t, x]) => `<div class="sr-pop"><b data-n="${esc(n)}">${esc(n)}</b><span>${esc(t)}</span>${x ? `<i>${esc(x)}</i>` : ''}</div>`).join('');
     (s.pops || []).forEach(([at], j) => later(hold + at, () => { const el = pops.children[j]; if (!el) return; el.classList.add('sr-in'); count(el.querySelector('b')); }));
     const bn = q('.sr-banner'); bn.classList.remove('sr-in'); bn.hidden = !s.banner; if (s.banner) { bn.textContent = s.banner[1]; later(hold + s.banner[0], () => bn.classList.add('sr-in')); }
@@ -348,7 +506,7 @@ function mount(host, cfg) {
       if (s.kind === 'film') { BA.redraw(); BA.cam(nr && s.vm ? s.vm : s.v, true); BA.restart(hold); (s.cams || []).forEach(([at, v, vm]) => later(hold + at, () => BA.cam(nr && vm ? vm : v))); }
       if (s.kind === 'group') { BI.redraw(); BI.cam(s.group.view || [-23, -5, 23, 20], true); BI.restart(); }
       if (s.kind === 'split') { leftTheme(!!s.callL); q('.sr-them').classList.toggle('sr-pp', !!s.callL); const lf = q('.sr-them .sr-flag'); lf.textContent = s.callL ? 'Our install' : (ST.label || 'The real thing'); lf.classList.toggle('sr-fthem', !s.callL);
-        q('.sr-them h3').textContent = s.hL || ''; q('.sr-ours h3').textContent = s.hR || ''; BL.redraw(); BR.redraw(); BL.cam(s.vL, true); BR.cam(s.vR, true); BL.restart(); BR.restart(); } });
+        q('.sr-them h3').textContent = s.hL || ''; q('.sr-ours h3').textContent = s.hR || ''; BL.redraw(); BR.redraw(); const ov = s.off ? (osim(s) || {}).view || [-24, -9, 24, 19] : null; BL.cam(ov || s.vL, true); BR.cam(ov || s.vR, true); BL.restart(); BR.restart(); } });
     /* the lower third: our side quotes his own words */
     const mine = s.side === 'ours', quote = mine && !s.plain, lo = q('.sr-lower'); lo.className = 'sr-lower' + (quote ? ' sr-q' : '');
     const fl = lo.querySelector('.sr-flag'); fl.className = 'sr-flag' + (mine ? '' : ' sr-fthem'); fl.textContent = mine ? 'Our install' : (ST.label || 'The real thing'); lo.querySelector('p').textContent = quote ? String.fromCharCode(8220) + s.cap + String.fromCharCode(8221) : (s.cap || '');

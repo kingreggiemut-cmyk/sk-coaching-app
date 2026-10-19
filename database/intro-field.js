@@ -45,7 +45,7 @@ const defCls = (d) => d.rush ? (d.y < 3.5 ? 'dl' : 'lb') : d.zone && d.zone[1] >
 const numbered = (p) => p.men.filter((m) => m.role !== 'ol' && m.role !== 'qb').map((m) => ({ m, x: m.mot ? m.mot[m.mot.length - 1][0] : m.x })).sort((a, b) => b.x - a.x);
 /* the shell for a scene: the coverage's men, with the scene's own moves on top (a linebacker walked out to a slot) */
 function shellOf(sc) { const base = (SHELLS[sc.cov] || SHELLS.c2).map((d) => Object.assign({}, d, { zone: d.zone ? d.zone.slice() : undefined }));
-  for (const o of sc.def || []) { const d = base.find((q) => q.lb === o.who); if (!d) continue; if (o.x != null) d.x = o.x; if (o.y != null) d.y = o.y; if (o.zone) d.zone = o.zone.slice(); if (o.chase) { d.chase = o.chase; d.until = o.until; d.then = o.then; } if (o.rush) { d.rush = 1; delete d.zone; delete d.man; } }
+  for (const o of sc.def || []) { const nth = /^(.*)#(\d+)$/.exec(o.who || ''), d = base.find((q) => q.lb === o.who) || (nth ? base.filter((q) => q.lb === nth[1])[+nth[2] - 1] : null);   /* the exact name first: a man lock is named Man lock on #3 */ if (!d) continue;   /* 'Rush#4': the fourth of that name, left to right */ if (o.x != null) d.x = o.x; if (o.y != null) d.y = o.y; if (o.zone) d.zone = o.zone.slice(); if (o.chase) { d.chase = o.chase; d.until = o.until; d.then = o.then; } if (o.rush) { d.rush = 1; delete d.zone; delete d.man; } if (o.shade) d.shade = o.shade; if (o.lag != null) d.lag = o.lag; if (o.man != null && !o.rush) { d.man = o.man; delete d.zone; } }
   return base; }
 /* the scene with its clock resolved: motion takes real time, so everything after the authored snap slides later by what the motion needs */
 function prepScene(sc, p) {
@@ -191,7 +191,8 @@ function simulate(R, p, BLK) {
       for (const th of throws) { if (th.done) continue; const from = th.from && th.from !== 'qb' ? byK[th.from] : qb, to = byK[th.man]; if (!from || !to) { th.done = true; continue; }
         if (t >= th.at && !th.flight) { th.fromPos = [from.x, from.y]; const d0 = dist(th.fromPos, [to.x, to.y]); th.flight = Math.min(1.15, .36 + .024 * d0); th.t0 = t; th.toA = to; ball.with = null; thrown = th; }
         if (th.flight) { const u = clamp((t - th.t0) / th.flight, 0, 1), d0 = dist(th.fromPos, [to.x, to.y]); ball.x = lerp(th.fromPos[0], to.x, u); ball.y = lerp(th.fromPos[1], to.y, u); ball.z = 1.6 + Math.min(5, .8 + .11 * d0) * 4 * u * (1 - u);
-          if (u >= 1) { th.done = true; ball.with = to; to.caught = true; to.v = to.vmax * .8; if (R.run && R.run.afterCatch && R.run.who === to.k) { to.mode = 'carry'; to.path = [[to.x, to.y]].concat(runPath); to.d = 0; to.vmax = R.run.speed || SPEED[to.cls]; to.delay = 0; } carrier = to; } } }
+          if (u >= 1) { th.done = true; ball.with = to; to.caught = true; to.v = to.vmax * .8; if (!(R.run && R.run.afterCatch && R.run.who === to.k)) { /* no run after the catch: he turns up the field */ to.mode = 'carry'; to.path = [[to.x, to.y], [to.x + (Math.abs(to.x) > 20 ? -Math.sign(to.x) * 2 : 0), to.y + 18]]; to.d = 0; to.delay = 0; to.vmax = SPEED[to.cls] || 8; }
+          if (R.run && R.run.afterCatch && R.run.who === to.k) { to.mode = 'carry'; to.path = [[to.x, to.y]].concat(runPath); to.d = 0; to.vmax = R.run.speed || SPEED[to.cls]; to.delay = 0; } carrier = to; } } }
       /* ---- the defense ---- */
       const ballMan = isRun ? carrier : (ball.with && ball.with !== qb ? ball.with : null);
       const keyMan = ballMan || (fake && tp < (R.fake.until == null ? .8 : R.fake.until) ? fake : null);   /* who the run fits key: the ball, or the fake while it lasts */
@@ -209,8 +210,8 @@ function simulate(R, p, BLK) {
           else if (d.cls === 'dl') target = [d.x, .6];
           else target = [keyMan.x, Math.max(keyMan.y, .8)]; }
         else if (d.rush) { const edge = Math.abs(d.home[0]) >= 4; if (edge && d.y > qb.y + 1) target = [qb.x + Math.sign(d.home[0]) * 4.5, qb.y - 1]; else target = [qb.x, qb.y]; vmax = 6; if (!thrown && dist([d.x, d.y], [qb.x, qb.y]) < 1.8) target = [d.x, d.y]; if (thrown) target = [d.x, d.y]; }
-        else if (d.man && d.mark) { const m = d.mark, v = vel(m), L = Math.hypot(v[0], v[1]); const ux = L > .3 ? v[0] / L : 0, uy = L > .3 ? v[1] / L : 1; const shade = m.x > 0 ? -.8 : .8;
-          if (m.y < d.y - 3) { target = [m.x + shade, d.y]; vmax = Math.min(vmax, 4.5); back = true; } else target = [m.x - ux * 1.6 + shade, m.y - uy * 1.6]; }
+        else if (d.man && d.mark) { const m = d.mark, v = vel(m), L = Math.hypot(v[0], v[1]); const ux = L > .3 ? v[0] / L : 0, uy = L > .3 ? v[1] / L : 1; const shade = d.shade === 'out' ? (m.x > 0 ? 1 : -1) : (m.x > 0 ? -.8 : .8);   /* inside shade, or outside when the scene says so */
+          if (m.y < d.y - 3) { target = [m.x + shade, d.y]; vmax = Math.min(vmax, 4.5); back = true; } else { const lg = d.lag || 1.6; target = [m.x - ux * lg + shade, m.y - uy * lg]; } }   /* lag: how far he trails (a read with separation) */
         else if (d.zone) { const [zx, zy, rx, ry] = d.zone, deep = zy >= 15; if (d.phase === 0 && (dist([d.x, d.y], [zx, zy]) < 1.5 || tp > 1.6)) d.phase = 1;
           if (d.phase === 0) { target = [zx, zy]; vmax = deep ? 6 : 4.5; }
           else { let best = null, bd = 1e9; for (const r of recs) { if (deep) { if (Math.abs(r.x - zx) <= rx + 2 && r.y >= zy - 8 && (best == null || r.y > best.y)) best = r; } else { const dd = Math.hypot((r.x - zx) / (rx * 1.35), (r.y - zy) / (ry * 1.6)); if (dd <= 1 && dd < bd) { bd = dd; best = r; } } }
@@ -336,9 +337,12 @@ function mount(host, cfg) {
     const men = tile.map((t) => ({ x: t.x, y: t.y, off: 1, qb: t.p === 'QB', pos: t.p === 'OL' ? OLN[olx.indexOf(t.x)] || 'OL' : t.p })), mix = { run: 0, pass: 0, rpo: 0 }; plays.forEach((p) => { mix[kindOf(p)]++; });
     const n = plays.length, shows = fm.show || [], label = (sh) => { if (!sh) return ''; const ps = (sh.plays || [sh.play]).map(PLAY).filter(Boolean); return sh.label ? String(sh.label).toUpperCase() : ps.length > 2 ? ps.length + ' CALLS' : ps.map((p) => p.name.toUpperCase()).join('  +  '); };
     const steps = [{ k: 'look', cam: 'title', paint: nameStamp(fm.name.toUpperCase()), say: fm.desc || '' },
-      { k: 'all', cam: 'wide', paint: [{ t: n + (n === 1 ? ' CALL' : ' CALLS') + ', ONE PICTURE', x: 0, y: -11.6, s: 2.6 }], say: n + (n === 1 ? ' call comes' : ' calls come') + ' out of this one picture. Orange is the first read on each call, dark ink the second.', chips: plays.map((p) => p.name), mix },
+      { k: 'all', cam: 'wide', paint: [{ t: n + (n === 1 ? ' CALL' : ' CALLS') + ', ONE PICTURE', x: 0, y: -11.6, s: 2.6 }], say: n + (n === 1 ? ' call comes' : ' calls come') + ' out of this one picture. ' + (cfg.markName || 'Orange') + ' is the first read on each call, dark ink the second.', chips: plays.map((p) => p.name), mix },
       { k: 'heat', cam: 'deep', paint: [{ t: 'WHERE IT ATTACKS', x: 0, y: -11.6, s: 2.6 }], pts: null }]
-      .concat((fm.bullets || []).map((b, j) => { const lb = label(shows[j]); const one = shows[j] && !shows[j].plays ? PLAY(shows[j].play) : null, rn = one && one.readNames ? one.readNames.slice(0, 5).filter(Boolean) : []; return { k: 'does', cam: 'wide', show: shows[j] || null, say: b, pts: rn.length ? rn : null, reads: rn.length > 0, paint: lb ? [{ t: lb, x: 0, y: -11.6, s: Math.min(2.6, 40 / (lb.length * .5)) }] : [] }; }));
+      .concat((fm.bullets || []).map((b, j) => { const lb = label(shows[j]); const one = shows[j] && !shows[j].plays ? PLAY(shows[j].play) : null, rn = one && one.readNames ? one.readNames.slice(0, 5).filter(Boolean) : [];
+        if (cfg.act && shows[j]) { const sh = shows[j], anim = (sh.plays || [sh.play]).map((id) => { const p = PLAY(id), sc = p && cfg.act(id, sh.step || 0, p); if (!sc) return null; try { const R = prepScene(sc, p); return { p, R, sim: simulate(R, p, cfg.blocking || null) }; } catch (e) { return null; } }).filter(Boolean);
+          if (anim.length) return { k: 'does', cam: 'wide', show: sh, say: sh.what || b, head: sh.what ? b : '', pts: null, reads: false, anim, paint: lb ? [{ t: lb, x: 0, y: -11.6, s: Math.min(2.6, 40 / (lb.length * .5)) }] : [] }; }
+        return { k: 'does', cam: 'wide', show: shows[j] || null, say: b, pts: rn.length ? rn : null, reads: rn.length > 0, paint: lb ? [{ t: lb, x: 0, y: -11.6, s: Math.min(2.6, 40 / (lb.length * .5)) }] : [] }; }));
     const heat = heatOf(plays); steps[2].pts = heat.lines; steps[2].say = heat.say;
     return (st.cache[i] = { form: true, fm, plays, men, mix, heat, steps, tt: steps.map(() => 0), cams: steps.map((x) => x.cam), walks: steps.map(() => 1), counts: steps.map(() => null), R: { snap: 0, end: 0 } }); }
   function deckOf(pi) { if (st.cache[pi]) return st.cache[pi]; if (FORMS) return formDeck(pi); if (DEFENSE) return deckOfD(pi); const dk = PR[pi].deck, p = PLAY(dk.play), snap = .2;
@@ -431,6 +435,7 @@ function mount(host, cfg) {
     if (s.k === 'all') [2, 1, 0].forEach((tier) => d.plays.forEach((p, j) => byRead(p, en(.35 + j * .18, .55), tier)));
     else if (s.k === 'heat') { const grow = en(.3, .9); [1, 0].forEach((tier) => d.plays.forEach((p) => byRead(p, 1, tier, 'rgba(23,19,14,.3)')));
       g.save(); g.fillStyle = MK; for (const c of d.heat.cells) { const z = P([c[0], c[1], .02]); if (!z) continue; const r = z[2] * d.heat.CS * .58 * Math.sqrt(c[2]) * grow; if (r < .6) continue; g.globalAlpha = .3 + .55 * c[2]; g.beginPath(); g.ellipse(z[0], z[1], r, r * sq, 0, 0, 7); g.fill(); } g.restore(); }
+    else if (s.k === 'does' && s.anim) { drawAct(d, s, en, sq, lwM); return; }
     else if (s.k === 'does') { const sh = s.show, ps = sh ? (sh.plays || [sh.play]).map(PLAY).filter(Boolean) : d.plays;
       ps.forEach((p, j) => routes(p, { col: sh ? INK7 : 'rgba(23,19,14,.3)', lw: 2, prog: en(.2 + j * .15, .5), lit: sh && sh.lit, hotProg: en(.45, .75), alts: !!sh, blocks: !!sh }));
       if (sh && sh.box) { const [x0, y0, x1, y1] = sh.box, a = P([x0, (y0 + y1) / 2, 0]), b = P([x1, (y0 + y1) / 2, 0]), c0 = P([(x0 + x1) / 2, y0, 0]), c1 = P([(x0 + x1) / 2, y1, 0]); if (a && b && c0 && c1) scribble((a[0] + b[0]) / 2, (c0[1] + c1[1]) / 2, Math.abs(b[0] - a[0]) / 2, Math.abs(c0[1] - c1[1]) / 2, en(.3, .8), MK, lwM, 1.7); }
@@ -442,6 +447,32 @@ function mount(host, cfg) {
     if (nums) nums.forEach((nm, j) => { const a = en(.7 + j * .32, .32); if (a <= .01) return; const z = P([nm.at[0], nm.at[1], 0]); if (!z) return; const txt = nm.n.join(','), px = clamp(st.H * .064, 22, 46); if (!txt) return;
       g.save(); g.globalAlpha = a; g.font = '400 ' + px + 'px ' + FM; g.textAlign = 'center'; g.textBaseline = 'middle'; g.lineJoin = 'round'; g.strokeStyle = SHEET; g.lineWidth = 7; g.strokeText(txt, z[0], z[1]); g.fillStyle = MK; g.fillText(txt, z[0], z[1]);
       scribble(z[0], z[1] - px * .04, px * (.56 + .24 * (txt.length - 1)), px * .64, a, MK, Math.max(2.4, st.H * .005), j * 1.3 + .4); g.restore(); }); }
+  /* ACT: the call played out on the sheet (his note 2026-10-18: "put on the field what is happening in every play... for the
+     runs show the blocking scheme up front, the QB actually running, the pulling guard coming around"). Before the snap the
+     routes and the block marks are drawn in; then everyone moves, the ball carrier leaves a marker trail; a beat at the end
+     and it plays again. A show of several calls takes them in turn. */
+  function drawAct(d, s, en, sq, lwM) { const tl = Math.max(0, (REDUCED ? 99 : st.t) - .9), periods = s.anim.map((a) => a.R.end + 1.6);
+    let k = 0, rest = tl; if (!REDUCED) { const tot = periods.reduce((a, b) => a + b, 0); rest = tl % tot; while (rest > periods[k] && k < periods.length - 1) { rest -= periods[k]; k++; } } else k = 0;
+    const A = s.anim[k], F = A.sim.frames, u = REDUCED ? A.R.end : Math.min(rest, A.R.end), fi = clamp(Math.floor(u / DT), 0, F.length - 1), fr = F[fi], pre = u < A.R.snap, p = A.p, lit = s.show && s.show.lit;
+    const INK5 = 'rgba(23,19,14,.5)', INK7 = 'rgba(23,19,14,.72)', fade = pre ? 1 : clamp(1 - (u - A.R.snap) / .6, .35, 1);
+    /* the plan: routes in ink (the read in marker), the block marks, a puller's path dashed, the run in marker */
+    for (const m of p.men) { const start = m.mot ? m.mot[m.mot.length - 1] : [m.x, m.y];
+      if (m.mot && pre) tip(poly(m.mot, INK5, 2, [5, 6], 1), INK5, 6, 1);
+      if (m.r && m.r.length > 1 && m.role !== 'ol' && m.role !== 'qb') { const hot = lit && m.k === lit, col = hot ? MK : INK7; tip(poly(m.r, col, hot ? lwM : 2, null, fade), col, hot ? 10 : 6, fade); }
+      if ((m.role === 'ol' || m.role === 'blk') && m.bk && pre) { const path = m.rel && m.rel.length ? [start].concat(m.rel) : null, e = path ? path[path.length - 1] : start, ln = m.bk === 'r' ? 1.8 : 1;
+        if (path) poly(path, m.pull ? MK : INK5, m.pull ? lwM * .7 : 2, m.pull ? null : [3, 5], 1); seg(e, [e[0], e[1] + ln], INK7, 2.4); seg([e[0] - .6, e[1] + ln], [e[0] + .6, e[1] + ln], INK7, 2.4); } }
+    const run = A.R.run, ci = run && !run.afterCatch ? (run.who === 'qb' ? p.men.findIndex((m) => m.role === 'qb') : p.men.findIndex((m) => m.k === run.who)) : -1;
+    if (run && run.path && pre) { const m = p.men[ci >= 0 ? ci : 0], st0 = m && m.mot ? m.mot[m.mot.length - 1] : m ? [m.x, m.y] : [0, -5]; tip(poly([st0].concat(run.path), MK, lwM * .8, [9, 8], .9), MK, 10, .9); }
+    /* the trail of the ball carrier: the run, or the catch and the run after it */
+    const who = ci >= 0 ? ci : (() => { const th = A.R.throws && A.R.throws[0]; return th && fr.caught && fr.caught.includes(th.man) ? p.men.findIndex((m) => m.k === th.man) : -1; })();
+    if (who >= 0 && !pre) { const i0 = Math.round(A.R.snap / DT), pts = []; for (let i = i0; i <= fi; i += 2) pts.push(F[i].o[who]); pts.push(fr.o[who]); if (pts.length > 1) poly(pts, MK, Math.max(4, st.H * .009)); }
+    const list = []; p.men.forEach((m, i) => list.push({ x: fr.o[i][0], y: fr.o[i][1], off: 1, qb: m.role === 'qb', pos: m.pos || '', mk: lit && m.k === lit ? { ring: MK } : null }));
+    const DPN = A.R.cov === 'c0' ? ['DE', 'DT', 'DT', 'DE', 'NB', 'LB', 'LB', 'CB', 'S', 'S', 'CB'] : ['DE', 'DT', 'DT', 'DE', 'LB', 'LB', 'NB', 'CB', 'S', 'S', 'CB'];   /* names by place in the shell */
+    A.sim.shell.forEach((x, i) => list.push({ x: fr.d[i][0], y: fr.d[i][1], pos: DPN[i] || 'LB' }));
+    inkMen(list, sq);
+    const b = fr.ball, bs = P([b[0], b[1], 0]), bb = P(b); if (bs && b[2] > 1.8) { g.fillStyle = 'rgba(23,19,14,.22)'; g.beginPath(); g.ellipse(bs[0], bs[1], Math.max(3, bs[2] * .3), Math.max(2, bs[2] * .18), 0, 0, 7); g.fill(); }
+    if (bb) { g.fillStyle = '#8a4a1c'; g.strokeStyle = INKC; g.lineWidth = 1.2; g.beginPath(); g.ellipse(bb[0], bb[1], Math.max(3.5, bb[2] * .34), Math.max(2.2, bb[2] * .21), .5, 0, 7); g.fill(); g.stroke(); }
+    if (s.anim.length > 1) paint(A.p.name.toUpperCase(), 0, -15.2, 2, true, MK, en(.2, .5)); }
   /* ================= THE FRONTS: A DEFENSE ON THE SAME BOARD (2026-10-09) =================
      His call: the same presentation for a defense, starting with the fronts, seen from behind the offense the way the
      game shows it. The defense is the star: our eleven are dark ink Xs with the game's position names, the offense is a
@@ -653,7 +684,7 @@ function mount(host, cfg) {
     const to = viewOf(d.cams[st.step]), from = st.camFrom || to, k = ease(clamp(t / 1.15, 0, 1)), follow = d.cams[st.step] && d.cams[st.step].follow, drift = REDUCED || follow ? 0 : .035 * (1 - Math.pow(1 - clamp((t - 1.15) / 8, 0, 1), 3));   /* a slow push on a resting step, so the page never sits dead */
     const pos = from.pos.map((v, i) => lerp(v, to.pos[i], k)), tgt = from.tgt.map((v, i) => lerp(v, to.tgt[i], k)); st.cam = { pos: pos.map((v, i) => lerp(v, tgt[i], drift)), tgt, fov: lerp(from.fov, to.fov, k) }; }
   /* the loop runs while anything is still moving, and stops when the page is at rest */
-  function busy() { if (st.pi < 0) return false; const d = D(), s = STEP(); return !st.paused && (st.t < 10 || st.T < st.Tto || !!(d.counts[st.step] && d.counts[st.step].live && st.t < 4)); }
+  function busy() { if (st.pi < 0) return false; const d = D(), s = STEP(); return !st.paused && (st.t < 10 || !!s.anim || st.T < st.Tto || !!(d.counts[st.step] && d.counts[st.step].live && st.t < 4)); }
   function kick() { if (st.raf) return; let last = performance.now(); const f = (now) => { st.raf = 0; if (S !== st || !cv.isConnected) return; const dt = Math.min(.05, (now - last) / 1000); last = now; update(dt); draw(); if (busy()) st.raf = requestAnimationFrame(f); }; st.raf = requestAnimationFrame(f); }
   const front = () => { st.pi = -1; st.step = 0; st.prev = -1; sync(false); };
   const next = () => { if (st.pi < 0) { enter(0, 0); return true; } const d = D(); if (st.step < d.steps.length - 1) { enter(st.pi, st.step + 1); return true; } if (st.pi < PR.length - 1) { enter(st.pi + 1, 0); return true; } return false; };

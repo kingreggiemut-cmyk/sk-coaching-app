@@ -24,7 +24,7 @@ const esc = (s) => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>
    ten-yard leg at the same share of the card. */
 const W=620,H=340,SC=11,LOSY=H*0.68,CX=W/2;   /* 0.68: the pistol and I-form backs at eight yards need the room below */
 const px=(x)=>CX+x*SC, py=(y)=>LOSY-y*SC;
-const YELLOW='#C9C14E', RED='#C0403A', WHITE='#EDEAE2';
+const YELLOW='#C9C14E', RED='#C0403A', WHITE='#EDEAE2', BLUE='#3E63DD';   /* blue: a back who blocks, then releases (the game's card) */
 const ICONS=['square','triangle','cross','r1','circle'];
 
 function icon(kind,X,Y){
@@ -175,6 +175,8 @@ const OPTION_SHAPES={
   /* the outside man's option is an OPTION STREAK (his note 2026-09-21): the streak solid, the hook dotted */
   Curl_Fade:      (s,o)=>({stem:s||10, main:[[0,14]],           alt:[[-o*1.4,-1.3]]}),
   /* the game's card (his screenshot 2026-09-21, PA Choice Deep): in, up, and the curl back solid, with the post and the dig off it */
+  /* his option route (Ole Miss 2026-10-18): up the field to twelve, then a hitch, or the post, or a slight fade seam up the hash */
+  Hitch_Post_Seam:(s,o)=>({stem:s||12, main:[[-o*1.2,-1.3]],     alts:[[[-o*7,7]],[[o*1.3,11]]]}),
   Curl_Post_Seam: (s,o)=>({stem:s||10, main:[[-o*1.5,-4]],      alts:[[[-o*8,7]],[[-o*13,0.3]]]}),
   Curl_Seam:      (s,o)=>({stem:s||8,  main:[[-o*1.6,-2]],    alt:[[0,10]]}),
   Dig_Post:       (s,o)=>({stem:s||8,  main:[[-o*8,0]],       alt:[[-o*5,8]]}),
@@ -199,6 +201,9 @@ const OPTION_SHAPES={
      and the branches fork from its tip: a choice is post, corner or sit. */
   /* the choice the way the game's card draws it (his note 2026-09-21): the post solid, the dig long across, the sit */
   Choice:         (s,o)=>({stem:s||12, main:[[-o*9,7]],  alts:[[[-o*13,0.5]],[[-o*1.4,-1.3]]]}),
+  /* the deep choice slot (his note 2026-10-19): never a post, a dig or a curl. alts[0] the dig, alts[1] the curl, so a
+     staged read's branch still names the same break */
+  Dig_Curl:       (s,o)=>({stem:s||13, main:[[-o*9,0.6]], alts:[[[-o*9,0.6]],[[-o*1.4,-1.6]]]}),
   /* a switch release to the outside, then keep going or sit */
   /* the switch release outside, then the WHEEL up the sideline solid with the comeback off it (the game's card, 2026-09-21) */
   Switch_Choice:  (s,o)=>({stem:s||8,  main:[[0,10]],      alts:[[[-o*1.6,-4.5]]]}),
@@ -273,6 +278,7 @@ function clipDepth(oy,pts,ox){
       /* walk the segment back to the edge it crossed */
       let t=1;
       if(oy+dy>TOP) t=Math.min(t,(TOP-oy-py0)/((dy-py0)||1e-9));
+      if(oy+dy<BOT&&oy+dy<=TOP&&(ox===undefined||Math.abs(ox+dx)<=XM)){ out.push([dx,BOT-oy]); px0=dx; py0=BOT-oy; continue; }   /* (2026-10-19) a swing behind the line slides along the bottom edge, it does not stop */
       if(oy+dy<BOT) t=Math.min(t,(BOT-oy-py0)/((dy-py0)||1e-9));
       if(ox!==undefined&&Math.abs(ox+dx)>XM){ const lim=(dx>px0?XM:-XM)-ox; t=Math.min(t,(lim-px0)/((dx-px0)||1e-9)); }
       t=Math.max(0,Math.min(1,t));
@@ -487,7 +493,7 @@ function drawCardIn(g,box){
       bodies+=`<g class="mvr" data-i="${gi}" data-x="${X}" data-y="${Y}">${p.bodies}</g>`;
       continue;
     }
-    const col=m.c?RED:m.mot?CYAN:YELLOW;
+    const col=m.c?RED:m.mot?CYAN:m.chk?BLUE:YELLOW;
     /* an option route draws its canonical shape; everything else draws the
        game's own polyline */
     const orb=optionRoute(m), pts=clipDepth(oy,orb?orb.main:m.pts,ox);

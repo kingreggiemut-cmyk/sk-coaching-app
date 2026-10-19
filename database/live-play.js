@@ -149,10 +149,12 @@
      whatever fits that patch into the part of the canvas the page leaves clear (opt.left is the share its slips cover). */
   const DARKT = { ground: FIELD, halo: FIELD, line: 'rgba(237,234,226,.1)', los: 'rgba(237,234,226,.62)', stick: 'rgba(201,193,78,.75)', num: 'rgba(237,234,226,.3)', man: WHITE, manT: 'rgba(237,234,226,.82)', off: 'rgba(237,234,226,.55)', offT: 'rgba(237,234,226,.5)', rush: RED, link: MAN, ring: GOLD, note: GOLD, zone: zc, ball: 'rgba(237,234,226,.5)' };
   const PAPERT = { ground: '#fbf6e8', halo: '#fbf6e8', line: 'rgba(23,19,14,.2)', los: 'rgba(23,19,14,.85)', stick: null, num: null, man: '#17130E', manT: 'rgba(23,19,14,.8)', off: 'rgba(23,19,14,.5)', offT: 'rgba(23,19,14,.5)', rush: '#4a9418', link: 'rgba(23,19,14,.55)', ring: '#4a9418', note: '#3f7a14', zone: () => ['rgba(23,19,14,.06)', 'rgba(23,19,14,.5)'], ball: 'rgba(23,19,14,.5)' };
+  /* FILM (the new shell, 2026-10-15): green all-22 grass with mowing stripes, standing jersey chips */
+  const FILMT = Object.assign({}, DARKT, { ground: '#173D1B', stripe: '#1C4720', halo: '#0C2410', line: 'rgba(255,255,255,.3)', los: 'rgba(255,255,255,.85)', stick: '#F5D547', num: 'rgba(255,255,255,.32)', manT: '#fff', off: '#fff', offT: '#fff', chips: true });
   const pitchOf = (v) => clamp(24 + (v[2] - v[0]) * .27, 28, 40), yawOf = (v) => clamp((v[0] + v[2]) / 2 * .5, -8, 8);
   function cutPath(pts, f) { let left = plen(pts) * clamp(f, 0, 1); const out = [pts[0]]; for (let i = 1; i < pts.length; i++) { const p = pts[i - 1], q = pts[i], L = Math.hypot(q[0] - p[0], q[1] - p[1]); if (left <= L) { out.push(L2(p, q, L ? left / L : 0)); return out; } out.push(q); left -= L; } return out; }
   function viewOf(cv, B, opt) { opt = opt || {};
-    const g = cv.getContext('2d'), cs = getComputedStyle(cv), fnt = (v, d) => (cs.getPropertyValue(v) || d).trim() || d, TH = opt.theme === 'paper' ? PAPERT : DARKT;
+    const g = cv.getContext('2d'), cs = getComputedStyle(cv), fnt = (v, d) => (cs.getPropertyValue(v) || d).trim() || d, TH = opt.theme === 'paper' ? PAPERT : opt.theme === 'film' ? FILMT : DARKT, TEAM = opt.team || { body: '#002244', trim: '#69BE28' };
     const FD = fnt('--fd', 'Anton, Impact, sans-serif'), FC = fnt('--fc', "'Barlow Condensed', sans-serif"), FM = fnt('--fm', "'Permanent Marker', cursive");
     let W = 0, H = 0, R = 1, P = () => null; const TS = opt.ts || 1, MS = opt.ms || 1;   /* text and mark scale: 1 on the site, bigger in a video */
     function size() { const r = cv.getBoundingClientRect(); if (r.width < 4 || r.height < 4) return false; W = cv.clientWidth || r.width; H = cv.clientHeight || r.height; R = Math.min(devicePixelRatio || 1, 2) * (r.width / W || 1); R = clamp(R, 1, 3); cv.width = Math.round(W * R); cv.height = Math.round(H * R); return true; }
@@ -168,6 +170,12 @@
     function path(pts, col, w, dash, a, prog, tipOn) { if (a <= .01 || !pts || pts.length < 2) return; const cut = prog == null ? pts : cutPath(pts, prog); if (plen(cut) <= .02) return; g.save(); g.globalAlpha = a; g.strokeStyle = col; g.lineWidth = w; g.lineCap = 'round'; g.lineJoin = 'round'; g.setLineDash(dash || []); if (gp(cut)) g.stroke(); g.setLineDash([]);
       if (tipOn) { const A2 = P(cut[cut.length - 2][0], cut[cut.length - 2][1]), B2 = P(cut[cut.length - 1][0], cut[cut.length - 1][1]); if (A2 && B2) { const an = Math.atan2(B2[1] - A2[1], B2[0] - A2[0]), s = Math.max(7, w * 2.6); g.fillStyle = col; g.translate(B2[0], B2[1]); g.rotate(an); g.beginPath(); g.moveTo(s, 0); g.lineTo(-s * .5, s * .62); g.lineTo(-s * .5, -s * .62); g.closePath(); g.fill(); } } g.restore(); }
     function text(str, x, y, font, col, a, al, stroke) { if (a <= .01) return; g.save(); g.globalAlpha = a; g.font = font; g.textAlign = al || 'center'; g.textBaseline = 'middle'; if (stroke !== 0) { g.lineJoin = 'round'; g.strokeStyle = TH.halo; g.lineWidth = 5; g.strokeText(str, x, y); } g.fillStyle = col; g.fillText(str, x, y); g.restore(); }
+    /* a standing jersey chip, its feet on the field point; the position is on the jersey. Returns its height */
+    function chip(x, y, e, body, trim, ink, label, a) { const w = e * 2.3, h = e * 2.5; g.save(); g.globalAlpha = a;
+      g.fillStyle = 'rgba(0,0,0,.35)'; g.beginPath(); g.ellipse(x, y, w * .55, w * .17, 0, 0, 7); g.fill();
+      const J = [[-.30, 0], [-.30, .60], [-.50, .48], [-.60, .76], [-.30, 1], [-.13, 1], [0, .92], [.13, 1], [.30, 1], [.60, .76], [.50, .48], [.30, .60], [.30, 0]];
+      g.beginPath(); J.forEach(([p, q], i) => { const X = x + p * w, Y = y - 2 - q * h; if (i) g.lineTo(X, Y); else g.moveTo(X, Y); }); g.closePath(); g.fillStyle = body; g.fill(); g.lineJoin = 'round'; g.lineWidth = Math.max(1.4, e * .16); g.strokeStyle = trim; g.stroke();
+      if (label) { g.font = '800 ' + Math.max(8, e * .95).toFixed(1) + 'px ' + FC; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillStyle = ink; g.fillText(label, x, y - 2 - h * .38); } g.restore(); return h; }
     function manTarget(F, m, j) { if (F.cov[m.k]) return F.cov[m.k]; if (typeof j.man !== 'number' || j.man < 1) return null; const el = F.off.filter((o) => !isOL(o) && o.p !== 'QB').sort((a, b) => b.x - a.x); return el[j.man - 1] || null; }
     function drawDef(F, a, mirror) { const sx = mirror ? -1 : 1, set = F.def, small = !!opt.small;
       B.MEN.forEach((m) => { const j = B.J(F, m.k); if (!j.zone) return; const za = (F.zones[m.k] || 0) * a; if (za <= .01) return; const c = TH.zone(j), z = j.zone, pts = []; for (let i = 0; i < 40; i++) { const an = i / 40 * Math.PI * 2; pts.push([(z[0] + Math.cos(an) * z[2]) * sx, z[1] + Math.sin(an) * z[3]]); }
@@ -176,21 +184,28 @@
         if (c < 1) path(lanePts(p, j.rush, F.aim && F.aim[m.k]).map((q) => [q[0] * sx, q[1]]), TH.rush, w, null, la * (1 - c), 1, 1);
         if (c > 0) path(containPath(p, F.qb0 || F.qb || [0, -6]).map((q) => [q[0] * sx, q[1]]), TH.rush, w, null, la, c, 1); });
       B.MEN.forEach((m) => { const j = B.J(F, m.k), ma = (F.mans[m.k] || 0) * a; if (ma <= .01 || mirror) return; const o = manTarget(F, m, j); if (!o) return; const p = set[m.k]; path([[p[0], p[1]], [o.x, o.y + .9]], TH.link, 2.2, [5, 5], ma * .9); });
-      B.MEN.slice().sort((p, q) => set[q.k][1] - set[p.k][1]).forEach((m) => { const j = B.J(F, m.k), p = set[m.k], s = P(p[0] * sx, p[1]); if (!s) return; const x = s[0], y = s[1], e = clamp(s[2] * .46, small ? 3.4 : 5.5, 16) * MS, mk = clamp(s[2] * .6, small ? 7 : 10, 18) * TS, Mk = mirror ? null : F.marks[m.k]; g.save(); g.globalAlpha = a;
-        if (Mk && Mk.ring) { g.strokeStyle = TH.ring; g.lineWidth = 3; g.beginPath(); g.arc(x, y, e + 9, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * Mk.ring); g.stroke(); }
-        if (j.rush) { g.fillStyle = TH.man; g.fillRect(x - e * .8, y - e * .8, e * 1.6, e * 1.6); } else { g.strokeStyle = TH.man; g.lineWidth = Math.max(1.8, e * .36); g.lineCap = 'round'; g.beginPath(); g.moveTo(x - e, y - e); g.lineTo(x + e, y + e); g.moveTo(x + e, y - e); g.lineTo(x - e, y + e); g.stroke(); }
-        g.restore(); if (!opt.bare) text(m.pos, x, y + e + mk * .64, '700 ' + mk + 'px ' + FC, TH.manT, a);
-        if (Mk && Mk.tag) text(Mk.tag, x, y - e - mk * 1.05, '400 ' + mk * 1.5 + 'px ' + FM, TH.ring, a * (Mk.ta != null ? Mk.ta : Mk.ring == null ? 1 : Mk.ring));
-        if (Mk && Mk.num) text(String(Mk.num), x, y - e - mk * 1.2, '400 ' + mk * 2.1 + 'px ' + FM, TH.ring, a); }); }
+      B.MEN.slice().sort((p, q) => set[q.k][1] - set[p.k][1]).forEach((m) => { const j = B.J(F, m.k), p = set[m.k], s = P(p[0] * sx, p[1]); if (!s) return; const x = s[0], y = s[1], e = (TH.chips ? clamp(s[2] * .58, 11, 22) : clamp(s[2] * .46, small ? 3.4 : 5.5, 16)) * MS, mk = clamp(s[2] * .6, small ? 7 : 10, 18) * TS, Mk = mirror ? null : F.marks[m.k]; g.save(); g.globalAlpha = a;
+        const up = TH.chips ? e * 2.5 : e, cy = TH.chips ? y - up * .45 : y, rr = TH.chips ? e * 1.9 : e + 9;
+        if (Mk && Mk.ring) { g.strokeStyle = TH.ring; g.lineWidth = 3; g.beginPath(); g.arc(x, cy, rr, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * Mk.ring); g.stroke(); }
+        if (TH.chips) { g.restore(); chip(x, y, e, TEAM.body, TEAM.trim, '#fff', m.pos, a); g.save(); }
+        else if (j.rush) { g.fillStyle = TH.man; g.fillRect(x - e * .8, y - e * .8, e * 1.6, e * 1.6); } else { g.strokeStyle = TH.man; g.lineWidth = Math.max(1.8, e * .36); g.lineCap = 'round'; g.beginPath(); g.moveTo(x - e, y - e); g.lineTo(x + e, y + e); g.moveTo(x + e, y - e); g.lineTo(x - e, y + e); g.stroke(); }
+        g.restore(); if (!opt.bare && !TH.chips) text(m.pos, x, y + e + mk * .64, '700 ' + mk + 'px ' + FC, TH.manT, a);
+        if (Mk && Mk.tag) text(Mk.tag, x, y - up - mk * (TH.chips ? .7 : 1.05), '400 ' + mk * 1.5 + 'px ' + FM, TH.ring, a * (Mk.ta != null ? Mk.ta : Mk.ring == null ? 1 : Mk.ring));
+        if (Mk && Mk.num) text(String(Mk.num), x, y - up - mk * (TH.chips ? .9 : 1.2), '400 ' + mk * 2.1 + 'px ' + FM, TH.ring, a); }); }
     function draw(F, cam) { if (!W) return; aim(cam || { view: F.view, pitch: opt.pitch == null ? 90 : opt.pitch, yaw: 0 }); g.setTransform(R, 0, 0, R, 0, 0); g.clearRect(0, 0, W, H);
       /* the field: the grass, yard lines, the line of scrimmage, the sticks at ten, the numbers down the side, the hashes */
       if (gp([[-26.67, -13], [26.67, -13], [26.67, 36], [-26.67, 36]], 1)) { g.fillStyle = TH.ground; g.fill(); }
+      if (TH.stripe) for (let y = -15; y < 36; y += 10) if (gp([[-26.67, y], [26.67, y], [26.67, y + 5], [-26.67, y + 5]], 1)) { g.fillStyle = TH.stripe; g.fill(); }
       for (let y = -10; y <= 35; y += 5) { path([[-26.67, y], [26.67, y]], y === 0 ? TH.los : y === 10 && TH.stick ? TH.stick : TH.line, y === 0 || (y === 10 && TH.stick) ? 2.2 : 1.2, null, 1);
         if (TH.num && y > 0 && y <= 20) for (const sx of [-25.4, 25.4]) { const s = P(sx, y); if (s) text(String(y), s[0], s[1], '700 ' + clamp(s[2] * .8, 9, 17) + 'px ' + FC, TH.num, 1, 'center', 0); } }
       if (!opt.small) for (let y = -12; y <= 35; y++) for (const hx of [-3.1, 3.1]) path([[hx - .35, y], [hx + .35, y]], TH.line, 1.2, null, 1);
       path([[-26.67, -13], [-26.67, 36]], TH.line, 2, null, 1); path([[26.67, -13], [26.67, 36]], TH.line, 2, null, 1);
       /* the other side: plain rings with the position under each */
-      F.off.forEach((o, i) => { const s = P(o.x, o.y); if (!s) return; const r = clamp(s[2] * .44, opt.small ? 2.6 : 4.5, 14) * MS, om = clamp(s[2] * .55, 9, 16) * TS, Mk = F.omarks[i]; g.save(); g.beginPath(); g.arc(s[0], s[1], r, 0, 7); g.strokeStyle = TH.off; g.lineWidth = Math.max(1.2, r * .17); g.stroke(); if (Mk && Mk.ring) { g.strokeStyle = TH.ring; g.lineWidth = 2.6; g.globalAlpha = Mk.ring; g.beginPath(); g.arc(s[0], s[1], r + 6, 0, 7); g.stroke(); } g.restore();
+      if (TH.chips) F.off.slice().sort((a, b) => b.y - a.y).forEach((o) => { const s = P(o.x, o.y); if (!s) return; const e = clamp(s[2] * .58, 11, 22) * MS, Mk = F.omarks[F.off.indexOf(o)], h = chip(s[0], s[1], e, '#EEF0F2', '#8A949C', '#17130E', o.p, 1), om = clamp(s[2] * .55, 9, 16) * TS;
+        if (Mk && Mk.ring) { g.save(); g.strokeStyle = TH.ring; g.lineWidth = 2.6; g.globalAlpha = Mk.ring; g.beginPath(); g.arc(s[0], s[1] - h * .45, e * 1.9, 0, 7); g.stroke(); g.restore(); }
+        if (Mk && Mk.num) text(String(Mk.num), s[0], s[1] - h - om * .8, '400 ' + clamp(e * 1.5, 13, 24) + 'px ' + FD, TH.ring, Mk.a == null ? 1 : Mk.a, 'center');
+        if (Mk && Mk.tag) text(Mk.tag, s[0], s[1] + om * 1.2, '400 ' + om * 1.3 + 'px ' + FM, Mk.col || TH.ring, Mk.a == null ? 1 : Mk.a); });
+      if (!TH.chips) F.off.forEach((o, i) => { const s = P(o.x, o.y); if (!s) return; const r = clamp(s[2] * .44, opt.small ? 2.6 : 4.5, 14) * MS, om = clamp(s[2] * .55, 9, 16) * TS, Mk = F.omarks[i]; g.save(); g.beginPath(); g.arc(s[0], s[1], r, 0, 7); g.strokeStyle = TH.off; g.lineWidth = Math.max(1.2, r * .17); g.stroke(); if (Mk && Mk.ring) { g.strokeStyle = TH.ring; g.lineWidth = 2.6; g.globalAlpha = Mk.ring; g.beginPath(); g.arc(s[0], s[1], r + 6, 0, 7); g.stroke(); } g.restore();
         if (!opt.small) text(o.p, s[0], s[1] + r + om * .64, '700 ' + om + 'px ' + FC, TH.offT, 1, 'center', 0);
         if (Mk && Mk.num) text(String(Mk.num), s[0], s[1], '400 ' + clamp(r * 1.5, 11, 22) + 'px ' + FD, TH.ring, Mk.a == null ? 1 : Mk.a, 'center', 0);
         if (Mk && Mk.tag) text(Mk.tag, s[0], s[1] + r + om * 1.9, '400 ' + om * 1.3 + 'px ' + FM, Mk.col || TH.ring, Mk.a == null ? 1 : Mk.a); });
@@ -220,7 +235,7 @@
   function unmount() { if (!cur) return; if (cur.raf) cancelAnimationFrame(cur.raf); if (cur.ro) cur.ro.disconnect(); if (cur.root.parentNode) cur.root.parentNode.removeChild(cur.root); cur = null; }
   function mount(host, cfg) { unmount(); style(); const B = build(cfg); if (!B) return false;
     const root = document.createElement('div'); root.className = 'lp-root'; root.innerHTML = '<canvas></canvas><span class="lp-now"></span><span class="lp-hint">space = next</span>'; host.appendChild(root);
-    const V = viewOf(root.firstChild, B, { left: cfg.left || 0, foot: cfg.foot || 0 });
+    const V = viewOf(root.firstChild, B, { left: cfg.left || 0, foot: cfg.foot || 0, theme: cfg.theme || null, team: cfg.team || null });
     cur = { id: cfg.id, scheme: cfg.scheme, B, V, root, now: root.querySelector('.lp-now'), i: 0, t0: performance.now(), raf: 0, fade: null, still: !!cfg.still };
     cur.ro = new ResizeObserver(() => { if (cur && cur.V.size()) kick(); }); cur.ro.observe(root.firstChild); V.size();
     go(cfg.start || 0, true); if (document.fonts && document.fonts.ready) document.fonts.ready.then(kick); return true; }
