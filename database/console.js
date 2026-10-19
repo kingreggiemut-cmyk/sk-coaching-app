@@ -34,7 +34,7 @@
     <a class="skc-brand" href="${side === 'D' ? PAGE_D : PAGE_O}" aria-label="Scheme Kings home"><img src="logos/scheme-kings.png" alt=""><span><b>Scheme Kings</b><small>The playbook database</small></span></a>
     <nav class="skc-tabs" id="skctabs" aria-label="Database">${TABS.map(([k, l]) => `<button class="skc-tab" data-skc="${k}">${l}</button>`).join('')}</nav>
     <div class="skc-tools">
-      <button class="skc-find" id="skcfind" title="Find anything (Ctrl K)"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5L21 21"/></svg><span>Find</span></button>
+      <button class="skc-find" id="skcfind" title="Find anything (Ctrl K)"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5L21 21"/></svg><span>Find</span></button><button class="skc-find skc-fs" data-fullscreen title="Full screen">&#x26F6; Full screen</button>
       <div class="skc-side" role="group" aria-label="Side of the ball"><button data-skside="O" aria-pressed="${side === 'O'}" title="Offense">O</button><button data-skside="D" aria-pressed="${side === 'D'}" title="Defense">D</button></div>
       <div class="skc-acct"><button class="skc-me" id="skcme" aria-haspopup="true" aria-expanded="false" title="Account and full screen" aria-label="Account"></button>
         <div class="skc-menu" id="skcmenu" hidden><div class="skc-menuwho" data-skwho></div><button class="skc-mi" data-fullscreen>&#x26F6; Full screen</button><div class="skc-lib" id="skclib"></div></div></div>

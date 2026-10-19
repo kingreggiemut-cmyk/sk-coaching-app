@@ -281,3 +281,7 @@ body.skc.skc-building .body{padding:0 44px 0!important}
   body.skc #main .grid{grid-template-columns:minmax(0,1fr)!important}
   body.skc #main .grid>.card{min-width:0!important;width:auto!important;max-width:100%}
 }
+
+/* (2026-10-19, his ask) Full screen beside Find on the bar; phones keep it in the account menu */
+.skc-find.skc-fs{white-space:nowrap}
+@media (max-width:760px){.skc-find.skc-fs{display:none}}
