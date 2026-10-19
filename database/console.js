@@ -29,13 +29,15 @@
   }
 
   /* ---------- one tidy bar ---------- */
-  const TABS = [['schemes', 'Schemes'], ['library', 'Playbooks'], ['saved', 'Saved'], ['build', 'Build']];
+  /* (2026-10-19, his call) Build is hidden until the builder is ready to go live: SHOW_BUILD brings the tab and its Find entry back */
+  const SHOW_BUILD = false;
+  const TABS = [['schemes', 'Schemes'], ['library', 'Playbooks'], ['saved', 'Saved']].concat(SHOW_BUILD ? [['build', 'Build']] : []);
   const bar = el(`<header class="skc-bar">
     <a class="skc-brand" href="${side === 'D' ? PAGE_D : PAGE_O}" aria-label="Scheme Kings home"><img src="logos/scheme-kings.png" alt=""><span><b>Scheme Kings</b><small>The playbook database</small></span></a>
     <nav class="skc-tabs" id="skctabs" aria-label="Database">${TABS.map(([k, l]) => `<button class="skc-tab" data-skc="${k}">${l}</button>`).join('')}</nav>
     <div class="skc-tools">
       <button class="skc-find" id="skcfind" title="Find anything (Ctrl K)"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5L21 21"/></svg><span>Find</span></button><button class="skc-find skc-fs" data-fullscreen title="Full screen">&#x26F6; Full screen</button>
-      <div class="skc-side" role="group" aria-label="Side of the ball"><button data-skside="O" aria-pressed="${side === 'O'}" title="Offense">O</button><button data-skside="D" aria-pressed="${side === 'D'}" title="Defense">D</button></div>
+      <div class="skc-side" role="group" aria-label="Side of the ball"><button data-skside="O" aria-pressed="${side === 'O'}" title="Offense">Offense</button><button data-skside="D" aria-pressed="${side === 'D'}" title="Defense">Defense</button></div>
       <div class="skc-acct"><button class="skc-me" id="skcme" aria-haspopup="true" aria-expanded="false" title="Account and full screen" aria-label="Account"></button>
         <div class="skc-menu" id="skcmenu" hidden><div class="skc-menuwho" data-skwho></div><button class="skc-mi" data-fullscreen>&#x26F6; Full screen</button><div class="skc-lib" id="skclib"></div></div></div>
     </div></header>`);
@@ -163,7 +165,7 @@
     if (q) { SETS.filter((s) => (s.family + ' ' + s.set).toLowerCase().replace(/_/g, ' ').includes(q)).slice(0, 5).forEach((s) => out.push(['Formations', s.set, String(s.family).replace(/_/g, ' ') + ' · ' + s.n + ' plays', () => go(() => { VIEW = 'formations'; BOOK = null; FAM = s.family; SET = s.set; CONCEPT = null; FAMPICK = null; buildRail(); render(); })]));
       const seen = new Set(); IDX.plays.filter((p) => !p.drill && mine(p) && (p._s || p.name.toLowerCase()).includes(q)).some((p) => { const k = p.name + '|' + p.set; if (seen.has(k)) return false; seen.add(k);
         out.push(['Plays', p.name, String(p.family).replace(/_/g, ' ') + ' ' + p.set, () => go(async () => { VIEW = 'formations'; BOOK = null; FAM = p.family; SET = p.set; CONCEPT = null; FAMPICK = null; buildRail(); render(); const g = await cardsFor(p.family, p.set); openPlay(p, g); })]); return seen.size >= 8; }); }
-    [['Schemes', 'schemes'], ['Playbooks', 'library'], ['Saved plays', 'saved'], ['Build your offense', 'build']].forEach(([l, k]) => { if (!q || l.toLowerCase().includes(q)) out.push(['Go to', l, '', () => go(() => bar.querySelector(`[data-skc="${k}"]`).click())]); });
+    [['Schemes', 'schemes'], ['Playbooks', 'library'], ['Saved plays', 'saved']].concat(SHOW_BUILD ? [['Build your offense', 'build']] : []).forEach(([l, k]) => { if (!q || l.toLowerCase().includes(q)) out.push(['Go to', l, '', () => go(() => bar.querySelector(`[data-skc="${k}"]`).click())]); });
     return out.slice(0, 26); }
   function paint() { PR = items(D.getElementById('skcpin').value); PI = Math.min(PI, Math.max(0, PR.length - 1)); let g = '', h = '';
     PR.forEach(([grp, l, s], i) => { if (grp !== g) { g = grp; h += `<div class="skc-pg">${grp}</div>`; } h += `<button class="skc-pr" role="option" data-i="${i}" aria-selected="${i === PI}"><span>${esc(l)}</span><small>${esc(s)}</small></button>`; });
