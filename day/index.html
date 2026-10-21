@@ -944,7 +944,7 @@ const SB_URL = 'https://ksgxrxqvnfpfhidxsxcs.supabase.co';
 const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzZ3hyeHF2bmZwZmhpZHhzeGNzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE0MzkxMTgsImV4cCI6MjA5NzAxNTExOH0.pUD6sbkjhhTlgl5x4KHFJsThoHVlNkNBlSFES_8HHvM';
 const BRAIN = '/.netlify/functions/day-brain';
 const STORE_KEY = 'daily-board';
-const APP_VERSION = '3.4';
+const APP_VERSION = '3.5';
 const ROW_ID = 'reggie';
 /*
  * A copy served from localhost or opened off the disk is a test copy, and a test
@@ -3710,6 +3710,7 @@ function renderDesk() {
   } else if (desk.sec === 'income') {
     $('#dincome').innerHTML = incomeHTML();
     incDraw();
+    incAuto();
   } else if (desk.sec === 'sports') {
     // the Sports tab draws itself and keeps itself fresh; it is only told when it comes on screen
     if (window.dbSports) { if (desk.sportsOn !== true) { desk.sportsOn = true; window.dbSports.mount($('#dsports')); } }
@@ -4091,6 +4092,33 @@ function incPut(data) {
   return Object.fromEntries(Object.entries(INC.s).map(([k, v]) => [k, `${v.from} +${v.v.length}`]));
 }
 window.dbIncome = { put: incPut, get: () => incLoad() };
+/*
+ * YouTube loads itself. The Scheme Kings Hub on this computer (always on)
+ * reads both channels' daily revenue from the YouTube Analytics API, and the
+ * tab asks it whenever Income comes on screen, at most every ten minutes.
+ * The API runs a day or two behind Studio, so newer days put in by a pull
+ * stay as they are: only the days the API has are written. Stripe still comes
+ * from a pull. Off this computer the hub is not there and nothing happens.
+ */
+let incAutoAt = 0;
+async function incAuto() {
+  if (Date.now() - incAutoAt < 10 * 60e3) return;
+  incAutoAt = Date.now();
+  try {
+    const r = await fetch(`http://127.0.0.1:8800/api/income?from=${addDays(ymd(), -40)}`, { cache: 'no-store' });
+    const j = await r.json();
+    if (!j.ok) return;
+    const data = {};
+    for (const k of ['ck', 'kr']) {
+      const s = j[k];
+      if (!s || !s.cents.length) continue;
+      if (s.cents.some((c, i) => c !== incRaw(k, addDays(s.from, i)))) data[k] = { from: s.from, cents: s.cents };
+    }
+    incLoad().ytAt = j.pulledAt;
+    if (Object.keys(data).length) incPut({ ...data, pulledAt: INC.pulledAt });
+    else { try { localStorage.setItem(INCOME_KEY, JSON.stringify(INC)); } catch {} if (DESK() && desk.sec === 'income') { const el = $('.ipull'); if (el) el.innerHTML = incPullLine(); } }
+  } catch {}
+}
 
 const incRaw = (k, date) => { const s = incLoad().s[k]; if (!s) return 0; const i = diffDays(s.from, date); return i >= 0 && i < s.v.length ? s.v[i] : 0; };
 const incOf = {
@@ -4151,6 +4179,13 @@ function incMonths() {
   }
   return out;
 }
+function incPullLine() {
+  const p = incPeriod(), ytT = incYtThrough();
+  const at = (s) => { const d = new Date(s), hm = t12(`${pad(d.getHours())}:${pad(d.getMinutes())}`); return ymd(d) === ymd() ? hm : `${MO[d.getMonth()]} ${d.getDate()} at ${hm}`; };
+  const thru = ytT && ytT < p.end && inc.off === 0 ? `reported through ${dayLbl(ytT)}` : '';
+  if (!INC.ytAt) return `${INC.pulledAt ? `Pulled ${at(INC.pulledAt)}` : ''} · on this computer only${thru ? ` · YouTube has ${thru}` : ''}`;
+  return `${INC.pulledAt ? `Stripe pulled ${at(INC.pulledAt)} · ` : ''}YouTube read ${at(INC.ytAt)}${thru ? `, ${thru}` : ''}`;
+}
 function incomeHTML() {
   incLoad();
   if (!Object.keys(INC.s).length) {
@@ -4195,7 +4230,7 @@ function incomeHTML() {
   return `<div class="ihead">
       <div class="dtabs istat" role="group" aria-label="Range">${seg('week', 'Week')}${seg('30', '30 days')}${seg('month', 'Month')}</div>
       <div class="inav"><button class="dchip ar" data-dact="inc-nav" data-n="1" aria-label="Earlier" ${canBack ? '' : 'disabled'}>‹</button><span class="dwkl" style="display:inline-flex;align-items:center;justify-content:center;min-width:170px">${p.title}</span><button class="dchip ar" data-dact="inc-nav" data-n="-1" aria-label="Later" ${inc.off === 0 ? 'disabled' : ''}>›</button>${inc.off ? `<button class="dchip" data-dact="inc-nav" data-n="0">Back to now</button>` : ''}</div>
-      <div class="ipull">${pulled ? `Pulled ${MO[pulled.getMonth()]} ${pulled.getDate()} at ${t12(`${pad(pulled.getHours())}:${pad(pulled.getMinutes())}`)}` : ''} · on this computer only${ytT && ytT < p.end && inc.off === 0 ? ` · YouTube has reported through ${dayLbl(ytT)}` : ''}</div>
+      <div class="ipull">${incPullLine()}</div>
     </div>
     ${card('yt', 'YouTube', 'Estimated, CAD', `Campus Kings ${money(ck)} · King Reggie ${money(kr)}`)}
     ${card('st', 'Stripe', 'After fees, CAD', incLive(p) ? `${money(Math.round((sn - incOf.st(p.end)) / (p.days.length - 1)))} a day · ${money(incOf.st(p.end))} so far today` : `${money(Math.round(sn / Math.max(1, p.days.length)))} a day`)}
