@@ -172,6 +172,26 @@
   body.sp-open #mic { opacity: 0; pointer-events: none; }
   @media (max-width: 1500px) { .sp-slate, .sp-three { grid-template-columns: repeat(2, minmax(0, 1fr)); } .sp-stands { grid-template-columns: minmax(0, 1fr); } .sp-sgrid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .sp-sgrid > div:last-child { grid-column: 1 / -1; } }
 
+  /* v4.0, the Saturday Desk: index.html re-points the tokens (newsprint, ink, white cards with an ink edge);
+     these lift the type to Archivo wide and drop the torn edges and the room-coloured headings. */
+  #dsports h2, #dsports h3, .sp-sheet h2, .sp-sheet h3, .sp-tix .stub b, .sp-tile b, .sp-next b, .sp-line b, .sp-match h2, .sp-match .sc, .sp-g .tr u, .sp-cols .sp-day, .sp-ld u, .sp-proj .pv b, .sp-l5 span b, .sp-tbl th.l { font-weight: 900; font-stretch: 125%; }
+  .sp-bar h2 { color: var(--ink); } .sp-bar h2 .mk, .sp-sep, .sp-day, .sp-cols .sp-day span { color: var(--sc); }
+  .sp-tag { background: #fff; border: 2px solid var(--ink); box-shadow: 0 3px 0 rgba(18,18,18,.16); border-radius: 0; }
+  .sp-tag:hover { background: var(--np); }
+  .sp-tag.on, .sp-tag.on:hover { border-color: var(--team, var(--sc)); }
+  .sp-tag.on::before, .sp-slab::before { filter: none; }
+  .sp-tag.on::before { inset: -2px; box-shadow: none; background: var(--team, var(--sc)); }
+  .sp-tix, .sp-tile, .sp-next { border-radius: 0; box-shadow: var(--pshadow); }
+  .sp-tix .stub { border-radius: 0; }
+  .sp-stack.picks { box-shadow: 0 0 0 3px var(--gold), var(--pshadow); }
+  .sp-g .tr.mine b, .sp-news a:hover b { box-shadow: inset 0 -7px 0 rgba(243,178,34,.55); }
+  .sp-tbl tr.fav td, .sp-poll .fav { background: rgba(243,178,34,.28); }
+  .sp-page { scrollbar-color: var(--field) transparent; }
+  .sp-back { background: rgba(18,18,18,.45); }
+  .sp-sheet { border-radius: 0; box-shadow: 0 0 0 3px var(--ink), 0 10px 0 var(--ink); }
+  .sp-x { border-radius: 0; } .sp-x:hover { background: var(--gold); }
+  .sp-facts span { background: var(--np); box-shadow: inset 0 0 0 1.5px var(--ink); }
+
   @media (prefers-reduced-motion: no-preference) {
     .sp-page.fresh > * { animation: spIn .5s var(--ease) both; transform-origin: 0 50%; }
     .sp-page.fresh > :nth-child(2) { animation-delay: 70ms; } .sp-page.fresh > :nth-child(3) { animation-delay: 140ms; } .sp-page.fresh > :nth-child(4) { animation-delay: 210ms; }
