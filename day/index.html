@@ -1087,7 +1087,7 @@ const SB_URL = 'https://ksgxrxqvnfpfhidxsxcs.supabase.co';
 const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzZ3hyeHF2bmZwZmhpZHhzeGNzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE0MzkxMTgsImV4cCI6MjA5NzAxNTExOH0.pUD6sbkjhhTlgl5x4KHFJsThoHVlNkNBlSFES_8HHvM';
 const BRAIN = '/.netlify/functions/day-brain';
 const STORE_KEY = 'daily-board';
-const APP_VERSION = '4.0';
+const APP_VERSION = '4.0.1';
 const ROW_ID = 'reggie';
 /*
  * A copy served from localhost or opened off the disk is a test copy, and a test
@@ -4932,6 +4932,7 @@ setInterval(() => { tickClock(); renderNow(); renderDesk(); }, 30 * 1000);
 setInterval(() => { if (document.visibilityState === 'visible') syncNow(); }, 15 * 1000);
 loadWeather();
 loadSports();
+setTimeout(() => deskTitleCard(), 400);   // the once-a-day title card, desk only
 if (S.settings.place.auto) locate();
 pullSync();
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') { tickClock(); ensureDay(ymd()); render(); pullSync(); loadWeather(); } });
