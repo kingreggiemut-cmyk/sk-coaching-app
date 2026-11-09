@@ -961,6 +961,13 @@ p{margin:0}
 /* ===== v22 (2026-11-09): the playbooks that fit sit first in the right column, two rows at most ===== */
 .gc .ocr .fitl{display:flex!important;flex-flow:row wrap!important;align-content:flex-start;align-self:stretch;width:100%;max-height:84px;overflow:hidden;margin-bottom:6px;flex:none}
 .gc .ocr .fitl .more{display:inline-flex;align-items:center;height:36px;padding:0 10px;background:rgba(23,19,14,.08);font:800 13px/1 var(--fd);font-stretch:85%;letter-spacing:.1em;text-transform:uppercase;color:var(--pen)}
+
+/* ===== v23 (2026-11-09): the picked offenses show on the left of their rows ===== */
+.k-row.picked{box-shadow:inset 6px 0 0 var(--gold)}
+.k-row.picked .no{width:36px;height:36px;margin-left:6px;justify-self:center;align-self:center;border-radius:50%;background:var(--gold);color:var(--ink);font:900 20px/36px var(--fd);font-stretch:100%}
+.k-row.picked b{color:var(--gold)}
+.k-row .ck{display:none!important}
+.gc .ocf > .lbl{font-size:15px;color:var(--pen)}
 </style><script>/* the taskbar icon for this window when the King Reggie hub opens it (sk-icon.js); nothing on the website */if(/^(localhost|127.0.0.1)$/.test(location.hostname)){var s=document.createElement("script");s.src="http://localhost:8800/sk-icon.js";document.head.appendChild(s)}</script>
 </head><body>
 <div id="box"><div id="st">
@@ -1153,7 +1160,7 @@ const STEPS = ['Start', 'Questions', 'Playbook', 'Formations', 'Name it'];
 const stepOf = (v) => ({ start: 0, offense: 0, book: 0, find: 0, questions: 1, playbook: 2, formations: 3, name: 4 })[v] ?? 5;
 const doneStep = (i) => i === 0 ? S.started : i === 1 ? S.started && S.asked : i === 2 ? !!S.book && S.bookOk : i === 3 ? S.pins.length > 0 && S.formsOk : i === 4 ? S.built : false;
 function chrome(kicker, title) { const now = stepOf(S.view);
-  return '<div class="steps">' + STEPS.map((s, i) => '<button type="button" data-a="step" data-i="' + i + '" class="' + (i === now ? 'now' : doneStep(i) ? 'done' : '') + '">' + s + '</button>').join('') + '<button type="button" class="restart" data-a="restart">Restart</button></div>'
+  return '<div class="steps">' + STEPS.map((s, i) => '<button type="button" data-a="step" data-i="' + i + '" class="' + (i === now ? 'now' : doneStep(i) ? 'done' : '') + '">' + s + '</button>').join('') + '<button type="button" class="restart" data-a="restart" data-lab="+ New offense">+ New offense</button></div>'
     + '<div class="head"><span class="lbl">' + kicker + '</span><button type="button" class="help" data-a="help" aria-label="What is this screen asking?">?</button><h1>' + esc(title) + '</h1></div>'; }
 const MMP = [[-60, -30], [0, -40], [60, -30], [60, 30], [-60, 30]];
 function mm() { const el = $('mm'); if (S.view === 'board' || S.view === 'plays') return; const now = stepOf(S.view);
@@ -1176,7 +1183,7 @@ function hideHelp() { const h = document.querySelector('.hpop'); if (h) h.remove
 
 /* restart: two clicks, so one stray click never wipes a build */
 let sureT = 0;
-function askRestart(btn) { if (!btn.classList.contains('sure')) { btn.classList.add('sure'); btn.textContent = 'Sure? Click again'; clearTimeout(sureT); sureT = setTimeout(() => { btn.classList.remove('sure'); btn.textContent = btn.dataset.lab || 'Restart'; }, 3000); return; }
+function askRestart(btn) { if (!btn.classList.contains('sure') && !(S.built && S.view === 'board')) {   /* on your board the offense is saved: a new one starts straight away */ btn.classList.add('sure'); btn.textContent = 'Sure? Click again'; clearTimeout(sureT); sureT = setTimeout(() => { btn.classList.remove('sure'); btn.textContent = btn.dataset.lab || 'Restart'; }, 3000); return; }
   clearTimeout(sureT); if (S.built) save(); const st = loadStore(); st.current = null; saveStore(st); reset(); go(viewStart); }
 
 /* jump to a step from the tabs. Jumping ahead fills the skipped steps with our pick, nothing is locked. */
@@ -1246,7 +1253,7 @@ function viewOffense() { S.view = 'offense'; const order = oOrder(), ask = S.ask
     + (ask ? '<button type="button" class="k-row sm none" data-h="off" data-i="' + order.length + '" data-a="ofoc"><span class="no">-</span><div><b>None of these</b></div></button>' : '') + '</div><div id="show"></div>');
   focusOff(S.foc || 0, true); }
 const startWhat = () => S.door === 'book' ? 'Your playbook: ' + BOOK[S.book].t : S.door === 'form' && S.pk ? 'Your formation: ' + setShort(S.pk.si) : S.door === 'play' && S.startPlay ? 'Your play: ' + S.startPlay.name : '';
-function offRows() { const order = oOrder(); document.querySelectorAll('#menu .k-row').forEach((r, k) => { r.classList.toggle('on', k === S.foc); const ti = order[k], had = r.querySelector('.ck'); if (ti != null) { if (S.osel.includes(ti) && !had) r.insertAdjacentHTML('beforeend', '<span class="ck">✓</span>'); if (!S.osel.includes(ti) && had) had.remove(); } }); }
+function offRows() { const order = oOrder(); document.querySelectorAll('#menu .k-row').forEach((r, k) => { r.classList.toggle('on', k === S.foc); const ti = order[k], no = r.querySelector('.no'); if (ti == null || !no) return; const on = S.osel.includes(ti); r.classList.toggle('picked', on); no.textContent = on ? '✓' : String(k + 1); }); }   /* (2026-11-09) a picked offense: a gold check in place of its number and a gold edge, on the left where the card never covers it */
 const pickLine = () => S.osel.length ? 'Your pick: ' + S.osel.map((i) => D.types[i].name).join(' + ') : 'Nothing added yet';
 function focusOff(i, first) { const order = oOrder(), n = oCount(); S.foc = (i + n) % n; offRows(); const rows = document.querySelectorAll('#menu .k-row'); rows.forEach((r) => r.classList.remove('shine')); if (!first && rows[S.foc]) restart(rows[S.foc], 'shine');
   const cont = '<button type="button" class="k-gold" data-a="ogo"' + (S.osel.length ? '' : ' disabled') + '>Continue' + (S.osel.length > 1 ? ' with ' + S.osel.length : '') + '</button>';
@@ -1619,7 +1626,7 @@ function viewBoard(arrive, from) { S.view = 'board'; S.built = true; loadRoutes(
     + L.map((s) => '<button type="button" class="olg' + (s.id === S.id ? ' on' : '') + '" data-a="oswap" data-k="' + s.id + '" title="' + esc(s.name || 'My offense') + '" style="--take:' + (s.col || '#0556FF') + ';--takeRow:' + rowColour(s.col || '#0556FF') + '"><span class="crest ' + (s.crest || 'circle') + ' ' + (s.cstyle || '') + '">' + stripEmb(s) + '</span></button>').join('')
     + '<button type="button" class="ar" data-a="orot" data-i="1" aria-label="Next offense">›</button></div><b class="oname">' + esc(S.name) + '</b></div>';
   paint('s-board', '<div class="world" id="world">' + world + '</div>'
-    + '<div class="bhud hudb"><button type="button" data-a="gostep" data-i="4">Edit your offense</button><button type="button" data-a="rename">Rename</button><button type="button" data-a="dup">Duplicate</button><button type="button" class="restart" data-a="restart" data-lab="New offense">New offense</button><button type="button" class="backc" id="backc" data-a="bhome">← Whole offense</button></div>' + strip
+    + '<div class="bhud hudb"><button type="button" data-a="gostep" data-i="4">Edit your offense</button><button type="button" data-a="rename">Rename</button><button type="button" data-a="dup">Duplicate</button><button type="button" class="restart" data-a="restart" data-lab="+ Build a new offense">+ Build a new offense</button><button type="button" data-a="mine">Your offenses</button><button type="button" class="backc" id="backc" data-a="bhome">← Whole offense</button></div>' + strip
     + '<div class="zoom hudb"><button type="button" data-a="zout" aria-label="Zoom out">−</button><button type="button" data-a="zin" aria-label="Zoom in">+</button><button type="button" data-a="bhome">This offense</button><button type="button" data-a="ball">All offenses</button></div>');
   $('ksheet').hidden = true; hydrate($('world'));
   BCAM = { x: 0, y: 0, s: 1, P, ox: ci * WEB_DX, n: L.length };
