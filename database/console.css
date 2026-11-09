@@ -259,10 +259,7 @@ body.skc.skc-building .body{padding:0 44px 0!important}
 .skc-nav .skc-tabs{max-width:0;opacity:0;overflow:hidden;padding:8px 4px;transition:max-width .4s cubic-bezier(.22,1,.36,1),opacity .25s}
 .skc-nav .skc-tab{opacity:0;transform:translateX(-14px);transition:opacity .25s,transform .3s cubic-bezier(.22,1,.36,1),color .15s}
 .skc-nav .skc-tab:nth-child(2){transition-delay:.04s}.skc-nav .skc-tab:nth-child(3){transition-delay:.08s}.skc-nav .skc-tab:nth-child(4){transition-delay:.12s}
-.skc-nav:is(:hover,:focus-within):not(.tuck) .skc-tabs{max-width:720px;opacity:1}
-.skc-nav:is(:hover,:focus-within):not(.tuck) .skc-tab{opacity:1;transform:none}
-.skc-nav:is(:hover,:focus-within):not(.tuck) .skc-here{opacity:0;max-width:0;margin-left:-14px}
-.skc-nav:is(:hover,:focus-within):not(.tuck) .skc-chev{transform:rotate(180deg)}
+/* (2026-11-09) hover no longer opens the sections: .skc-nav.open, set by the arrow */
 /* phones have no hover: the sections just show */
 @media (max-width:760px){.skc-nav .skc-tabs{max-width:none;opacity:1}.skc-nav .skc-tab{opacity:1;transform:none}.skc-here,.skc-chev{display:none!important}.skc-bar{background:rgba(8,10,18,.9)!important}}
 @media (prefers-reduced-motion:reduce){.skc-chev{animation:none}}
@@ -289,3 +286,98 @@ body.skc.skc-building .body{padding:0 44px 0!important}
 /* (2026-10-19, his call) the O/D switcher spelled out: Offense / Defense */
 .skc-side button{width:auto;padding:0 16px;font:800 13px/1 var(--skc-fb);letter-spacing:.1em;text-transform:uppercase;white-space:nowrap}
 @media (max-width:760px){.skc-side button{padding:0 11px;font-size:11.5px}}
+
+/* ===== 2026-11-09: the arrow opens and closes on a click, the Custom tab, the speed pass ===== */
+.skc-chev{animation:none!important;border:0;cursor:pointer;padding:0;box-shadow:0 0 0 1px rgba(243,178,34,.6),0 0 16px rgba(243,178,34,.35)!important}
+.skc-chev:hover{background:rgba(243,178,34,.24)}
+.skc-chev:focus-visible{outline:2px solid var(--skc-gold);outline-offset:3px}
+.skc-here{cursor:pointer}
+.skc-nav .skc-tabs,.skc-nav .skc-tab{pointer-events:none}
+.skc-nav.open .skc-tabs{max-width:760px;opacity:1}
+.skc-nav.open .skc-tab{opacity:1;transform:none;pointer-events:auto}
+.skc-nav.open .skc-here{opacity:0;max-width:0;margin-left:-14px;pointer-events:none}
+.skc-nav.open .skc-chev{transform:rotate(180deg)}
+@media (max-width:760px){.skc-nav .skc-tabs,.skc-nav .skc-tab{pointer-events:auto}}
+/* the gold edge runs three laps when it arrives, then rests */
+.skc-go::before,body.skc .yg-go::before{animation-iteration-count:3!important}
+/* frosted glass only on the big panels; the small chips, arrows and rails get a solid tint (blur is the dearest thing an iPad draws) */
+body.skc.sk-pick .pk-chip,body.skc.sk-pick .pk-arrow,body.skc.sk-pick .pk-book{backdrop-filter:none!important}
+body.skc.sk-pick .pk-chip,body.skc.sk-pick .pk-book{background:rgba(14,16,24,.88)!important}
+body.skc.sk-pick .pk-arrow{background:rgba(30,32,42,.8)!important}
+.skc-svlist,.skc-svdet,body.skc #railbooks .bookrail{backdrop-filter:none!important;background:rgba(16,18,26,.9)!important}
+/* CUSTOM */
+body.skc[data-skcsec="custom"] :is(#hunt,#filters,#vrail,#railbooks,#foot){display:none!important}
+.skc-cus{display:grid;grid-template-columns:560px minmax(0,1fr);gap:32px;align-items:start;margin-top:8px}
+.skc-byo{position:relative;display:grid;gap:14px;justify-items:start;text-align:left;padding:32px;border:0;cursor:pointer;color:#fff;background:linear-gradient(160deg,rgba(30,84,183,.55),rgba(16,18,26,.92) 60%);box-shadow:inset 0 0 0 1px var(--skc-line);clip-path:polygon(0 0,calc(100% - 24px) 0,100% 24px,100% 100%,0 100%);transition:transform .2s,box-shadow .2s}
+.skc-byo:hover{transform:translateY(-3px);box-shadow:inset 0 0 0 2px var(--skc-gold)}
+.skc-byo:focus-visible{outline:2px solid var(--skc-gold);outline-offset:4px}
+.skc-byo img{width:96px;height:96px}
+.skc-byo b{font:italic 800 52px/.95 var(--skc-fc);text-transform:uppercase}
+.skc-byo p{margin:0;font:500 18px/1.45 var(--skc-fb);color:var(--skc-silver);max-width:44ch}
+.skc-byo .skc-go{position:relative;display:inline-block;padding:14px 22px;background:var(--skc-gold);color:#14161f;font:800 18px/1 var(--skc-fc);letter-spacing:.08em;text-transform:uppercase;border-radius:4px}
+.skc-byo small{font:600 14px/1 var(--skc-fb);color:var(--skc-mute)}
+.skc-k{font:800 13px/1 var(--skc-fc);letter-spacing:.22em;text-transform:uppercase;color:var(--skc-gold)}
+.skc-cuside{display:grid;gap:14px}
+.skc-culist{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:18px}
+.skc-cu,.skc-cusoon{display:grid;gap:8px;justify-items:center;text-align:center;padding:20px 16px;border:0;color:#fff;background:rgba(16,18,26,.88);box-shadow:inset 0 0 0 1px var(--skc-line)}
+.skc-cu{cursor:pointer;transition:transform .2s,box-shadow .2s}.skc-cu:hover{transform:translateY(-3px);box-shadow:inset 0 0 0 2px var(--skc-gold)}
+.skc-cu img{width:100%;aspect-ratio:1;object-fit:contain}.skc-cusoon img{width:110px;height:110px;opacity:.55;filter:grayscale(.4)}
+.skc-cu b,.skc-cusoon b{font:italic 800 26px/1 var(--skc-fc);text-transform:uppercase}
+.skc-cu small,.skc-cusoon small{font:600 14px/1.2 var(--skc-fb);color:var(--skc-mute)}
+@media (max-width:760px){.skc-cus{grid-template-columns:1fr}.skc-byo{padding:22px}.skc-byo b{font-size:38px}}
+
+/* ===== 2026-11-09 b: the group switch on Schemes, where "3 offensive installs · pick one" was ===== */
+body.sk-pick .title span:has(.pk-gsw):before{content:none}
+.pk-gsw{display:inline-flex;gap:10px;vertical-align:middle;margin-left:6px;letter-spacing:0}
+.pk-g{display:inline-flex;align-items:center;gap:10px;height:38px;padding:0 16px;border:0;border-radius:3px;cursor:pointer;background:rgba(14,16,24,.85);box-shadow:inset 0 0 0 1px rgba(255,255,255,.22);color:rgba(242,243,245,.72);font:italic 800 17px/1 var(--skc-fc,'Barlow Condensed',sans-serif);letter-spacing:.08em;text-transform:uppercase;transition:background .15s,color .15s,box-shadow .15s}
+.pk-g i{font-style:normal;font-size:13px;min-width:22px;height:22px;display:inline-grid;place-items:center;border-radius:11px;background:rgba(255,255,255,.12)}
+.pk-g:hover{color:#fff;box-shadow:inset 0 0 0 1px rgba(255,255,255,.55)}
+.pk-g.on{background:var(--skc-gold,#F3B222);color:#14161f;box-shadow:none}
+.pk-g.on i{background:rgba(20,22,31,.16)}
+.pk-g:focus-visible{outline:2px solid var(--skc-gold,#F3B222);outline-offset:3px}
+@media (max-width:760px){.pk-gsw{display:flex;flex-wrap:wrap;margin:10px 0 0}.pk-g{font-size:15px;height:36px}}
+body.skc.sk-pick .title span:has(.pk-gsw)::before{content:none!important}
+
+/* ===== 2026-11-09 c: the Schemes dropdown, the screen blurs behind it ===== */
+body.skc .body{transition:filter .25s}
+body.skc.skc-ddon .body{filter:blur(8px) brightness(.5);pointer-events:none}
+body.skc.skc-ddon .skc-bgimg{filter:blur(14px) brightness(.45)}
+.skc-tab[data-skc="schemes"]::before{content:"";position:absolute;right:-16px;top:50%;margin-top:-3px;border:5px solid transparent;border-top:6px solid currentColor;opacity:.7}
+.skc-tab[data-skc="schemes"]{margin-right:14px}
+.skc-dd{position:absolute;top:100%;margin-top:6px;width:520px;padding:12px;z-index:40;background:rgba(14,16,24,.97);box-shadow:0 0 0 1px var(--skc-line),0 30px 60px -12px #000;clip-path:polygon(0 0,calc(100% - 18px) 0,100% 18px,100% 100%,0 100%);display:grid;gap:4px;animation:skcdd .18s cubic-bezier(.22,1,.36,1)}
+.skc-dd[hidden]{display:none}
+@keyframes skcdd{from{opacity:0;transform:translateY(-6px)}}
+.skc-dd::before{content:"";position:absolute;left:0;right:0;top:-10px;height:10px}
+.skc-ddh{padding:10px 10px 6px;font:800 12px/1 var(--skc-fc);letter-spacing:.26em;text-transform:uppercase;color:var(--skc-gold)}
+.skc-ddh:not(:first-child){margin-top:8px;border-top:1px solid var(--skc-line);padding-top:16px}
+.skc-ddi{position:relative;display:grid;grid-template-columns:118px 1fr auto;align-items:center;gap:14px;min-height:64px;padding:10px 14px;border:0;cursor:pointer;text-align:left;background:none;color:#fff;transition:background .15s}
+.skc-ddi:hover,.skc-ddi:focus-visible{background:rgba(255,255,255,.07);outline:none}
+.skc-ddi:focus-visible{box-shadow:inset 0 0 0 2px var(--skc-gold)}
+.skc-ddi.on{background:rgba(243,178,34,.1)}
+.skc-ddi.on::before{content:"";position:absolute;left:0;top:8px;bottom:8px;width:4px;background:var(--skc-gold)}
+.skc-ddc{display:flex;align-items:center}
+.skc-ddc img{width:34px;height:34px;object-fit:contain;border-radius:50%;background:rgba(255,255,255,.9);padding:3px;box-shadow:0 0 0 2px rgba(14,16,24,.97)}
+.skc-ddc img + img{margin-left:-8px}
+.skc-ddt b{display:block;font:italic 800 24px/1 var(--skc-fc);text-transform:uppercase}
+.skc-ddt small{display:block;margin-top:5px;font:600 14px/1.2 var(--skc-fb);color:var(--skc-mute)}
+.skc-ddi i{font:800 11px/1 var(--skc-fc);font-style:normal;letter-spacing:.2em;text-transform:uppercase;color:var(--skc-gold)}
+.skc-ddi em{font:600 26px/1 var(--skc-fb);font-style:normal;color:var(--skc-mute)}
+@media (max-width:760px){.skc-dd{position:fixed;left:12px!important;right:12px;width:auto;margin-top:0;max-height:calc(100vh - 140px);overflow-y:auto}.skc-ddi{grid-template-columns:96px 1fr auto}.skc-ddt b{font-size:21px}}
+
+/* ===== 2026-11-09 d: the bar on a phone. Row one: the crown, Find, Offense / Defense, the account. Row two: the four tabs, all of them
+   on screen (Saved and Build Your Own were pushed off the edge) ===== */
+@media (max-width:760px){
+  body.skc .skc-bar{flex-wrap:wrap!important;height:auto!important;row-gap:10px;column-gap:8px;padding:10px 12px 8px!important}
+  body.skc .skc-nav{display:contents!important}
+  body.skc .skc-brand{order:1}
+  body.skc .skc-brand > span{display:none!important}
+  body.skc .skc-brand img{width:42px;height:42px}
+  body.skc .skc-tools{order:2;margin-left:auto!important;gap:8px!important}
+  body.skc .skc-tools .skc-find,body.skc .skc-tools .skc-side button,body.skc .skc-tools .skc-me{height:40px!important}
+  body.skc .skc-tools .skc-side button{padding:0 12px!important;font-size:12px!important}
+  body.skc .skc-tabs{order:3;width:100%!important;max-width:none!important;opacity:1!important;display:flex!important;justify-content:space-between;gap:6px!important;overflow-x:auto;scrollbar-width:none;padding:2px 2px 6px!important}
+  body.skc .skc-tabs::-webkit-scrollbar{display:none}
+  body.skc .skc-tab{font-size:16px!important;padding:6px 0!important;opacity:1!important;transform:none!important;pointer-events:auto!important}
+  body.skc .skc-tab[aria-current="page"]{font-size:16px!important}
+  body.skc .skc-tab[data-skc="schemes"]{margin-right:12px}
+}

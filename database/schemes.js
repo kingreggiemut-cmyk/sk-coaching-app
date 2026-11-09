@@ -352,7 +352,7 @@ function pkCardStyle(o,sc){
   const s=ab===0?1:ab===1?.5:.4, op=!vis?0:ab===0?1:ab===1?.5:0;
   const lay=ab===0?0:1, gray=ab===0?0:.65;
   return `--o:${o};--s:${s};--op:${op};--lay:${lay};--gray:${gray};--z:${20-ab};`
-    +`--tc:${sc.c1||'#1E3A6E'};--tc2:${sc.c2||'#F5B935'};--pe:${vis?'auto':'none'}`+(sc.home&&sc.home.card?`;--face:url('${new URL(sc.home.card,location.href).href}')`:'');
+    +`--tc:${sc.c1||'#1E3A6E'};--tc2:${sc.c2||'#F5B935'};--pe:${vis?'auto':'none'}`+(ab<=1&&sc.home&&sc.home.card?`;--face:url('${new URL(sc.home.card,location.href).href}')`:'');
 }
 function pkState(sc){ if(sc.soon) return ['soon','Coming soon']; const n=installedSet(sc).size, t=((sc.install&&sc.install.pillars)||[]).length||3;
   return n>=t?['ready','Game Ready']:n?['prog',`In Progress · ${n} of ${t} sections`]:['open','Open It']; }
@@ -369,7 +369,29 @@ function SIDEWORD(sc){ return (sc && sc.side === 'D') ? 'defence' : 'offense'; }
 const soonCards=()=>{ if(!SERIES_HERE()||!SERIES.qbs) return []; const sd=typeof SIDE==='undefined'?'O':SIDE;
   return SERIES.qbs.filter(q=>q.soon).map((q,i)=>({ key:'soon-'+i, soon:true, side:sd, name:q.fullName||(q.name+' '+SERIES.title.replace(/^The\s+/i,'').replace(/\s+Offense$/i,'')), c1:q.c1||'#1E3A6E', c2:q.c2||'#F5B935', logo:null, logoImg:q.logo||null,
     home:{ card:q.card||null, era:q.team||'', sub:'coming soon', pitch:q.pitch||'' }, install:{pillars:[]}, formations:[], counts:{plays:0,films:0,pillars:{}}, plays:[] })); };
-const deckOf=()=>(SCHEMES||[]).filter(s=>(s.side||'O')===(typeof SIDE==='undefined'?'O':SIDE)).concat(soonCards());
+/* THE GROUPS (2026-11-09, his call): Schemes switches between groups. A series is a group (its qbs keys name its installs),
+   the installs in no series are one more, and CUSTOM OFFENSES holds the schemes with group:'custom'. The pick is kept for the tab. */
+const GROUP_KEY=()=>'sk_group'+(typeof SKG!=='undefined'?SKG:'')+'_'+(typeof SIDE==='undefined'?'O':SIDE);
+let GROUP=null; try{ GROUP=new URLSearchParams(location.search).get('group')||sessionStorage.getItem(GROUP_KEY()); if(GROUP) sessionStorage.setItem(GROUP_KEY(),GROUP); }catch(e){}
+function groupPick(k){ GROUP=k; try{ sessionStorage.setItem(GROUP_KEY(),k); }catch(e){} INSTALL=0; }
+const customSoon=()=>({ key:'custom-soon', soon:true, side:'O', name:'My Madden Custom Offense', c1:'#1E54B7', c2:'#F3B222', logo:null, logoImg:'logos/scheme-kings.png',
+  home:{ card:null, era:'Scheme Kings', sub:'coming soon', pitch:'The offense I built from scratch in Madden 27, every formation and every call. It lands here with the next video.' }, install:{pillars:[]}, formations:[], counts:{plays:0,films:0,pillars:{}}, plays:[] });
+function groupsHere(sdIn){ const sd=sdIn||(typeof SIDE==='undefined'?'O':SIDE), all=(SCHEMES||[]).filter(s=>(s.side||'O')===sd), out=[], used=new Set();
+  for(const se of (typeof SERIES_ALL!=='undefined'?SERIES_ALL:[])){ if(!se||(se.side&&se.side!==sd)) continue; const ks=(se.qbs||[]).map(q=>q.key);
+    const mem=all.filter(s=>s.group!=='custom'&&ks.includes(s.key)); mem.forEach(s=>used.add(s.key)); out.push({ key:se.key, title:se.title, ser:se, n:mem.length+(se.qbs||[]).filter(q=>q.soon).length }); }
+  const rest=all.filter(s=>s.group!=='custom'&&!used.has(s.key)); if(rest.length) out.push({ key:'_more', title:out.length?'More installs':'Your installs', ser:null, n:rest.length });
+  const cu=all.filter(s=>s.group==='custom'); if(cu.length||((typeof SK_GAMEKEY!=='undefined'&&SK_GAMEKEY==='madden27')&&sd==='O')) out.push({ key:'custom', title:'Custom offenses', ser:null, custom:true, n:cu.length||1 });
+  return out; }
+const groupNow=()=>{ const G=groupsHere(); return G.find(g=>g.key===GROUP)||G[0]||null; };
+const deckOf=()=>{ const sd=typeof SIDE==='undefined'?'O':SIDE, all=(SCHEMES||[]).filter(s=>(s.side||'O')===sd), g=groupNow();
+  if(!g) return all;
+  SERIES=g.ser;   /* the Learn about chip, the pop-up and the coming soon cards follow the group */
+  if(g.custom){ const cu=all.filter(s=>s.group==='custom'); return cu.length?cu:[customSoon()]; }
+  if(g.ser){ const ks=(g.ser.qbs||[]).map(q=>q.key); return all.filter(s=>s.group!=='custom'&&ks.includes(s.key)).concat(soonCards()); }
+  const used=new Set(groupsHere().filter(x=>x.ser).flatMap(x=>(x.ser.qbs||[]).map(q=>q.key))); return all.filter(s=>s.group!=='custom'&&!used.has(s.key)); };
+function groupSwitch(){ const G=groupsHere(), sub=$('#sub'); if(G.length<2||!sub) return; const cur=groupNow();
+  sub.innerHTML=`<span class="pk-gsw" role="tablist" aria-label="Scheme groups">${G.map(g=>`<button type="button" role="tab" class="pk-g${(cur&&g.key===cur.key)?' on':''}${g.custom?' cu':''}" data-group="${esc(g.key)}" aria-selected="${(cur&&g.key===cur.key)}">${esc(g.title)}<i>${g.n}</i></button>`).join('')}</span>`;
+  sub.onclick=(e)=>{ const b=e.target.closest('[data-group]'); if(!b||b.dataset.group===(cur&&cur.key)) return; GROUP=b.dataset.group; try{ sessionStorage.setItem(GROUP_KEY(),GROUP); }catch(x){} INSTALL=0; renderPicker(); }; }
 /* the count line reads in the install's own words, so a defence says
    "3 pressure · 2 disguise" instead of borrowing the offence's headings */
 const pkN=(s)=>(s.counts&&s.counts.plays!=null)?s.counts.plays:(s.plays||[]).length;
@@ -384,7 +406,8 @@ function pkMeta(s){
 /* the name huge and faint behind the deck: the team on one line, the rest on the next */
 const pkBig=(c)=>{ const w=String(c.name||'').replace(/\s+(Offense|Defense|Defence)$/i,'').split(' '); const a=w.shift(); return `<span>${esc(a)}</span><span>${esc(w.join(' '))}</span>`; };
 /* THE SHELF: the card is the scheme's polaroid when it has one */
-const pkFace=(s)=>s.home&&s.home.card?`<img class="pk-pol" src="${esc(s.home.card)}" alt="" draggable="false" decoding="async">`:pkCrest(s);
+/* (2026-11-09) only the standing card and its two neighbours load their photo; the rest load as the deck reaches them */
+const pkFace=(s,near)=>s.home&&s.home.card?`<img class="pk-pol" ${near===false?'data-src':'src'}="${esc(s.home.card)}" alt="" draggable="false" decoding="async">`:pkCrest(s);
 /* a front tile cropped to the players, as the scheme page draws it */
 function pkFit(svg){ const pts=[...svg.matchAll(/<circle cx="([-\d.]+)" cy="([-\d.]+)"/g)].map(m=>[+m[1],+m[2]]); if(pts.length<3) return svg;
   const xs=pts.map(p=>p[0]), ys=pts.map(p=>p[1]); let x0=Math.min(...xs)-44, x1=Math.max(...xs)+44, y0=Math.min(...ys)-34, y1=Math.max(...ys)+46;
@@ -438,7 +461,8 @@ function renderPicker(){
   const main=$('#main'); document.body.classList.add('sk-pick');
   const DECK=deckOf();
   const word=(typeof SIDE!=='undefined'&&SIDE==='D')?'defensive installs':'offensive installs';
-  setTitle('YOUR SCHEMES', DECK.length+' '+word+' · pick one');
+  { const gN=groupNow(), many=groupsHere().length>1, live=DECK.filter(s=>!s.soon).length;   /* the title names the group (2026-11-09) */
+    setTitle(many&&gN?gN.title:'YOUR SCHEMES', live?(live+' '+(live===1?word.replace(/s$/,''):word)+' · pick one'):'coming with the next video'); }
   if(!DECK.length){
     main.innerHTML=`<div class="sk-empty">No ${esc(word)} yet. Flip the side of the ball up top to see the others.</div>`;
     $('#foot').textContent=''; return;
@@ -458,7 +482,7 @@ function renderPicker(){
         ${N>1?`<button class="pk-arrow prev" data-step="-1" aria-label="Previous scheme">&lsaquo;</button>`:''}
         ${DECK.map((s,i)=>{ const o=off(i);
           return `<button class="pk-card${o===0?' mid':''}${s.soon?' soon':''}" data-pk="${i}" style="${pkCardStyle(o,s)}" title="${esc(s.name)}">
-            ${pkFace(s)}<span class="pk-foil"></span><span class="pk-glare"></span></button>`; }).join('')}
+            ${pkFace(s,Math.abs(o)<=1)}<span class="pk-foil"></span><span class="pk-glare"></span></button>`; }).join('')}
         ${N>1?`<button class="pk-arrow next" data-step="1" aria-label="Next scheme">&rsaquo;</button>`:''}
       </div>
       ${N>1?`<div class="pk-dots">${DECK.map((_,i)=>`<button class="pk-dot${i===INSTALL?' on':''}" data-pk="${i}" aria-label="Scheme ${i+1}"></button>`).join('')}</div>`:''}
@@ -468,7 +492,8 @@ function renderPicker(){
     const c=DECK[INSTALL], s2=pkState(c);
     const pk=$('#pk'); pk.style.setProperty('--tc',c.c1||'#1E3A6E'); pk.style.setProperty('--tc2',c.c2||'#F5B935');
     main.querySelectorAll('.pk-card').forEach(el=>{ const i=+el.dataset.pk, o=off(i);
-      el.style.cssText=pkCardStyle(o,DECK[i]); el.classList.toggle('mid',o===0); });
+      el.style.cssText=pkCardStyle(o,DECK[i]); el.classList.toggle('mid',o===0);
+      if(Math.abs(o)<=1){ const im=el.querySelector('img[data-src]'); if(im){ im.src=im.dataset.src; im.removeAttribute('data-src'); } } });
     main.querySelectorAll('.pk-chip,.pk-dot').forEach(el=>el.classList.toggle('on',+el.dataset.pk===INSTALL));
     document.body.style.setProperty('--tc',c.c1||'#1E54B7');
     const ds=$('#pkdoss'); if(ds) ds.innerHTML=pkDossier(c); const bk=$('#pkbook'); if(bk) bk.innerHTML=pkBook(c);

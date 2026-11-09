@@ -11,7 +11,7 @@ const $ = (s) => document.querySelector(s);
 let LIVEBOOKS = [], CONF = null;
 /* the installs, and which one is open */
 let SCHEMES = null, INSTALL = 0, SCHEME = null, SEC = 'install';
-let SERIES = null;   /* what the schemes are together (Madden: the Young Gun offense), from schemes/index.json */
+let SERIES = null, SERIES_ALL = [];   /* what the schemes are together (Madden: the Young Gun offense), from schemes/index.json */
 /* WHICH GAME THIS PAGE IS (2026-09-11). College Football pages set nothing;
    the Madden pages (madden/index.html, madden/defense.html, built by
    Madden27 Engine Reference/build-madden-pages.js) set window.SK_GAME. The data
@@ -25,7 +25,7 @@ const SKG = SK_GAMEKEY ? '_' + SK_GAMEKEY : '', SKPRE = SK_GAMEKEY ? SK_GAMEKEY 
 const PAGE = 200; let SHOWN = PAGE; let SORT = 'az';
  let FAMPICK = null, CONCEPT = null, SIDE = (typeof SK_SIDE !== 'undefined' ? SK_SIDE : 'O');
 /* the college pages land on their installs (the offense got its first, the Veer N Shoot, 2026-09-21); the Madden pages land on the playbooks as before */
-let IDX = null, VIEW = SK_GAMEKEY ? 'books' : 'schemes', FAM = null, SET = null, TYPE = 'all', Q = '', BOOK = null;
+let IDX = null, VIEW = 'schemes', FAM = null, SET = null, TYPE = 'all', Q = '', BOOK = null;
 const CARDS = new Map();                    // setKey -> geometry
 const SAVED = new Set(JSON.parse(localStorage.getItem('sk_saved' + SKG) || '[]'));
 const saveStars = () => { try { localStorage.setItem('sk_saved' + SKG, JSON.stringify([...SAVED])); localStorage.setItem('sk_saved_meta' + SKG, JSON.stringify(SAVEDMETA)); } catch(e){} };
@@ -187,7 +187,7 @@ async function boot(){
     fetch('formations.json').then(r=>r.json()).catch(()=>({})),
     fetch('formation-names.json').then(r=>r.json()).catch(()=>({})),
     fetch('schemes/index.json').then(r=>r.json()).catch(()=>({schemes:[],library:null}))]);
-  FORMS=forms; SETNAMES=names; SCHEMES=idx.schemes||[]; LIBN=idx.library||null; SERIES=Array.isArray(idx.series)?(idx.series.find(s=>!s.side||s.side===SIDE)||null):(idx.series||null);   /* one series per side of the ball (2026-09-28) */
+  FORMS=forms; SETNAMES=names; SCHEMES=idx.schemes||[]; LIBN=idx.library||null; SERIES_ALL=Array.isArray(idx.series)?idx.series:(idx.series?[idx.series]:[]); SERIES=Array.isArray(idx.series)?(idx.series.find(s=>!s.side||s.side===SIDE)||null):(idx.series||null);   /* one series per side of the ball (2026-09-28) */
   if(LIBN){ $('#live').innerHTML = `<i>LIBRARY</i><b>${LIBN.plays.toLocaleString()}</b><u>${LIBN.books} playbooks</u>`;
     $('#q').placeholder = `Search ${LIBN.plays.toLocaleString()} plays, every playbook and formation: mesh, ${SK_GAMEKEY?'chiefs':'alabama'}, trips…`; }
   /* the new scheme page (scheme.html) keeps drives and the board here until
@@ -199,7 +199,7 @@ async function boot(){
     if(pl){ try{ if(pl.SCHEME&&SCHEMES.some(s=>s.key===pl.SCHEME)){ await ensureScheme(pl.SCHEME); SCHEME=pl.SCHEME; SEC=pl.SEC||'home'; INSTALL=pl.INSTALL||0; }
         if(pl.VIEW&&!(pl.VIEW==='search'&&!pl.Q)) VIEW=pl.VIEW; FAM=pl.FAM||null; SET=pl.SET||null; TYPE=pl.TYPE||'all'; BOOK=pl.BOOK||null; SORT=pl.SORT||SORT; SHOWN=Math.max(PAGE,pl.SHOWN||PAGE); FAMPICK=pl.FAMPICK||null; CONCEPT=pl.CONCEPT||null; Q=pl.Q||'';
         if(Q){ $('#q').value=Q; const qc=$('#qclear'); if(qc) qc.hidden=false; } PLACE_BACK=pl; }catch(e){} } }
-  const placeHome=()=>{ VIEW=SK_GAMEKEY?'books':'schemes'; FAM=SET=BOOK=FAMPICK=CONCEPT=null; TYPE='all'; Q=''; SCHEME=null; PLACE_BACK=null; };
+  const placeHome=()=>{ VIEW='schemes'; FAM=SET=BOOK=FAMPICK=CONCEPT=null; TYPE='all'; Q=''; SCHEME=null; PLACE_BACK=null; };
   if(sectionOf(VIEW)!=='schemes'||SCHEME) await ensureIndex();
   if(PLACE_BACK&&BOOK&&IDX&&!IDX.books.some(b=>b.key===BOOK)) placeHome();
   buildRail(); try{ render(); }catch(e){ if(!PLACE_BACK) throw e; placeHome(); buildRail(); render(); }   /* a place that no longer draws falls back to the front door */

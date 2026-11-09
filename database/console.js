@@ -30,10 +30,11 @@
 
   /* ---------- one tidy bar ---------- */
   /* (2026-10-19, his call) Build is hidden until the builder is ready to go live: SHOW_BUILD brings the tab and its Find entry back */
-  const SHOW_BUILD = false;
-  const TABS = [['schemes', 'Schemes'], ['library', 'Playbooks'], ['saved', 'Saved']].concat(SHOW_BUILD ? [['build', 'Build']] : []);
+  /* (2026-11-09) Build lives inside the Custom tab now: the Build your own card opens it */
+  const SHOW_BUILD = false, GAME = window.SK_GAME || '', MADDEN = GAME === 'madden27';
+  const TABS = [['schemes', 'Schemes'], ['library', 'Playbooks'], ['saved', 'Saved'], ['build', 'Build Your Own']];
   const bar = el(`<header class="skc-bar">
-    <a class="skc-brand" href="${side === 'D' ? PAGE_D : PAGE_O}" aria-label="Scheme Kings home"><img src="logos/scheme-kings.png" alt=""><span><b>Scheme Kings</b><small>The playbook database</small></span></a>
+    <a class="skc-brand" href="${side === 'D' ? PAGE_D : PAGE_O}" aria-label="Scheme Kings home"><img src="logos/scheme-kings.png" alt=""><span><b>Scheme Kings</b><small>${MADDEN ? 'Madden 27 · ' : ''}The playbook database</small></span></a>
     <nav class="skc-tabs" id="skctabs" aria-label="Database">${TABS.map(([k, l]) => `<button class="skc-tab" data-skc="${k}">${l}</button>`).join('')}</nav>
     <div class="skc-tools">
       <button class="skc-find" id="skcfind" title="Find anything (Ctrl K)"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5L21 21"/></svg><span>Find</span></button><button class="skc-find skc-fs" data-fullscreen title="Full screen">&#x26F6; Full screen</button>
@@ -46,14 +47,46 @@
   { const nav = el('<div class="skc-nav"></div>'), brand = bar.querySelector('.skc-brand'), tabs = bar.querySelector('.skc-tabs');
     bar.insertBefore(nav, brand); nav.appendChild(brand);
     nav.appendChild(el('<span class="skc-here" id="skchere"></span>'));
-    nav.appendChild(el('<span class="skc-chev" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></span>'));
-    nav.appendChild(tabs); }
+    nav.appendChild(el('<button type="button" class="skc-chev" id="skcchev" aria-expanded="false" aria-controls="skctabs" title="Show the sections"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button>'));
+    nav.appendChild(tabs);
+    /* (2026-11-09, his note) a click opens the sections and they STAY open until the arrow is clicked again; remembered */
+    let open = false; try { open = localStorage.getItem('skc_nav') === '1'; } catch (e) {}
+    const setNav = (v) => { open = v; nav.classList.toggle('open', v); const c = nav.querySelector('#skcchev'); c.setAttribute('aria-expanded', v); c.title = v ? 'Hide the sections' : 'Show the sections'; try { localStorage.setItem('skc_nav', v ? '1' : '0'); } catch (e) {} };
+    setNav(open);
+    nav.addEventListener('click', (e) => { if (e.target.closest('#skcchev, #skchere')) { e.preventDefault(); setNav(!open); } }); }
+  /* ---------- THE SCHEMES DROPDOWN (2026-11-09, his call): every group, one tap away; the screen blurs behind it ---------- */
+  { const nav = bar.querySelector('.skc-nav'), schTab = bar.querySelector('[data-skc="schemes"]'), dd = el('<div class="skc-dd" id="skcdd" role="menu" aria-label="Pick your schemes" hidden></div>');
+    nav.appendChild(dd); schTab.setAttribute('aria-haspopup', 'true'); schTab.setAttribute('aria-expanded', 'false');
+    const FINE = matchMedia('(hover:hover) and (pointer:fine)').matches;
+    const itemsOf = (g, sd) => { const all = (typeof SCHEMES !== 'undefined' && SCHEMES || []).filter((s) => (s.side || 'O') === sd);
+      if (g.custom) return all.filter((s) => s.group === 'custom');
+      if (g.ser) { const ks = (g.ser.qbs || []).map((q) => q.key); return all.filter((s) => s.group !== 'custom' && ks.includes(s.key)); }
+      const used = new Set(groupsHere(sd).filter((x) => x.ser).flatMap((x) => (x.ser.qbs || []).map((q) => q.key))); return all.filter((s) => s.group !== 'custom' && !used.has(s.key)); };
+    const metaOf = (g, sd) => { const n = itemsOf(g, sd).length, soon = g.ser ? (g.ser.qbs || []).filter((q) => q.soon).length : (g.custom && !n ? 1 : 0);
+      return [n ? n + ' install' + (n === 1 ? '' : 's') : '', soon ? soon + ' coming soon' : ''].filter(Boolean).join(' · '); };
+    const crestsOf = (g, sd) => { const L = itemsOf(g, sd); return L.length && typeof pkCrest === 'function' ? L.slice(0, 4).map((s) => pkCrest(s)).join('') : '<img src="logos/scheme-kings.png" alt="">'; };
+    function paint() { if (typeof groupsHere !== 'function') return; const cur = (typeof groupNow === 'function' && groupNow()) || {}, here = typeof VIEW !== 'undefined' && VIEW === 'schemes' && !(typeof SCHEME !== 'undefined' && SCHEME);
+      const block = (sd) => { const G = groupsHere(sd); if (!G.length) return ''; return `<div class="skc-ddh">${sd === 'O' ? 'Offense' : 'Defense'}</div>` + G.map((g) => { const on = here && sd === side && g.key === cur.key;
+        return `<button class="skc-ddi${on ? ' on' : ''}" role="menuitem" data-ddg="${esc(g.key)}" data-dds="${sd}"><span class="skc-ddc">${crestsOf(g, sd)}</span><span class="skc-ddt"><b>${esc(g.title)}</b><small>${esc(metaOf(g, sd))}</small></span>${on ? '<i>Here</i>' : '<em aria-hidden="true">&rsaquo;</em>'}</button>`; }).join(''); };
+      dd.innerHTML = block(side) + block(side === 'O' ? 'D' : 'O'); }
+    let T = 0;
+    const show = (v) => { if (v === !dd.hidden) return; if (v) { paint(); dd.style.left = Math.max(0, schTab.offsetLeft - 14) + 'px'; dd.style.top = innerWidth <= 760 ? Math.round(schTab.getBoundingClientRect().bottom + 8) + 'px' : ''; } dd.hidden = !v; B.classList.toggle('skc-ddon', v); schTab.setAttribute('aria-expanded', v); };
+    if (FINE) [schTab, dd].forEach((n) => { n.addEventListener('mouseenter', () => { clearTimeout(T); T = setTimeout(() => show(true), 110); }); n.addEventListener('mouseleave', () => { clearTimeout(T); T = setTimeout(() => show(false), 260); }); });
+    bar.addEventListener('click', (e) => {
+      if (e.target.closest('[data-skc="schemes"]')) { e.stopImmediatePropagation(); clearTimeout(T); show(FINE ? true : dd.hidden); return; }
+      const it = e.target.closest('[data-ddg]'); if (!it) return; e.stopImmediatePropagation(); show(false);
+      const k = it.dataset.ddg, sd = it.dataset.dds; if (sd !== side) { location.href = (sd === 'D' ? PAGE_D : PAGE_O) + '?group=' + encodeURIComponent(k); return; }
+      closeBuild(); if (typeof groupPick === 'function') groupPick(k); VIEW = 'schemes'; SCHEME = null; FAM = null; SET = null; BOOK = null; CONCEPT = null; FAMPICK = null;
+      buildRail(); render(); scrollTo({ top: 0 }); }, true);
+    D.addEventListener('click', (e) => { if (!dd.hidden && !e.target.closest('#skcdd, [data-skc="schemes"]')) show(false); });
+    D.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !dd.hidden) { show(false); schTab.focus(); } }); }
   /* the old banner's live count moves into the account menu */
   const live = D.getElementById('live'); if (live) bar.querySelector('#skclib').appendChild(live);
 
   const secNow = () => (typeof sectionOf === 'function' ? sectionOf(VIEW) : 'library');
   let BUILD = false;
-  const BUILDER = '../CFB27%20Engine%20Reference/scheme-builder/build-your-offense.html';
+  /* (2026-11-09) the builders live in the database now (scheme-database/build, published by scheme-builder/publish-build.js) */
+  const BUILDER = MADDEN ? '../build/build-your-offense-madden.html' : 'build/build-your-offense.html';
   /* (2026-10-19) the builder lives outside the database folder: where it is not served (the live site, until it ships) the
      tab says so instead of opening an empty frame */
   let BUILD_OK = null;
@@ -63,6 +96,7 @@
     if (!w) { w = el('<div class="skc-build" id="skcbuild"><iframe title="Build your offense" allow="fullscreen"></iframe></div>'); B.appendChild(w); w.querySelector('iframe').src = BUILDER; }
     BUILD = true; sync(); scrollTo({ top: 0 }); placeBuild(); setTimeout(() => { try { w.querySelector('iframe').focus(); } catch (x) {} }, 50); }
   function closeBuild() { BUILD = false; }
+/* fix-groups-cut:custompage */
   /* the frame starts where the bar ends, measured, because the bar is inside the scaled stage */
   function placeBuild() { const w = D.getElementById('skcbuild'); if (!w) return; const r = bar.getBoundingClientRect(); w.style.top = Math.round(Math.max(0, r.bottom)) + 'px'; }
   addEventListener('resize', () => setTimeout(placeBuild, 0));
@@ -75,7 +109,7 @@
     densBar(); }
   bar.addEventListener('click', (e) => {
     const t = e.target.closest('[data-skc]'); if (t) { const k = t.dataset.skc;
-      { const n = bar.querySelector('.skc-nav'); n.classList.add('tuck'); setTimeout(() => n.classList.remove('tuck'), 400); t.blur(); }
+      t.blur();
       if (k === 'build') return openBuild();
       closeBuild();
       VIEW = k === 'library' ? 'books' : k; FAM = null; SET = null; BOOK = null; CONCEPT = null; FAMPICK = null; if (k === 'schemes') SCHEME = null;
@@ -165,7 +199,7 @@
     if (q) { SETS.filter((s) => (s.family + ' ' + s.set).toLowerCase().replace(/_/g, ' ').includes(q)).slice(0, 5).forEach((s) => out.push(['Formations', s.set, String(s.family).replace(/_/g, ' ') + ' · ' + s.n + ' plays', () => go(() => { VIEW = 'formations'; BOOK = null; FAM = s.family; SET = s.set; CONCEPT = null; FAMPICK = null; buildRail(); render(); })]));
       const seen = new Set(); IDX.plays.filter((p) => !p.drill && mine(p) && (p._s || p.name.toLowerCase()).includes(q)).some((p) => { const k = p.name + '|' + p.set; if (seen.has(k)) return false; seen.add(k);
         out.push(['Plays', p.name, String(p.family).replace(/_/g, ' ') + ' ' + p.set, () => go(async () => { VIEW = 'formations'; BOOK = null; FAM = p.family; SET = p.set; CONCEPT = null; FAMPICK = null; buildRail(); render(); const g = await cardsFor(p.family, p.set); openPlay(p, g); })]); return seen.size >= 8; }); }
-    [['Schemes', 'schemes'], ['Playbooks', 'library'], ['Saved plays', 'saved']].concat(SHOW_BUILD ? [['Build your offense', 'build']] : []).forEach(([l, k]) => { if (!q || l.toLowerCase().includes(q)) out.push(['Go to', l, '', () => go(() => bar.querySelector(`[data-skc="${k}"]`).click())]); });
+    [['Schemes', 'schemes'], ['Playbooks', 'library'], ['Saved plays', 'saved'], ['Build your own offense', 'build']].forEach(([l, k]) => { if (!q || l.toLowerCase().includes(q)) out.push(['Go to', l, '', () => go(() => bar.querySelector(`[data-skc="${k}"]`).click())]); });
     return out.slice(0, 26); }
   function paint() { PR = items(D.getElementById('skcpin').value); PI = Math.min(PI, Math.max(0, PR.length - 1)); let g = '', h = '';
     PR.forEach(([grp, l, s], i) => { if (grp !== g) { g = grp; h += `<div class="skc-pg">${grp}</div>`; } h += `<button class="skc-pr" role="option" data-i="${i}" aria-selected="${i === PI}"><span>${esc(l)}</span><small>${esc(s)}</small></button>`; });

@@ -254,7 +254,7 @@ const AREAS_OF = () => AREAS_ALL.filter(([k]) => k !== 'stop' || (SC && SC.stop)
 let AREAS = AREAS_ALL;
 const OLD = (sec) => `${SC.side === 'D' ? 'defense' : 'index'}.html?scheme=${encodeURIComponent(KEY)}&sec=${sec}`;
 /* THE DOCK: the crest, the areas, the count. Chrome only; never a button. */
-const SHELL = new Set(['seahawks-coverages', 'olemiss']);   /* the schemes on the new shell; the rest follow once it is signed off */
+const SHELL = new Set(['seahawks-coverages', 'olemiss', 'custom27']);   /* the schemes on the new shell; the rest follow once it is signed off */
 const SHELLED = () => !!(SC && SHELL.has(SC.key));
 const formOf = (p) => (p.formation && p.libSet && SC.side !== 'D' && SHELLED() && p.libSet !== p.formation ? p.formation + ' · ' + p.libSet : (p.formation || p.libSet || ''));   /* one card for three sets (Ole Miss Spread): the real set beside it */
 function dockHTML() {

@@ -156,15 +156,21 @@
       const C = D.fx || 0, L0 = C - 26.67, R0 = C + 26.67;   /* the middle of the field, from the ball */
       g.fillStyle = '#0B2210'; g.fillRect(0, 0, W, H);
       if (gp([[L0 - 8, -40], [R0 + 8, -40], [R0 + 8, 62], [L0 - 8, 62]], 1)) { g.fillStyle = '#123317'; g.fill(); }
-      if (gp([[L0, -40], [R0, -40], [R0, 60], [L0, 60]], 1)) { g.fillStyle = GRASS; g.fill(); }
-      for (let y = -45; y < 60; y += 10) if (gp([[L0, y], [R0, y], [R0, y + 5], [L0, y + 5]], 1)) { g.fillStyle = STRIPE; g.fill(); }
-      for (const sx of [-1, 1]) if (gp([[C + sx * 26.67, -40], [C + sx * 28, -40], [C + sx * 28, 60], [C + sx * 26.67, 60]], 1)) { g.fillStyle = 'rgba(255,255,255,.92)'; g.fill(); }
-      for (let y = -35; y <= 55; y += 5) if (y !== 0) line([[L0, y], [R0, y]], 'rgba(255,255,255,.62)', y % 10 === 0 ? 1.8 : 1.3, 1);
-      for (let y = -38; y <= 58; y++) { if (y % 5 === 0) continue; for (const hx of [-6.67, 6.67]) line([[C + hx - .5, y], [C + hx + .5, y]], 'rgba(255,255,255,.8)', 1.5, 1); for (const sx of [-1, 1]) line([[C + sx * 26.67, y], [C + sx * 25.9, y]], 'rgba(255,255,255,.7)', 1.5, 1); }
+      /* (2026-11-09, his note on Quick Fork Zig) the ball can sit near the goal line: D.goal = yards to the goal line; the end zone is
+         ten yards deep, the end line ends the grass, the numbers count down to the goal, and there is no yellow line on goal to go */
+      const GL = D.goal || null, TOP = GL ? GL + 10 : 60;
+      if (gp([[L0, -40], [R0, -40], [R0, TOP], [L0, TOP]], 1)) { g.fillStyle = GRASS; g.fill(); }
+      for (let y = -45; y < (GL || 60); y += 10) if (gp([[L0, y], [R0, y], [R0, Math.min(y + 5, GL || 60)], [L0, Math.min(y + 5, GL || 60)]], 1)) { g.fillStyle = STRIPE; g.fill(); }
+      if (GL && gp([[L0, GL], [R0, GL], [R0, TOP], [L0, TOP]], 1)) { g.fillStyle = 'rgba(30,84,183,.55)'; g.fill(); }
+      for (const sx of [-1, 1]) if (gp([[C + sx * 26.67, -40], [C + sx * 28, -40], [C + sx * 28, TOP], [C + sx * 26.67, TOP]], 1)) { g.fillStyle = 'rgba(255,255,255,.92)'; g.fill(); }
+      for (let y = -35; y <= Math.min(55, GL == null ? 55 : GL); y += 5) if (y !== 0 && y !== GL) line([[L0, y], [R0, y]], 'rgba(255,255,255,.62)', y % 10 === 0 ? 1.8 : 1.3, 1);
+      if (GL) { line([[L0, GL], [R0, GL]], 'rgba(255,255,255,.95)', 3.2, 1); line([[L0, TOP], [R0, TOP]], 'rgba(255,255,255,.95)', 2.4, 1); }
+      for (let y = -38; y <= (GL == null ? 58 : GL - 1); y++) { if (y % 5 === 0) continue; for (const hx of [-6.67, 6.67]) line([[C + hx - .5, y], [C + hx + .5, y]], 'rgba(255,255,255,.8)', 1.5, 1); for (const sx of [-1, 1]) line([[C + sx * 26.67, y], [C + sx * 25.9, y]], 'rgba(255,255,255,.7)', 1.5, 1); }
       /* the numbers, painted flat on the grass and read from behind the offense */
       const flat = (str, x, y, size, col) => { const a = P(x, y), bx = P(x + 1, y), by = P(x, y + 1); if (!a || !bx || !by) return; const k = R * size / 100; g.save(); g.setTransform((bx[0] - a[0]) * k, (bx[1] - a[1]) * k, -(by[0] - a[0]) * k, -(by[1] - a[1]) * k, a[0] * R, a[1] * R); g.font = '800 100px Archivo, ' + FC; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillStyle = col; g.fillText(str, 0, 0); g.restore(); };
-      for (let y = -30; y <= 50; y += 10) { const n = 50 - Math.abs(y); if (n <= 0) continue; for (const sx of [-18.4, 18.4]) flat(String(n), C + sx, y, 2.4, 'rgba(255,255,255,.5)'); }
-      line([[L0, 10], [R0, 10]], '#F5D547', 2.4, .9);
+      if (GL) { for (let v = 10; v <= 50; v += 10) for (const sx of [-18.4, 18.4]) flat(String(v), C + sx, GL - v, 2.4, 'rgba(255,255,255,.5)'); flat('SCHEME KINGS', C, GL + 5, 3.4, 'rgba(255,255,255,.5)'); }
+      else for (let y = -30; y <= 50; y += 10) { const n = 50 - Math.abs(y); if (n <= 0) continue; for (const sx of [-18.4, 18.4]) flat(String(n), C + sx, y, 2.4, 'rgba(255,255,255,.5)'); }
+      if (!GL || GL > 10) line([[L0, 10], [R0, 10]], '#F5D547', 2.4, .9);
       line([[L0, 0], [R0, 0]], LK.los, 2.4, .95, [10, 8]);
       /* their zones, the rush, our block marks and routes, then everybody far ones first, then the ball and the words */
       D.zones.forEach((z) => { const c = ZC[z.cov === 'c2' && /^Curl (left|right)$/.test(z.lb) ? 'hook' : zkey(z.lb)], pts = [];   /* Cover 2's curl players are vert hooks: yellow */ for (let i = 0; i < 40; i++) { const an = i / 40 * Math.PI * 2; pts.push([z.zone[0] + Math.cos(an) * z.zone[2], z.zone[1] + Math.sin(an) * z.zone[3]]); }
@@ -191,9 +197,11 @@
 
   /* A ROUTE ENDS ON THE SCREEN (his note 2026-10-19: "the streaks should not be leaving the field, we should see the edge of the route"):
      the drawn line stops seventeen yards down the field with its arrow, the way the database card stops it; the man still runs on */
-  const YCAP = 17;
-  function capY(pts) { if (!pts || pts.length < 2 || pts[0][1] > YCAP) return pts && pts[0][1] > YCAP ? null : pts; const out = [pts[0]];
-    for (let i = 1; i < pts.length; i++) { const a = pts[i - 1], b = pts[i]; if (b[1] <= YCAP) { out.push(b); continue; } const u = (YCAP - a[1]) / ((b[1] - a[1]) || 1e-9); out.push([a[0] + (b[0] - a[0]) * u, YCAP]); break; }
+  /* (2026-11-09, his note on the custom offense: "the streak should always go about 30 yards down the field") */
+  const YCAP = 30;
+  let YNOW = YCAP;
+  function capY(pts) { const YC = YNOW; if (!pts || pts.length < 2 || pts[0][1] > YC) return pts && pts[0][1] > YC ? null : pts; const out = [pts[0]];
+    for (let i = 1; i < pts.length; i++) { const a = pts[i - 1], b = pts[i]; if (b[1] <= YC) { out.push(b); continue; } const u = (YC - a[1]) / ((b[1] - a[1]) || 1e-9); out.push([a[0] + (b[0] - a[0]) * u, YC]); break; }
     return out.length > 1 && plen(out) > .3 ? out : null; }
   /* what is left of a path from where a man is now: the part behind him is gone */
   function ahead(path, at) { if (!path || path.length < 2) return null; let best = 0, bd = 1e9, bq = path[0];
@@ -204,7 +212,8 @@
     const lit = new Set(sc.lit || []), team = c.team, snapT = st.snap, after = s > snapT, prog = sc.pre ? appear : 1;
     const holding = st.moment != null && t >= st.moment && t < st.moment + st.hold, hk = holding ? ease(clamp((t - st.moment) / .35, 0, 1)) : 0;
     const pre = after ? clamp(1 - (s - snapT) / .45, 0, 1) : 1;   /* the pre-snap marks fade out as the play starts */
-    const D = { fx: st.H ? st.H.FX : 0, men: [], zones: [], routes: [], rush: [], blocks: [], words: [], ball: null, freeze: holding ? hk : 0 };
+    YNOW = c.spec && c.spec.goal ? Math.min(YCAP, c.spec.goal + 10) : YCAP;   /* routes end at the end line near the goal */
+    const D = { fx: st.H ? st.H.FX : 0, goal: (c.spec && c.spec.goal) || null, men: [], zones: [], routes: [], rush: [], blocks: [], words: [], ball: null, freeze: holding ? hk : 0 };
     const elig = p.men.filter((m) => m.role === 'skill').slice().sort((a, b) => a.x - b.x);
     /* ours */
     p.men.forEach((m, k) => { const at = F.o[k], ei = elig.indexOf(m);
@@ -214,7 +223,7 @@
       if ((m.role === 'ol' || m.role === 'blk') && m.bk && pre > .01) { const s0 = m.mot ? m.mot[m.mot.length - 1] : [m.x, m.y], path = m.rel && m.rel.length ? [s0].concat(m.rel) : null, end = path ? path[path.length - 1] : s0;
         D.blocks.push({ path, end, len: m.bk === 'r' ? 2.1 : 1.1, col: m.pull ? WHITE : 'rgba(244,242,236,.85)', w: m.pull ? 3 : 2.4, a: pre * .9 * prog * (lit.size ? .6 : 1) }); }
       if (m.role === 'qb' && m.c && !(m.r && m.r.length > 1) && !sc.run && pre > .01) D.routes.push({ pts: [[m.x, m.y], [m.x, m.y + 2.6]], col: RED, w: 4, a: pre * prog });
-      if (m.r && m.r.length > 1 && m.role !== 'ol' && !(m.role === 'qb')) { if (sc.routes === 'lit' && !isLit(lit, m)) return;
+      if (m.r && m.r.length > 1 && m.role !== 'ol' && !(m.role === 'qb') && !(after && sc.run && sc.run.who === m.k && !sc.run.afterCatch)) { if (sc.routes === 'lit' && !isLit(lit, m)) return;   /* (2026-11-09) after the snap the ball carrier's card route gives way to the run itself */
         const col = m.c ? RED : YEL, hot = isLit(lit, m), a = dim * (after ? .62 : 1);
         const caught = F.caught && F.caught.includes(m.k), rt = capY(after ? (caught ? null : ahead(routeOf(m, sc), F.o[k])) : cutPath(routeOf(m, sc), prog));   /* after the snap only the part still to run; nothing once he has the ball */
         if (rt) D.routes.push({ pts: rt, col, w: hot ? 5.2 : 3.8, a, glow: hot ? '#ffffff' : col });
@@ -224,7 +233,10 @@
     if (sc.run && sc.run.path && sc.run.who) { const ci = sc.run.who === 'qb' ? p.men.findIndex((q) => q.role === 'qb') : p.men.findIndex((q) => q.k === sc.run.who), m = p.men[ci];
       if (m) { const s0 = m.mot ? m.mot[m.mot.length - 1] : [m.x, m.y], ac = !!sc.run.afterCatch, has = !ac || (F.caught && F.caught.includes(m.k));
         /* a run after the catch shows once he has it; a run shows the part still ahead of him */
-        const pts = !after ? (ac ? null : [s0].concat(sc.run.path)) : has ? ahead(ac ? [F.o[ci]].concat(sc.run.path) : [s0].concat(sc.run.path), F.o[ci]) : null;
+        /* (2026-11-09, his note) no red arrow up the field before the ball is handed off: before the snap only the first steps show
+           the direction, after the snap nothing until he has the ball, then only the next seven yards ahead of him */
+        const handed = !(sc.hand && sc.hand.to === sc.run.who) || s >= sc.hand.at, lead = (q, L) => { if (!q) return null; const T = plen(q); return T > L ? cutPath(q, L / T) : q; };
+        const pts = !after ? (ac ? null : lead([s0].concat(sc.run.path), Math.max(3, Math.abs(s0[1]) + 3))) : has && handed ? lead(ahead(ac ? [F.o[ci]].concat(sc.run.path) : [s0].concat(sc.run.path), F.o[ci]), 7) : null;
         if (pts) D.routes.push({ pts, col: RED, w: 4.4, a: (after ? .75 : 1) * prog, glow: RED }); } }
     /* theirs */
     const ringed = new Set([].concat(sc.ring || [])), zall = sc.zones === 'all', zsome = Array.isArray(sc.zones) ? new Set(sc.zones) : null;
@@ -245,7 +257,8 @@
   const yawFor = (v, k, lim) => clamp((v[0] + v[2]) / 2 * k, -lim, lim);
   /* the whole call: every player and the routes out to about twenty yards, from up high */
   function overview(c, F) { const pts = []; c.step.p.men.forEach((m, k) => { const at = F ? F.o[k] : [m.x, m.y]; pts.push(at); (m.r || []).forEach((q) => pts.push(q)); }); c.step.shell.forEach((d, k) => { if (d.y <= 12) pts.push(F ? F.d[k] : [d.x, d.y]); });
-    const v = box(pts, 2, 30, 18, 20); return { view: v, pitch: 54, yaw: 0 }; }
+    pts.push([0, -8]);   /* (2026-11-09, his note) the play call is about the line of scrimmage and the line: everybody in full, the routes can run off the top */
+    const v = box(pts, 2, 30, 18, 13); return { view: v, pitch: 54, yaw: 0 }; }
   /* before the snap: what the step is about (the lit players, their routes, the ringed defenders, the words), or the whole call */
   function preShot(c, sc, F) { if (sc.cam) return { view: sc.cam, pitch: 46, yaw: yawFor(sc.cam, .3, 9) };
     if (sc.label === 'call') return overview(c, F);
@@ -257,7 +270,12 @@
     pts.push([0, -5]);   /* keep the quarterback in the picture */
     const v = box(pts, 3, 26, 16, 26); return { view: v, pitch: 44, yaw: yawFor(v, .3, 9) }; }
   /* the read: low and turned, tight on the ringed defender, our lit player and the ball */
+  /* (2026-11-09, his note) a run play looks at the run: the carrier in the middle, the line and the next ten yards around him */
+  function runShot(c, sc, F) { const st = c.step, r = st.R.run; if (!r || r.afterCatch || !r.who) return null; const k = r.who === 'qb' ? st.p.men.findIndex((m) => m.role === 'qb') : st.p.men.findIndex((m) => m.k === r.who); if (k < 0) return null;
+    const [x, y] = F.o[k], pts = [[x - 9, y - 4], [x + 9, y + 10]]; (sc.words || []).forEach((w) => { if (Math.abs(w.x - x) < 14 && w.y - y < 13 && w.y - y > -6) pts.push([w.x, w.y]); });
+    const v = box(pts, 1.5, 22, 14); return v ? { view: v, pitch: 46, yaw: yawFor(v, .3, 9) } : null; }
   function holdShot(c, sc, F) { if (sc.focus) return { view: sc.focus, pitch: 44, yaw: yawFor(sc.focus, .4, 12) };
+    { const rs = runShot(c, sc, F); if (rs) return rs; }
     const lit = new Set(sc.lit || []), ringed = new Set([].concat(sc.ring || [])), pts = [];
     c.step.p.men.forEach((m, k) => { if (isLit(lit, m)) pts.push(F.o[k]); });
     { const nm = nameOf(c.step.shell); c.step.shell.forEach((d, k) => { if (ringed.has(d.lb) || ringed.has(nm[k])) pts.push(F.d[k]); }); }
@@ -266,7 +284,7 @@
     (sc.words || []).forEach((w) => pts.push([w.x, w.y]));
     const v = box(pts, 4.5, 22, 14); return v ? { view: v, pitch: 44, yaw: yawFor(v, .4, 12) } : null; }   /* high enough to read the depth: who is over whom */
   /* after the snap: the ball, and where it is going */
-  function followShot(c, sc, F, s) { const st = c.step, pts = [];
+  function followShot(c, sc, F, s) { const st = c.step, pts = []; { const rs = runShot(c, sc, F); if (rs) return rs; }
     if (F.ball) pts.push([F.ball[0], F.ball[1]]);
     const th = st.R.throws && st.R.throws.find((x) => s < x.at + 1.6); if (th) { const k = c.step.p.men.findIndex((m) => m.k === th.man); if (k >= 0) pts.push(F.o[k]); }
     const lit = new Set(sc.lit || []); if (s < (st.moment || st.snap + 1)) c.step.p.men.forEach((m, k) => { if (isLit(lit, m)) pts.push(F.o[k]); });
