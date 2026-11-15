@@ -1645,3 +1645,6 @@ body.shell.mob .dock a{flex:1 1 0;min-width:0;padding:0 1px}
 body.shell.mob .dock a b{font-size:clamp(8px,2.35vw,11px);letter-spacing:.02em;line-height:1.05;white-space:normal;text-align:center;overflow-wrap:anywhere}
 body.shell.mob .dock a svg{width:18px;height:18px}
 body.mob .lpboard .lphost .lp-root{position:absolute;inset:0;width:100%;height:100%}
+
+/* (2026-11-15) a breakdown button with no film yet: it shows, it links to nothing */
+.watch.soon,.btn.lpfilm.soon{cursor:default}.watch.soon .thumb img,.btn.lpfilm.soon .lpth img{object-fit:contain;background:#0B1A3F;opacity:1}
