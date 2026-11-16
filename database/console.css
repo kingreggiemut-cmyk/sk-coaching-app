@@ -381,3 +381,6 @@ body.skc.skc-ddon .skc-bgimg{filter:blur(14px) brightness(.45)}
   body.skc .skc-tab[aria-current="page"]{font-size:16px!important}
   body.skc .skc-tab[data-skc="schemes"]{margin-right:12px}
 }
+
+/* (2026-11-16) the Schemes menu opened BEHIND Build Your Own (the builder frame sits above the page wrap), so it never showed and closed as the mouse moved off the tab: while it is open the page wrap goes above the frame */
+body.skc.skc-building.skc-ddon .wrap{z-index:21}

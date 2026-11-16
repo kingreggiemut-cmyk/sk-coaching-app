@@ -65,7 +65,7 @@
     const metaOf = (g, sd) => { const n = itemsOf(g, sd).length, soon = g.ser ? (g.ser.qbs || []).filter((q) => q.soon).length : (g.custom && !n ? 1 : 0);
       return [n ? n + ' install' + (n === 1 ? '' : 's') : '', soon ? soon + ' coming soon' : ''].filter(Boolean).join(' · '); };
     const crestsOf = (g, sd) => { const L = itemsOf(g, sd); return L.length && typeof pkCrest === 'function' ? L.slice(0, 4).map((s) => pkCrest(s)).join('') : '<img src="logos/scheme-kings.png" alt="">'; };
-    function paint() { if (typeof groupsHere !== 'function') return; const cur = (typeof groupNow === 'function' && groupNow()) || {}, here = typeof VIEW !== 'undefined' && VIEW === 'schemes' && !(typeof SCHEME !== 'undefined' && SCHEME);
+    function paint() { if (typeof groupsHere !== 'function') return; const cur = (typeof groupNow === 'function' && groupNow()) || {}, here = !BUILD && typeof VIEW !== 'undefined' && VIEW === 'schemes' && !(typeof SCHEME !== 'undefined' && SCHEME);
       const block = (sd) => { const G = groupsHere(sd); if (!G.length) return ''; return `<div class="skc-ddh">${sd === 'O' ? 'Offense' : 'Defense'}</div>` + G.map((g) => { const on = here && sd === side && g.key === cur.key;
         return `<button class="skc-ddi${on ? ' on' : ''}" role="menuitem" data-ddg="${esc(g.key)}" data-dds="${sd}"><span class="skc-ddc">${crestsOf(g, sd)}</span><span class="skc-ddt"><b>${esc(g.title)}</b><small>${esc(metaOf(g, sd))}</small></span>${on ? '<i>Here</i>' : '<em aria-hidden="true">&rsaquo;</em>'}</button>`; }).join(''); };
       dd.innerHTML = block(side) + block(side === 'O' ? 'D' : 'O'); }
