@@ -32,7 +32,7 @@
   /* (2026-10-19, his call) Build is hidden until the builder is ready to go live: SHOW_BUILD brings the tab and its Find entry back */
   /* (2026-11-09) Build lives inside the Custom tab now: the Build your own card opens it */
   const SHOW_BUILD = false, GAME = window.SK_GAME || '', MADDEN = GAME === 'madden27';
-  const TABS = [['schemes', 'Schemes'], ['library', 'Playbooks'], ['saved', 'Saved']].concat([['build', 'Build Your Own']]);   /* (2026-11-15) Build Your Own on both games, college brought up to the Madden one */
+  const TABS = [['schemes', 'Schemes'], ['library', 'Playbooks'], ['saved', 'Saved']].concat([['build', 'Build Your Own<br>Offense']]);   /* (2026-11-20) the full name, on two lines */   /* (2026-11-15) Build Your Own on both games, college brought up to the Madden one */
   const bar = el(`<header class="skc-bar">
     <a class="skc-brand" href="${side === 'D' ? PAGE_D : PAGE_O}" aria-label="Scheme Kings home"><img src="logos/scheme-kings.png" alt=""><span><b>Scheme Kings</b><small>${MADDEN ? 'Madden 27 · ' : ''}The playbook database</small></span></a>
     <nav class="skc-tabs" id="skctabs" aria-label="Database">${TABS.map(([k, l]) => `<button class="skc-tab" data-skc="${k}">${l}</button>`).join('')}</nav>
@@ -52,7 +52,7 @@
     /* (2026-11-09, his note) a click opens the sections and they STAY open until the arrow is clicked again; remembered */
     let open = false; try { open = localStorage.getItem('skc_nav') === '1'; } catch (e) {}
     const setNav = (v) => { open = v; nav.classList.toggle('open', v); const c = nav.querySelector('#skcchev'); c.setAttribute('aria-expanded', v); c.title = v ? 'Hide the sections' : 'Show the sections'; try { localStorage.setItem('skc_nav', v ? '1' : '0'); } catch (e) {} };
-    setNav(open);
+    setNav(true);   /* (2026-11-20, his call) people could not find things: the sections always show, no arrow to slide them out */
     nav.addEventListener('click', (e) => { if (e.target.closest('#skcchev, #skchere')) { e.preventDefault(); setNav(!open); } }); }
   /* ---------- THE SCHEMES DROPDOWN (2026-11-09, his call): every group, one tap away; the screen blurs behind it ---------- */
   { const nav = bar.querySelector('.skc-nav'), schTab = bar.querySelector('[data-skc="schemes"]'), dd = el('<div class="skc-dd" id="skcdd" role="menu" aria-label="Pick your schemes" hidden></div>');

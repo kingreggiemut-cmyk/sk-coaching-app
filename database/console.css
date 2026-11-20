@@ -384,3 +384,10 @@ body.skc.skc-ddon .skc-bgimg{filter:blur(14px) brightness(.45)}
 
 /* (2026-11-16) the Schemes menu opened BEHIND Build Your Own (the builder frame sits above the page wrap), so it never showed and closed as the mouse moved off the tab: while it is open the page wrap goes above the frame */
 body.skc.skc-building.skc-ddon .wrap{z-index:21}
+
+/* (2026-11-20, his call) the sections always show: no arrow, no section name beside the brand; Build Your Own Offense on two lines */
+.skc-chev,.skc-here{display:none!important}
+.skc-nav .skc-tabs{max-width:none!important;opacity:1!important;overflow:visible!important}
+.skc-nav .skc-tab{opacity:1!important;transform:none!important;pointer-events:auto!important}
+.skc-tab[data-skc="build"]{white-space:normal;text-align:left;font-size:19px;line-height:.95;color:rgba(242,243,245,.5)}
+.skc-tab[data-skc="build"][aria-current="page"]{font-size:22px;color:#fff}
