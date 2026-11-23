@@ -74,16 +74,17 @@
   /* THE HASH. The card is drawn with the ball in the middle; on the field the ball sits on the hash away from the wide side.
      x stays put inside the tackles' reach (4 yards); beyond it each side is stretched or squeezed so the widest split keeps
      its distance from its own sideline. FX is where the middle of the field is, from the ball. */
-  const HASH = 6.67, REACH = 4;
+  const HASH0 = 6.67, REACH = 4;   /* college hashes unless the staging says otherwise (spec.hash: the NFL's are 3.08) */
   function hashOf(spec, p) { let wide = spec.wide; if (!wide) { let r = 0, l = 0; p.men.forEach((m) => { if (m.role === 'ol' || m.role === 'qb' || m.y < -4) return; if (m.x > REACH) r++; else if (m.x < -REACH) l++; }); wide = l > r ? 'L' : 'R'; }
-    const ws = wide === 'L' ? -1 : 1, kOf = (S) => (S - 3.67 - REACH) / (26.67 - 3.67 - REACH), kf = kOf(26.67 + HASH), kb = kOf(26.67 - HASH);
+    const HASH = spec.hash || HASH0, ws = wide === 'L' ? -1 : 1, kOf = (S) => (S - 3.67 - REACH) / (26.67 - 3.67 - REACH), kf = kOf(26.67 + HASH), kb = kOf(26.67 - HASH);
     const k = (x) => (Math.abs(x) <= REACH ? 1 : Math.sign(x) === ws ? kf : kb), f = (x) => (Math.abs(x) <= REACH ? x : Math.sign(x) * (REACH + (Math.abs(x) - REACH) * k(x)));
-    return { wide, FX: ws * HASH, f, k }; }
+    return { wide, hash: HASH, FX: ws * HASH, f, k }; }
   const mapPts = (H, pts) => (pts ? pts.map((q) => [H.f(q[0]), q[1]]) : pts);
   function hashPlay(H, p) { return Object.assign({}, p, { men: p.men.map((m) => { const o = Object.assign({}, m, { x: H.f(m.x) }); ['r', 'mot', 'rel'].forEach((k) => { if (m[k]) o[k] = mapPts(H, m[k]); }); if (m.alts) o.alts = m.alts.map((a) => mapPts(H, a)); if (m.tip) o.tip = [H.f(m.tip[0]), m.tip[1]]; return o; }) }); }
   const hashZone = (H, z) => (z ? [H.f(z[0]), z[1], z[2] * H.k(z[0]), z[3]] : z);
   function hashScene(H, sc) { const o = Object.assign({}, sc);
     if (sc.def) o.def = sc.def.map((d) => { const e = Object.assign({}, d); if (d.x != null) e.x = H.f(d.x); if (d.zone) e.zone = hashZone(H, d.zone); return e; });
+    if (sc.roll) o.roll = mapPts(H, sc.roll);
     if (sc.run && sc.run.path) o.run = Object.assign({}, sc.run, { path: mapPts(H, sc.run.path) });
     if (sc.reroute) { o.reroute = {}; Object.keys(sc.reroute).forEach((k) => { o.reroute[k] = mapPts(H, sc.reroute[k]); }); }
     if (sc.move) { o.move = {}; Object.keys(sc.move).forEach((k) => { o.move[k] = mapPts(H, sc.move[k]); }); }
@@ -98,8 +99,9 @@
     return out; }
   function simulateStep(sc, p, BLK, spec0) {
     const H = hashOf(spec0 || (cur && cur.spec) || {}, p); p = hashPlay(H, p); sc = Object.assign(hashScene(H, sc), { label: sc.label, pre: sc.pre });
+    if (sc.set) p = Object.assign({}, p, { men: p.men.map((m) => (m.mot ? Object.assign({}, m, { x: m.mot[m.mot.length - 1][0], y: m.mot[m.mot.length - 1][1], mot: undefined }) : m)) });   /* the motion already done */
     if (sc.reroute) p = Object.assign({}, p, { men: p.men.map((m) => (sc.reroute[m.k] ? Object.assign({}, m, { r: sc.reroute[m.k], alts: undefined, tip: undefined, opt: undefined }) : m)) });   /* one step's own route for a man */
-    const clean = { cov: sc.cov, snap: sc.snap == null ? 1 : sc.snap, end: sc.end == null ? 5.4 : sc.end, def: hashShell(H, sc.cov).concat(alignDef(sc.cov, p), sc.def || []), throws: sc.throws || [], hand: sc.hand, run: sc.run, fake: sc.fake, branch: sc.branch, move: sc.move, drop: sc.drop, beats: [], cam: [] };
+    const clean = { cov: sc.cov, snap: sc.snap == null ? 1 : sc.snap, end: sc.end == null ? 5.4 : sc.end, def: hashShell(H, sc.cov).concat(alignDef(sc.cov, p), sc.def || []), throws: sc.throws || [], hand: sc.hand, run: sc.run, fake: sc.fake, branch: sc.branch, move: sc.move, moveAt: sc.moveAt, ppa: sc.ppa, drop: sc.drop, roll: sc.roll, beats: [], cam: [] };
     if (sc.pre) { clean.snap = 1; clean.end = 1.05; }
     let R, sim; try { R = skIntroField.prepScene(clean, p); sim = skIntroField.simulate(R, p, BLK); } catch (e) { console.error('offense film: the simulation failed', e); return null; }
     const shift = R.shift || 0, s0 = clean.snap, sh = (t) => (t == null ? t : t >= s0 ? t + shift : t);
@@ -165,7 +167,7 @@
       for (const sx of [-1, 1]) if (gp([[C + sx * 26.67, -40], [C + sx * 28, -40], [C + sx * 28, TOP], [C + sx * 26.67, TOP]], 1)) { g.fillStyle = 'rgba(255,255,255,.92)'; g.fill(); }
       for (let y = -35; y <= Math.min(55, GL == null ? 55 : GL); y += 5) if (y !== 0 && y !== GL) line([[L0, y], [R0, y]], 'rgba(255,255,255,.62)', y % 10 === 0 ? 1.8 : 1.3, 1);
       if (GL) { line([[L0, GL], [R0, GL]], 'rgba(255,255,255,.95)', 3.2, 1); line([[L0, TOP], [R0, TOP]], 'rgba(255,255,255,.95)', 2.4, 1); }
-      for (let y = -38; y <= (GL == null ? 58 : GL - 1); y++) { if (y % 5 === 0) continue; for (const hx of [-6.67, 6.67]) line([[C + hx - .5, y], [C + hx + .5, y]], 'rgba(255,255,255,.8)', 1.5, 1); for (const sx of [-1, 1]) line([[C + sx * 26.67, y], [C + sx * 25.9, y]], 'rgba(255,255,255,.7)', 1.5, 1); }
+      for (let y = -38; y <= (GL == null ? 58 : GL - 1); y++) { if (y % 5 === 0) continue; for (const hx of [-(D.hash || HASH0), D.hash || HASH0]) line([[C + hx - .5, y], [C + hx + .5, y]], 'rgba(255,255,255,.8)', 1.5, 1); for (const sx of [-1, 1]) line([[C + sx * 26.67, y], [C + sx * 25.9, y]], 'rgba(255,255,255,.7)', 1.5, 1); }
       /* the numbers, painted flat on the grass and read from behind the offense */
       const flat = (str, x, y, size, col) => { const a = P(x, y), bx = P(x + 1, y), by = P(x, y + 1); if (!a || !bx || !by) return; const k = R * size / 100; g.save(); g.setTransform((bx[0] - a[0]) * k, (bx[1] - a[1]) * k, -(by[0] - a[0]) * k, -(by[1] - a[1]) * k, a[0] * R, a[1] * R); g.font = '800 100px Archivo, ' + FC; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillStyle = col; g.fillText(str, 0, 0); g.restore(); };
       if (GL) { for (let v = 10; v <= 50; v += 10) for (const sx of [-18.4, 18.4]) flat(String(v), C + sx, GL - v, 2.4, 'rgba(255,255,255,.5)'); flat('SCHEME KINGS', C, GL + 5, 3.4, 'rgba(255,255,255,.5)'); }
@@ -213,7 +215,7 @@
     const holding = st.moment != null && t >= st.moment && t < st.moment + st.hold, hk = holding ? ease(clamp((t - st.moment) / .35, 0, 1)) : 0;
     const pre = after ? clamp(1 - (s - snapT) / .45, 0, 1) : 1;   /* the pre-snap marks fade out as the play starts */
     YNOW = c.spec && c.spec.goal ? Math.min(YCAP, c.spec.goal + 10) : YCAP;   /* routes end at the end line near the goal */
-    const D = { fx: st.H ? st.H.FX : 0, goal: (c.spec && c.spec.goal) || null, men: [], zones: [], routes: [], rush: [], blocks: [], words: [], ball: null, freeze: holding ? hk : 0 };
+    const D = { fx: st.H ? st.H.FX : 0, hash: st.H ? st.H.hash : 0, goal: (c.spec && c.spec.goal) || null, men: [], zones: [], routes: [], rush: [], blocks: [], words: [], ball: null, freeze: holding ? hk : 0 };
     const elig = p.men.filter((m) => m.role === 'skill').slice().sort((a, b) => a.x - b.x);
     /* ours */
     p.men.forEach((m, k) => { const at = F.o[k], ei = elig.indexOf(m);
@@ -326,7 +328,7 @@
   /* a staged scene, ready for the formations board's act mode (intro-field.js cfg.act): key n, or the run (n = 0) */
   function sceneFor(scheme, id, n, p) { const spec = REG[scheme + '/' + id]; if (!spec || !p) return null; const base = n ? (spec.keys || [])[n - 1] : spec.run || (spec.keys || [])[0]; if (!base) return null;
     const sc = Object.assign({ cov: spec.cov || 'c3' }, base); if (sc.pre) return null;
-    return { cov: sc.cov, snap: 1, end: sc.end == null ? 5.4 : sc.end, def: alignDef(sc.cov, p).concat(sc.def || []), throws: sc.throws || [], hand: sc.hand, run: sc.run, fake: sc.fake, branch: sc.branch, move: sc.move, drop: sc.drop, beats: [], cam: [] }; }
+    return { cov: sc.cov, snap: 1, end: sc.end == null ? 5.4 : sc.end, def: alignDef(sc.cov, p).concat(sc.def || []), throws: sc.throws || [], hand: sc.hand, run: sc.run, fake: sc.fake, branch: sc.branch, move: sc.move, moveAt: sc.moveAt, ppa: sc.ppa, drop: sc.drop, roll: sc.roll, beats: [], cam: [] }; }
   /* ONE READ, SIMULATED, WITHOUT A BOARD (the story reel's side by sides, Ole Miss 2026-10-18): the same snap the film board
      plays for key n of the call, on the hash, with the frames, the shell, its display names, the words and the lit men */
   function simFor(scheme, id, n, p, blk) { const spec = REG[scheme + '/' + id]; if (!spec || !p) return null; const nK = (spec.keys || []).length, sc = stepScene(spec, n || 1, nK, 0); if (sc.pre) return null;
@@ -378,7 +380,7 @@
           if (path) poly(path, m.pull ? MK : 'rgba(23,19,14,.6)', m.pull ? W0 * 1.4 : W0, m.pull ? null : [3, 4]); ln(e, [e[0], e[1] + L], 'rgba(23,19,14,.75)', W0); ln([e[0] - .55, e[1] + L], [e[0] + .55, e[1] + L], 'rgba(23,19,14,.75)', W0); }
         if (!shell && m.r && m.r.length > 1 && m.role !== 'ol') { const hot = m.k === first || (m.role === 'qb' && first === 'qb'); poly(clip(m.r), hot ? MK : 'rgba(23,19,14,.78)', hot ? W0 * 1.9 : W0, null, 1); (m.alts || []).forEach((a) => poly(clip(a), hot ? MK : 'rgba(23,19,14,.5)', W0 * .8, [3, 4], 1)); } });
       if (shell) shell.forEach((d) => { if (d.zone) { const z = d.zone, q = []; for (let i = 0; i <= 32; i++) { const a = i / 32 * Math.PI * 2; q.push([z[0] + Math.cos(a) * z[2], z[1] + Math.sin(a) * z[3]]); } poly(q, z[1] >= 15 ? 'rgba(43,58,190,.55)' : 'rgba(23,19,14,.35)', W0); } const [X, Y] = P([d.x, d.y]), e = Math.max(3, W / 85); g.strokeStyle = MK; g.lineWidth = Math.max(1.8, W / 200); g.beginPath(); g.moveTo(X - e, Y - e); g.lineTo(X + e, Y + e); g.moveTo(X + e, Y - e); g.lineTo(X - e, Y + e); g.stroke(); });
-      p.men.forEach((m) => { const [X, Y] = P([m.x, m.y]), rr = Math.max(3.2, W / 70); g.beginPath(); g.arc(X, Y, rr, 0, 7); g.fillStyle = m.role === 'qb' ? MK : SHEET; g.fill(); g.lineWidth = Math.max(1.4, W / 240); g.strokeStyle = INK; g.stroke(); }); };
+      p.men.forEach((m) => { const [X, Y] = P([m.x, m.y]), rr = Math.max(3.2, W / 70); g.beginPath(); g.arc(X, Y, rr, 0, 7); g.fillStyle = (m.hot === undefined ? m.role === 'qb' : m.hot) ? MK : SHEET; g.fill(); g.lineWidth = Math.max(1.4, W / 240); g.strokeStyle = INK; g.stroke(); }); };
     paint(); requestAnimationFrame(paint); if (document.fonts && document.fonts.ready) document.fonts.ready.then(paint); return paint; }
   window.skOffFilm = { card, stage: (scheme, id, spec) => { REG[scheme + '/' + id] = spec; }, has: (scheme, id) => !!REG[scheme + '/' + id], mount, adopt, unmount, go, at: () => (cur ? cur.i : 0), id: () => (cur ? cur.id : null), replay: () => { if (cur) go(cur.i); }, active: () => !!cur, dbg: () => (cur && cur.step ? { FX: cur.step.H.FX, wide: cur.step.H.wide, shell: cur.step.shell.map((d, k) => d.lb + ' ' + cur.step.sim.frames[0].d[k].slice(0, 2).map((v) => Math.round(v * 10) / 10).join(',') + (d.zone ? ' z' + d.zone.slice(0, 2).map((v) => Math.round(v * 10) / 10).join(',') : '')) } : null), look: (on) => { if (!cur) return; cur.look = !!on; go(cur.i); }, play: () => (cur && cur.step ? cur.step.p : null), pause, paused: () => !!(cur && cur.paused), sceneFor, simFor, contact, audit };
   /* one board on the page at a time: a call staged here comes here, anything else goes to the defensive board */

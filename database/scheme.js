@@ -254,7 +254,7 @@ const AREAS_OF = () => AREAS_ALL.filter(([k]) => k !== 'stop' || (SC && SC.stop)
 let AREAS = AREAS_ALL;
 const OLD = (sec) => `${SC.side === 'D' ? 'defense' : 'index'}.html?scheme=${encodeURIComponent(KEY)}&sec=${sec}`;
 /* THE DOCK: the crest, the areas, the count. Chrome only; never a button. */
-const SHELL = new Set(['seahawks-coverages', 'olemiss', 'custom27', 'cfbcustom']);   /* the schemes on the new shell; the rest follow once it is signed off */
+const SHELL = new Set(['seahawks-coverages', 'olemiss', 'custom27', 'cfbcustom', 'niners']);   /* the schemes on the new shell; the rest follow once it is signed off */
 const SHELLED = () => !!(SC && SHELL.has(SC.key));
 const formOf = (p) => (p.formation && p.libSet && SC.side !== 'D' && SHELLED() && p.libSet !== p.formation ? p.formation + ' · ' + p.libSet : (p.formation || p.libSet || ''));   /* one card for three sets (Ole Miss Spread): the real set beside it */
 function dockHTML() {
@@ -484,8 +484,11 @@ function bucketStage(pl, i, pls, plays, k, tot) { const ALLP = plays; plays = pl
   return `${head('On the sheet', esc(title), done === n ? `${esc(pl.name)} is installed` : `${done} of ${n} inked`, headRight(next ? `<button class="btn sm" data-next="1">Next section: ${esc(next.name)} <em>&rarr;</em></button>` : `<a class="btn sm" href="#sheet">Open the call sheet <em>&rarr;</em></a>`, arrowsHTML(k + 1, tot)))}
     <div class="ldboard" style="${at(X(1), top, CW(12), bh)}"><div class="ldcol"><span class="ldnum">${done}<small>of ${n} on the sheet</small></span><div class="ldnote"><span class="tape"></span>${done === n ? 'Every call landed in the bucket it belongs to.' : 'The rest are waiting on you. Add them here, or open a call to go back over it.'}</div><div class="ldslots${n > 4 ? ' many' : ''}">${plays.map((p) => `<div class="${ink.has(p.id) ? 'on' : ''}">${ink.has(p.id) ? esc(p.name) : '&nbsp;'}</div>`).join('')}</div></div>
     <div class="ldcards bk${n > 3 ? ' many' : ''}" style="--cols:${n > 3 ? Math.ceil(n / 2) : Math.max(n, 2)}">${plays.map((q, kk) => `<div class="ldcard r${kk % 3}${ink.has(q.id) ? ' inked' : ''}"><span class="tape"></span><a class="ldopen" href="#install/${k - ALLP.length + ALLP.indexOf(q)}"><canvas data-ldcall="${esc(q.id)}"></canvas><span class="nm">${esc(q.name)}</span><span class="k team">${esc(q.formation || '')}${q.type ? ' &middot; ' + esc(q.type) : ''}</span></a><button class="ldink" data-inkid="${esc(q.id)}">${ink.has(q.id) ? 'On the sheet &#10003;' : 'Add to call sheet'}</button></div>`).join('')}</div></div>`; }
+/* one player lit on a card, with the path the card does not draw (the History desk) */
+function focusCard(c, f) { return Object.assign({}, c, { reads: [[f.who]], men: c.men.map((m) => { const on = m.k === f.who || (f.who === 'pull' && !!m.pull);
+  return Object.assign({}, m, { hot: on, pull: on && m.bk ? 1 : 0 }, on && f.path ? { r: [[m.x, m.y]].concat(f.path) } : f.carry && m.k === f.carry[0] ? { r: [[m.x, m.y]].concat(f.carry[1]) } : null); }) }); }
 function leadBoot() { const cvs = document.querySelectorAll('canvas[data-ldcall]'); if (!cvs.length || !window.skLive || !skLive.card) return; const ids = new Set([...cvs].map((c) => c.dataset.ldcall)), fp = fieldPlays(ids);
-  cvs.forEach((cv) => { const c = fp[cv.dataset.ldcall]; if (!c || cv.dataset.on) return; if (c.def) { cv.dataset.on = '1'; skLive.card(cv, { men: c.men, off: (FORMS && FORMS['shotgun__doubles']) || [], small: cvs.length > 3 }); } else if (window.skOffFilm && skOffFilm.card) { cv.dataset.on = '1'; skOffFilm.card(cv, { play: c, mark: SC.c1 }); } }); }   /* an offense's calls in ink on the sheet (Ole Miss 2026-10-18) */
+  cvs.forEach((cv) => { const c = fp[cv.dataset.ldcall]; if (!c || cv.dataset.on) return; if (c.def) { cv.dataset.on = '1'; skLive.card(cv, { men: c.men, off: (FORMS && FORMS['shotgun__doubles']) || [], small: cvs.length > 3 }); } else if (window.skOffFilm && skOffFilm.card) { cv.dataset.on = '1'; skOffFilm.card(cv, { play: cv.dataset.ldfocus ? focusCard(c, JSON.parse(cv.dataset.ldfocus)) : c, mark: SC.c1 }); } }); }   /* an offense's calls in ink on the sheet (Ole Miss 2026-10-18) */
 /* THE PLAY BLOCK, three ways: on the install ('install'), open at the top
    of All Plays ('focus'), in the takeover ('modal') */
 function playStage(p, mode, j, n, pl, H) {
@@ -616,11 +619,12 @@ function storyStage() { const lay = L(), s = STORY();
 let STORY_AT = 0;
 function storyBoot() { if (!window.skStoryReel) return; const h = $('.srhost'); if (!h) { if (SEC !== 'story') skStoryReel.unmount(); return; } if (h.dataset.live) return; h.dataset.live = '1';
   if (skStoryReel.adopt(h)) return;
+  if (document.body.classList.contains('mob') && !h.classList.contains('full')) requestAnimationFrame(() => h.scrollIntoView({ block: 'end' }));   /* on a phone a titled story opens with its caption and buttons on the screen (a repaint leaves the scroll alone) */
   const s = STORY(), used = new Set(s.scenes.flatMap((x) => [x.call, x.callL]).filter(Boolean)), calls = fieldPlays(used), pic = (p) => (p ? new URL(p, location.href).href : ''), img = {}; Object.keys(s.img || {}).forEach((k) => { img[k] = pic(s.img[k]); });
   const dbg = new URLSearchParams(location.search).get('srs');
   /* an offense plays its own calls in the story on the offense film board (Ole Miss 2026-10-18): kind 'play' scenes */
   const film = s.scenes.some((x) => x.kind === 'play' || x.off) ? { scheme: SC.key, plays: calls, calls: Object.fromEntries(SC.plays.filter((p) => used.has(p.id)).map((p) => [p.id, p])), blocking: BLK, team: SC.film || { body: SC.c2, trim: SC.c1 } } : null;
-  skStoryReel.mount(h, { story: s, calls, img, film, hot: s.hot || SC.c1, tile: (FORMS && s.tile && FORMS[slug(s.tile[0]) + '__' + slug(s.tile[1])]) || [], off: (FORMS && FORMS['shotgun__doubles']) || [], dark: SC.c2, bright: s.bright || SC.c1, start: dbg != null ? parseInt(dbg, 10) || 0 : STORY_AT, still: dbg != null && /x$/.test(dbg),
+  skStoryReel.mount(h, { story: s, calls, img, film, hot: s.hot || SC.c1, tile: (FORMS && s.tile && FORMS[slug(s.tile[0]) + '__' + slug(s.tile[1])]) || [], off: (FORMS && FORMS['shotgun__doubles']) || [], dark: s.dark || SC.c2, bright: s.bright || SC.c1, start: dbg != null ? parseInt(dbg, 10) || 0 : STORY_AT, still: dbg != null && /x$/.test(dbg),
     onEnd: () => { STORY_AT = 0; location.hash = (s.next && s.next.hash) || '#intro'; }, onStart: () => { location.hash = '#front'; } }); }
 function introStage() {
   if (introScenes()) return introField();
@@ -1546,6 +1550,7 @@ function playerStage(i, H = 900) {
       ${pl.oneLine ? `<div class="rule"></div><div class="k team">In one line</div><div class="quote">${esc(pl.oneLine)}</div>` : ''}</div></div>`;
 }
 function personnelStage() {
+  if (SC.desk && window.skDesk) return skDesk.html(SC, AT, STAGE_H);   /* the Paper Desk pages (49ers 2026-11-22) */
   if (HIST()) return historyStage();
   const P = SC.personnel || {}, players = P.players || [], ab = SC.about || {}, lay = L(), fh = lay.frame.h;
   if (!players.length) return head('Personnel', 'Nobody yet', 'no personnel authored for this scheme');
@@ -1655,7 +1660,7 @@ function renderNow() {
   const { sec, at: a, id } = parseHash(); const prev = SEC, prevAt = AT, prevId = PLAYID;
   /* the takeover opens and closes over the rows without rebuilding them */
   /* the takeover opens over All Plays or the intro without rebuilding them; closing over All Plays keeps the scroll, closing over the intro repaints it (a chip may have been inked) */
-  if (sec === 'play' && (prev === 'plays' || prev === 'intro' || prev === 'stop' || prev === 'attack' || (prev === 'drives' && DRIVEB)) && $('.stagewrap') && !$('.modal')) { UNDER = (prev === 'stop' || prev === 'attack') && prevId ? prev + '/' + prevId : prev; SEC = 'play'; PLAYID = id; RD = 0; FILM = null; if (openModal()) { const d = $('.dock'); if (d) d.outerHTML = dockHTML(); document.title = `${SC.name} · Play`; return; } }
+  if (sec === 'play' && (prev === 'plays' || prev === 'intro' || prev === 'stop' || prev === 'attack' || prev === 'personnel' || (prev === 'drives' && DRIVEB)) && $('.stagewrap') && !$('.modal')) { UNDER = (prev === 'stop' || prev === 'attack' || prev === 'personnel') && prevId ? prev + '/' + prevId : prev; SEC = 'play'; PLAYID = id; RD = 0; FILM = null; if (openModal()) { const d = $('.dock'); if (d) d.outerHTML = dockHTML(); document.title = `${SC.name} · Play`; return; } }
   if (sec === 'book' && prev === 'plays' && $('.stagewrap') && !$('.modal')) { UNDER = 'plays'; SEC = 'book'; if (openBook()) { const d = $('.dock'); if (d) d.outerHTML = dockHTML(); document.title = `${SC.name} · The book`; return; } }
   if (sec === 'plays' && prev === 'book' && $('.modal') && $('.stagewrap')) { closeModal(); SEC = 'plays'; }
   if (sec === 'drives' && prev === 'play' && UNDER === 'drives' && DRIVEB && $('.modal') && $('.stagewrap')) { closeModal(); SEC = 'drives'; PLAYID = ''; RD = 0; FILM = null; const d = $('.dock'); if (d) d.outerHTML = dockHTML(); document.title = `${SC.name} · Drives`; return; }
@@ -1903,11 +1908,11 @@ addEventListener('pagehide', placeSave); document.addEventListener('visibilitych
   if (window.SK_GAME) document.body.classList.add('g-' + window.SK_GAME);
   /* THE NEW SHELL (2026-10-15): the schemes listed here wear it (scheme.css body.shell); a light team colour carries ink */
   if (SHELLED()) { document.body.classList.add('shell'); const c = (SC.c1 || '#000').replace('#', ''), n = parseInt(c.length === 3 ? c.split('').map((x) => x + x).join('') : c, 16), lum = (0.299 * (n >> 16 & 255) + 0.587 * (n >> 8 & 255) + 0.114 * (n & 255)) / 255;
-    if (lum > .55) document.body.classList.add('shell-light');
+    if (lum > .55) document.body.classList.add('shell-light'); else if (lum < .22) document.body.classList.add('shell-deep');   /* a deep team colour (the 49ers red) carries white ink */
     const fl = document.createElement('link'); fl.rel = 'stylesheet'; fl.href = 'https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=Barlow+Semi+Condensed:wght@500;600;700;800&display=swap'; document.head.appendChild(fl); }
   document.documentElement.style.setProperty('--team', SC.c1 || '#9E1B32');
   document.documentElement.style.setProperty('--team2', SC.c2 || '#828A8F');
-  if (SC.film && SC.film.body) document.documentElement.style.setProperty('--team3', SC.film.body);   /* the team's light colour (Ole Miss powder blue) */
+  if (SC.c3 || (SC.film && SC.film.body)) document.documentElement.style.setProperty('--team3', SC.c3 || SC.film.body);   /* the team's light colour (Ole Miss powder blue) */
   const sets = [...new Set(SC.plays.filter((p) => p.libFamily && p.libSet).map((p) => slug(p.libFamily) + '__' + slug(p.libSet)))];
   const [forms, blocking, ...cards] = await Promise.all([fetch('formations.json').then((r) => r.json()).catch(() => ({})), (introScenes() || (SC.side !== 'D' && SC.live)) ? fetch('blocking.json').then((r) => r.json()).catch(() => null) : Promise.resolve(null), ...sets.map((k) => fetch('cards/' + k + '.json').then((r) => r.json()).catch(() => ({})))]);
   if (SC.stop && !window.skStop) await new Promise((res) => { const me = document.querySelector('script[src$="scheme.js"]'), s = document.createElement('script'); s.src = (me ? me.getAttribute('src').replace(/scheme\.js$/, '') : '') + 'stop-it.js'; s.onload = res; s.onerror = res; document.head.appendChild(s); });   /* Stop it: its engine, only for a scheme that has the section */

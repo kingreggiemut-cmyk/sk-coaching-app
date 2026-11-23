@@ -367,7 +367,7 @@ function SIDEWORD(sc){ return (sc && sc.side === 'D') ? 'defence' : 'offense'; }
 /* THE SHELF HOLDS THE WHOLE SERIES (his call 2026-09-21): an entry of the series that has no install yet
    stands on the shelf as a Coming soon card. It flips like the others and opens nothing. */
 const soonCards=()=>{ if(!SERIES_HERE()||!SERIES.qbs) return []; const sd=typeof SIDE==='undefined'?'O':SIDE;
-  return SERIES.qbs.filter(q=>q.soon).map((q,i)=>({ key:'soon-'+i, soon:true, side:sd, name:q.fullName||(q.name+' '+SERIES.title.replace(/^The\s+/i,'').replace(/\s+Offense$/i,'')), c1:q.c1||'#1E3A6E', c2:q.c2||'#F5B935', logo:null, logoImg:q.logo||null,
+  return SERIES.qbs.filter(q=>q.soon).map((q,i)=>({ key:'soon-'+i, soon:true, side:sd, name:q.fullName||(q.name+' '+SERIES.title.replace(/^The\s+/i,'').replace(/\s+Offense$/i,'')), c1:q.c1||'#1E3A6E', c2:q.c2||'#F5B935', logo:null, logoImg:q.logo||q.crest||null,
     home:{ card:q.card||null, era:q.team||'', sub:'coming soon', pitch:q.pitch||'' }, install:{pillars:[]}, formations:[], counts:{plays:0,films:0,pillars:{}}, plays:[] })); };
 /* THE GROUPS (2026-11-09, his call): Schemes switches between groups. A series is a group (its qbs keys name its installs),
    the installs in no series are one more, and CUSTOM OFFENSES holds the schemes with group:'custom'. The pick is kept for the tab. */

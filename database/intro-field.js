@@ -88,9 +88,11 @@ function simulate(R, p, BLK) {
   const byK = {}; O.forEach((a) => { byK[a.k] = a; }); const qb = O.find((a) => a.cls === 'qb'); byK.qb = qb;
   const branch = (a) => { const m = a.m, b = R.branch && R.branch[m.k]; if (b != null && m.alts && m.alts[b] && m.tip) { const i = m.r.findIndex((q) => q[0] === m.tip[0] && q[1] === m.tip[1]); return m.r.slice(0, i + 1).concat(m.alts[b].slice(1)); } return m.r; };
   const carrierKey = R.run && !R.run.afterCatch ? R.run.who : (R.hand ? R.hand.to : null);
-  const isRun = !!runPath && !R.run.afterCatch, runBlock = isRun || !!R.fake;   /* an RPO or play action blocks like a run */
-  for (const a of O) { const m = a.m;
+  const isRun = !!runPath && !R.run.afterCatch, runBlock = isRun || (!!R.fake && !R.ppa);   /* an RPO or play action blocks like a run, unless the scene says the line pass sets (ppa) */
+  const olW = O.filter((a) => a.m.role === 'ol').sort((a, b) => a.x - b.x);   /* move: { ol0: path } is the left tackle getting out on a screen */
+  for (const a of O) { const m = a.m, olMove = m.role === 'ol' && R.move ? R.move['ol' + olW.indexOf(a)] : null;
     if (a.cls === 'qb') { a.mode = R.run && R.run.who === 'qb' ? 'carry' : 'qb'; if (a.mode === 'carry') { a.path = [[m.x, m.y]].concat(runPath); a.delay = R.run.delay || 0; a.vmax = R.run.speed || SPEED.qb; } }
+    else if (olMove) { a.mode = 'move'; a.screen = true; a.path = [a.start].concat(olMove); }
     else if (R.move && R.move[m.k]) { a.mode = 'move'; a.path = [a.start].concat(R.move[m.k]); }
     else if (carrierKey === m.k) { a.mode = 'carry'; a.path = [a.start].concat(runPath || [[a.start[0], a.start[1] + 6]]); a.vmax = (R.run && R.run.speed) || SPEED[a.cls]; a.delay = (R.run && R.run.delay) || 0; }
     else if (m.r && m.r.length > 1) { a.mode = 'route'; a.path = branch(a); }
@@ -163,8 +165,8 @@ function simulate(R, p, BLK) {
           if (a.caught || verticalEnd(a.path)) { a.d += (a.d > L ? Math.min(a.v, a.vmax * .75) : a.v) * DT; const q = alongOn(a.path, a.d); a.x = q[0]; a.y = q[1]; }
           else { a.d = Math.min(L, a.d + a.v * DT); const q = along(a.path, a.d); a.x = q[0]; a.y = q[1]; if (a.d >= L) a.v = 0; } }
         else if (a.mode === 'carry') { if (a.tackled) continue; if (tp >= (a.delay || 0)) { let cap = a.vmax; if (tp < (a.delay || 0) + .8 && !a.caught) cap = 5; else if (breakSoon(a.path, a.d)) cap = 5.2; a.v = Math.min(cap, a.v + ACCEL * DT); a.d += a.v * DT; const q = alongOn(a.path, a.d); a.x = q[0]; a.y = q[1]; } }
-        else if (a.mode === 'move' || a.mode === 'lead') { if (a.eng) continue; const L = plen(a.path); if (a.d < L) { a.v = Math.min(6.5, a.v + ACCEL * DT); a.d = Math.min(L, a.d + a.v * DT); const q = along(a.path, a.d); a.x = q[0]; a.y = q[1]; const near = nearest([a.x, a.y], freeDef((d) => (d.cls !== 's' || d.y < a.y + 4) && canEngage(a, d, t)), 1.6); if (near) engage(a, near, t); }
-          else { const near = nearest([a.x, a.y], freeDef((d) => canEngage(a, d, t) && !(a.cls === 'wr' && d.cls === 'dl')), 5); if (near) { step(a, [near.x, near.y], 5.5, DT); if (dist([a.x, a.y], [near.x, near.y]) < 1.1) engage(a, near, t); } } }
+        else if (a.mode === 'move' || a.mode === 'lead') { if (a.eng) continue; if (a.screen && tp < (R.moveAt || 0)) { step(a, [a.start[0], a.start[1] - .8], 3, DT); continue; } const L = plen(a.path); if (a.d < L) { a.v = Math.min(6.5, a.v + ACCEL * DT); a.d = Math.min(L, a.d + a.v * DT); const q = along(a.path, a.d); a.x = q[0]; a.y = q[1]; const near = nearest([a.x, a.y], freeDef((d) => (d.cls !== 's' || d.y < a.y + 4) && !(a.screen && d.cls === 'dl') && canEngage(a, d, t)), 1.6); if (near) engage(a, near, t); }
+          else { const near = nearest([a.x, a.y], freeDef((d) => canEngage(a, d, t) && !((a.cls === 'wr' || a.screen) && d.cls === 'dl')), a.screen ? 7 : 5); if (near) { step(a, [near.x, near.y], 5.5, DT); if (dist([a.x, a.y], [near.x, near.y]) < 1.1) engage(a, near, t); } } }
         else if (a.mode === 'ol' || a.mode === 'climb') { if (a.eng) continue;
           if (a.mode === 'climb') { const lb = a.tgt && !a.tgt.blk ? a.tgt : nearest([a.x, a.y], freeDef((d) => d.cls === 'lb' && d.y < 9 && Math.abs(d.x - a.x) < 7 && canEngage(a, d, t)), 9); if (lb) { a.tgt = lb; step(a, intercept(a, lb, SPEED.ol), SPEED.ol, DT); if (dist([a.x, a.y], [lb.x, lb.y]) < 1.1) engage(a, lb, t); } else step(a, [a.start[0], a.start[1] + 2.5], 3, DT); continue; }
           if (a.tgt && (!a.tgt.blk || a.double)) { const d = a.tgt;
@@ -174,7 +176,8 @@ function simulate(R, p, BLK) {
           else if (!runBlock) step(a, [a.start[0], a.start[1] - .4], 3, DT); }
         else if (a.mode === 'stalk') { if (a.eng) continue; const d = a.tgt && !a.tgt.blk ? a.tgt : nearest([a.x, a.y], freeDef((d) => d.y > a.y - 1 && d.cls !== 'dl' && canEngage(a, d, t)), 13); if (d) { a.tgt = d; const aim = [d.x, Math.min(d.y - .8, a.start[1] + 9)]; step(a, aim, 6.5, DT); if (dist([a.x, a.y], [d.x, d.y]) < 1.4) engage(a, d, t); } }
         else if (a.mode === 'pro') { if (a.eng) continue; const d = a.tgt && !a.tgt.blk ? a.tgt : nearest([a.x, a.y], freeDef((d) => d.rush && d.y < 2.5 && canEngage(a, d, t)), 6); if (d) { step(a, [d.x, d.y], 5, DT); if (dist([a.x, a.y], [d.x, d.y]) < 1.1) engage(a, d, t); } }
-        else if (a.mode === 'qb') { const drop = R.drop == null ? 2.5 : R.drop; if (!thrown || !thrown.done) step(a, [a.start[0], a.start[1] - drop], 4, DT); } }
+        else if (a.mode === 'qb') { const drop = R.drop == null ? 2.5 : R.drop; if (!thrown || !thrown.done) { if (R.roll) { const path = [a.start].concat(R.roll); a.d = Math.min(plen(path), a.d + 6 * DT); [a.x, a.y] = along(path, a.d); }   /* a boot or a sprint out: the path he rolls on */
+          else step(a, [a.start[0], a.start[1] - drop], 4, DT); } } }
       /* ---- engaged pairs: the blocker drives, the defender rides on his far side; a second blocker on a double sits on the other shoulder, then climbs; second level blocks shed after a while ---- */
       for (const a of O) { if (!a.eng) continue; const d = a.eng, age = t - a.engAt;
         if (a.second) { /* the combo: hold the other shoulder, then leave for the backer */
@@ -199,7 +202,7 @@ function simulate(R, p, BLK) {
       const recs = O.filter((a) => a.mode === 'route' || (a.mode === 'carry' && a.caught));
       for (const d of D) { if (d.blk) continue; if (tp < d.react) continue;
         let target = null, vmax = d.vmax, back = false;
-        if (d.chase) { const until = d.until == null ? 1e9 : d.until; const who = t <= until ? byK[d.chase] : (d.then ? byK[d.then] : null); target = who ? intercept(d, who, 7) : (d.zone ? [d.zone[0], d.zone[1]] : d.home); vmax = 7; }
+        if (d.chase && !(carrier && carrier.caught && carrier !== byK[d.chase])) { const until = d.until == null ? 1e9 : d.until; const who = t <= until ? byK[d.chase] : (d.then ? byK[d.then] : null); target = who ? intercept(d, who, 7) : (d.zone ? [d.zone[0], d.zone[1]] : d.home); vmax = 7; }
         else if (keyMan && (isRun || keyMan === fake || (carrier && carrier.caught)) && pursues(d, keyMan, tp)) {
           const past = keyMan.y > 1.5, fit = d.fit || { job: '' };
           if (past || keyMan.caught) { target = intercept(d, keyMan, vmax); if (d.cls === 'dl') vmax = 5; if (d.cls === 's') vmax = 7; }

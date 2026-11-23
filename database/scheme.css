@@ -1238,7 +1238,7 @@ body.mob .pop{min-width:0}
 .srhost{display:block}
 html.turn-out .stage > .srhost{animation:pgFade .3s ease-in both}
 html.turn-in .stage > .srhost{animation:pgRise .46s var(--ease) .06s both}
-body.mob .srhost{position:static!important;width:auto!important;height:auto!important;aspect-ratio:4/5;margin:12px}
+body.mob .srhost{position:static!important;width:auto!important;height:520px!important;margin:12px;scroll-margin-bottom:76px}
 
 /* the live play page (2026-10-11): an adjustment is a step, like a key */
 .adj.lv{cursor:pointer;padding:4px 6px;margin:0 -6px;border:1.5px solid transparent}
@@ -1359,7 +1359,8 @@ body.mob .ldcard{transform:none!important}
 body.mob .ldcard canvas{flex:none;height:60vw;max-height:320px}
 body.mob .ldopen{flex:none}
 body.mob .ldcards.many .ldcard .nm{font-size:30px}
-body.mob .srhost.full{aspect-ratio:4/5}
+/* (2026-11-22) on a phone the full reel runs from under the buttons to the bottom bar */
+body.mob .srhost.full{height:max(460px,calc(100vh - 213px))!important;height:max(460px,calc(100dvh - 213px))!important}
 
 /* All plays: a divider between the groups of calls (one video, then the other) */
 .rowdiv{position:absolute;height:56px;display:flex;align-items:baseline;gap:18px;border-top:3px solid var(--team);padding-top:12px}
@@ -1520,6 +1521,11 @@ body.shell .dock a.on::before{content:"";width:0;height:0;border-top:9px solid t
 body.shell .dock .meter{height:60px;padding:0 18px;align-items:center;background:var(--team);color:#111;box-shadow:0 6px 0 rgba(0,0,0,.4)}
 body.shell .dock .meter b{font:900 32px/1 'Archivo',sans-serif;font-stretch:125%;color:#111}
 body.shell .dock .meter i{color:#111;opacity:.85;font:800 13px/1 'Barlow Semi Condensed',sans-serif}
+/* a deep team colour (the 49ers): the red, the gold and black. The red is never mixed down into a maroon */
+body.shell-deep .bg .veil{background:linear-gradient(180deg,rgba(12,12,12,.2),rgba(12,12,12,.3) 45%,rgba(12,12,12,.78))}
+body.shell-deep .dbl{background:rgba(16,16,16,.82)}
+body.shell-deep .dock .home{background:#141414}
+body.shell-deep .dock .meter{background:var(--team3)}
 body.shell .lpboard,body.shell .lpboard .lphost{background:#173D1B}
 body.shell .lpshade{background:linear-gradient(90deg,rgba(7,9,12,.9) 0,rgba(7,9,12,.7) 58%,transparent)}
 body.shell.mob .dock{background:var(--team2)}
@@ -1597,6 +1603,15 @@ body.shell .prow .tags .pos{margin-top:0}
 body.shell .prow .era{padding:4px 7px;border:1px solid rgba(255,255,255,.32);color:var(--team3,#C9BFA8);font:800 11px/1 var(--fc);letter-spacing:.16em;text-transform:uppercase}
 body.shell .prow .ln{color:rgba(255,255,255,.74);font-size:13.5px}
 body.shell .prow .go{background:rgba(255,255,255,.12);color:#fff}
+body.shell-deep .frame.roster{background:#141414}
+body.shell-deep .pcard2 .pfoot{background:#141414}
+/* six players on a short screen: the second line of each one fits */
+body.shell-deep:not(.mob) .prow{padding:3px 14px}
+body.shell-deep:not(.mob) .posbox.jersey{width:58px;height:58px}
+body.shell-deep:not(.mob) .posbox.jersey b{font-size:31px}
+body.shell-deep:not(.mob) .prow .nm{font-size:20px}
+body.shell-deep:not(.mob) .prow .tags{margin-top:3px}
+body.shell-deep:not(.mob) .prow .ln{font-size:13px;line-height:1.12;margin-top:3px}
 .pcard2{position:absolute;inset:0;overflow:hidden;background-color:var(--team3,#6CACE4);background-image:radial-gradient(circle at 1px 1px,rgba(0,0,0,.14) .9px,transparent 1.4px),linear-gradient(180deg,rgba(255,255,255,.14),rgba(0,0,0,.2));background-size:8px 8px,auto;box-shadow:inset 0 0 0 6px var(--team3,#6CACE4),inset 0 0 0 10px #fff,inset 0 0 0 16px var(--team)}
 .pcard2 .pnum{position:absolute;left:50%;top:-2%;transform:translateX(-50%);font:400 440px/1 var(--fd);color:#fff;-webkit-text-stroke:9px var(--team);paint-order:stroke fill;white-space:nowrap}
 .pcard2.hascut .pnum{opacity:.55}
@@ -1648,3 +1663,109 @@ body.mob .lpboard .lphost .lp-root{position:absolute;inset:0;width:100%;height:1
 
 /* (2026-11-15) a breakdown button with no film yet: it shows, it links to nothing */
 .watch.soon,.btn.lpfilm.soon{cursor:default}.watch.soon .thumb img,.btn.lpfilm.soon .lpth img{object-fit:contain;background:#0B1A3F;opacity:1}
+
+/* HISTORY AND PERSONNEL on the Paper Desk (history-desk.js, 2026-11-22): the offense, the positions, the facts */
+.stage > [class*="hd-"]{position:absolute;box-sizing:border-box}
+.hd-sheet,.hd-head,.hd-tabs{--hd-red:var(--team);--hd-ink:#141414;--hd-paper:#F6EEDC;--hd-grey:#C9C2B6;--hd-mute:#5E574C;--hd-big:'Big Shoulders Display',Impact,sans-serif}
+.hd-head h1{margin:0;font:900 58px/58px var(--hd-big);text-transform:uppercase;color:#fff;white-space:nowrap}
+.hd-tabs{display:flex;gap:8px}
+.hd-tabs a{display:flex;align-items:center;justify-content:center;min-height:44px;padding:0 22px;background:var(--hd-ink);color:var(--hd-paper);font:800 19px/1.1 var(--fc);letter-spacing:.08em;text-transform:uppercase;text-decoration:none;text-align:center}
+.hd-tabs a:hover{background:#2C2C2C}
+.hd-tabs a[aria-current]{background:var(--hd-paper);color:var(--hd-ink)}
+.hd-tabs a:focus-visible,.hd-pick:focus-visible,.hd-calls a:focus-visible{outline:3px solid var(--team3);outline-offset:2px}
+.hd-sheet{isolation:isolate;display:flex;flex-direction:column;padding:18px 24px 12px;color:var(--hd-ink);font:500 16px/1.3 Barlow,sans-serif}
+.hd-sheet::before{content:"";position:absolute;inset:0;z-index:-1;background:var(--hd-paper);filter:url(#tear1)}
+.hd-tape{position:absolute;left:50%;top:-12px;width:96px;height:22px;margin-left:-48px;background:rgba(240,230,190,.85);transform:rotate(-3deg);pointer-events:none}
+.hd-sheet :is(h2,h3,h4,p,ol){margin:0;padding:0}
+.hd-sheet h2{font:900 36px/1 var(--hd-big);text-transform:uppercase}
+.hd-sheet h3{font:900 30px/1 var(--hd-big);text-transform:uppercase;color:var(--hd-red)}
+.hd-sheet h4{font:800 15px/1 var(--fc);letter-spacing:.08em;text-transform:uppercase;color:var(--hd-mute)}
+.hd-sheet canvas{display:block;width:100%;flex:1;min-height:0}
+.hd-sheet .hd-src{font-size:13px;color:var(--hd-mute)}
+
+/* what the offense is */
+.hd-intro{flex-direction:row;gap:40px;padding:16px 28px 10px}
+.hd-intro > div{flex:1}
+.hd-intro h2{font-size:30px}
+.hd-intro div > p{margin-top:6px;font-size:17px}
+.hd-part{padding:16px 20px 10px}
+.hd-part > p{min-height:42px;margin-top:4px!important}
+.hd-pair{flex:1;min-height:0;display:flex;gap:12px;margin-top:8px}
+.hd-call{flex:1;min-width:0;display:flex;flex-direction:column}
+.hd-call em{font:400 15px/1.2 'Permanent Marker',cursive;color:var(--hd-red)}
+.hd-call canvas{margin:4px 0}
+.hd-call b{font:800 18px/1.1 var(--fc);text-transform:uppercase}
+.hd-call p{min-height:36px;font-size:15px;line-height:1.2}
+
+/* the positions */
+.hd-rail{justify-content:space-between;padding:12px 12px 10px}
+.hd-pick{flex:1;max-height:72px;min-height:0;display:flex;align-items:center;gap:12px;padding:0 10px;border:0;background:none;color:var(--hd-ink);font:inherit;text-align:left;cursor:pointer}
+.hd-pick:hover{background:rgba(20,20,20,.08)}
+.hd-pick i{flex:none;display:grid;place-items:center;width:48px;height:44px;padding-top:4px;box-sizing:border-box;background:var(--hd-ink);color:var(--hd-paper);clip-path:polygon(20% 0,37% 0,43% 10%,57% 10%,63% 0,80% 0,100% 23%,88% 44%,79% 38%,79% 100%,21% 100%,21% 38%,12% 44%,0 23%);font:900 21px/1 var(--hd-big)}
+.hd-pick span{font-size:14px;line-height:1.1}
+.hd-pick b{display:block;font:800 19px/1.1 var(--fc);text-transform:uppercase}
+.hd-pick[aria-pressed=true]{background:var(--hd-ink);color:var(--hd-paper)}
+.hd-pick[aria-pressed=true] i{background:var(--hd-red);color:#fff}
+.hd-main{padding:16px 24px 10px}
+.hd-stack{flex:1;min-height:0;display:grid;grid-template:minmax(0,1fr)/minmax(0,1fr)}
+.hd-pos{grid-area:1/1;min-height:0;display:flex;gap:28px;visibility:hidden}
+.hd-pos.on{visibility:visible}
+.hd-say{flex:0 0 620px;min-width:0;display:flex;flex-direction:column;justify-content:space-between;gap:4px}
+.hd-who{display:flex;align-items:baseline;gap:4px 12px;flex-wrap:wrap}
+.hd-who b{font:800 24px/1 var(--fc);color:var(--hd-red)}
+.hd-who span{font-size:14px;color:var(--hd-mute)}
+.hd-what{font-size:18px;font-weight:700;line-height:1.25}
+.hd-job{list-style:none}
+.hd-job li{display:grid;grid-template-columns:196px 1fr;gap:10px;padding:5px 0;border-bottom:1px solid rgba(20,20,20,.14);font-size:15px;line-height:1.2}
+.hd-job b{font:800 17px/1.1 var(--fc);text-transform:uppercase}
+.hd-nums{display:flex;gap:18px}
+.hd-nums p{flex:1;font:800 14px/1.1 var(--fc);letter-spacing:.04em;text-transform:uppercase;color:var(--hd-mute)}
+.hd-nums b{display:block;font:900 34px/1 var(--hd-big);color:var(--hd-red);white-space:nowrap}
+.hd-see{flex:1;min-width:0;display:flex;flex-direction:column;gap:6px;padding-left:24px;border-left:1px solid rgba(20,20,20,.2)}
+.hd-on{font:400 18px/1.15 'Permanent Marker',cursive;color:var(--hd-red)}
+.hd-calls{display:flex;flex-wrap:wrap;gap:4px 16px}
+.hd-calls a{font:800 16px/26px var(--fc);text-transform:uppercase;color:var(--hd-ink)}
+
+/* the facts */
+.hd-now h2 + p{margin-top:6px}
+.hd-ranks{flex:1;min-height:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px 24px;align-content:space-evenly}
+.hd-rank p{display:flex;align-items:baseline;justify-content:space-between;gap:8px}
+.hd-rank p b{font:900 58px/1 var(--hd-big);color:var(--hd-red)}
+.hd-rank p span{font:900 34px/1 var(--hd-big)}
+.hd-sheet .hd-rank h4{margin-top:4px;font-size:18px;color:var(--hd-ink)}
+.hd-rank i{display:flex;align-items:flex-end;gap:2px;height:16px;margin:7px 0}
+.hd-rank u{flex:1;height:9px;background:var(--hd-grey);text-decoration:none}
+.hd-rank u.hot{flex:2;height:16px;background:var(--hd-red)}
+.hd-rank em{font:500 15px/1.2 Barlow,sans-serif;color:var(--hd-mute)}
+.hd-path{flex:1;min-height:0;display:flex;flex-direction:column;justify-content:space-evenly;list-style:none}
+.hd-path li{display:grid;grid-template-columns:112px 1fr;align-items:center;gap:14px}
+.hd-path li > b{font:900 30px/1 var(--hd-big);color:var(--hd-red);white-space:nowrap}
+.hd-path span{display:block;font:800 15px/1.3 var(--fc);text-transform:uppercase;color:var(--hd-ink)}
+
+/* a phone: the sheets stack */
+body.mob .hd-head h1{font-size:40px;line-height:1;white-space:normal}
+body.mob .hd-tabs{flex-direction:column;gap:6px}
+body.mob .stage > .hd-sheet{padding:22px 16px 14px;margin:0 0 22px}
+body.mob .hd-intro{flex-direction:column;gap:16px}
+body.mob .hd-pair{flex:none;flex-direction:column;gap:18px}
+body.mob .hd-call{flex:none}
+body.mob .hd-sheet canvas{flex:none;height:210px}
+body.mob .hd-call p,body.mob .hd-job li,body.mob .hd-rank em{font-size:16px}
+body.mob .stage > .hd-rail{display:grid;grid-template-columns:1fr 1fr;gap:4px}
+body.mob .hd-pick{min-height:64px;padding:4px;gap:6px}
+body.mob .hd-pick i{width:40px;height:38px;font-size:18px}
+body.mob .hd-pick b{font-size:14px}
+body.mob .hd-pick span{font-size:12px}
+body.mob .hd-stack{flex:none;display:block;position:relative}
+body.mob .hd-pos{position:absolute;left:0;right:0;top:0;height:0;overflow:hidden;flex-direction:column;gap:16px}
+body.mob .hd-pos.on{position:relative;height:auto}
+body.mob .hd-say{flex:none;gap:10px}
+body.mob .hd-job li{grid-template-columns:1fr;gap:2px}
+body.mob .hd-nums{gap:8px}
+body.mob .hd-nums b{font-size:24px}
+body.mob .hd-see{flex:none;padding:0;border:0}
+body.mob .hd-calls a{line-height:44px}
+body.mob .hd-ranks{flex:none;grid-template-columns:minmax(0,1fr);gap:18px;margin:14px 0}
+body.mob .hd-path{flex:none;gap:14px;margin:14px 0}
+body.mob .hd-path li{grid-template-columns:84px 1fr}
+body.mob .hd-path li > b{font-size:23px}

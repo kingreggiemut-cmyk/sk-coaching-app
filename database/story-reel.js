@@ -229,8 +229,12 @@ const CSS = `
 @container (max-width:700px){
   .sr-split{grid-template-columns:1fr;grid-template-rows:1fr 1fr}
   .sr-ours{border-left:0;border-top:5px solid var(--sr-b)}
-  .sr-take{padding-bottom:22%}
+  .sr-take{padding:48px 6% 16px;align-content:safe center}
   .sr-man{height:50%;opacity:.5}
+  /* the stripes sit in the bottom corner, off the words */
+  .sr-graphic{background-image:radial-gradient(rgba(255,255,255,.055) 1.2px,transparent 1.5px),linear-gradient(115deg,transparent 0 94%,var(--sr-b) 94% 95.6%,transparent 95.6% 97.2%,var(--sr-b) 97.2% 98%,transparent 98%)}
+  .sr-take.sr-paper{background-image:radial-gradient(rgba(23,19,14,.08) 1px,transparent 1.3px),linear-gradient(115deg,transparent 0 92%,var(--sr-d) 92% 95%,transparent 95% 97%,var(--sr-b) 97% 98.4%,transparent 98.4%)}
+  .sr-take.sr-flood{background-image:radial-gradient(rgba(0,0,0,.1) 1.3px,transparent 1.6px),linear-gradient(115deg,transparent 0 92%,var(--sr-d) 92% 96%,transparent 96% 98%,var(--sr-d) 98% 99.2%,transparent 99.2%)}
   .sr-gg{grid-template-columns:minmax(0,1fr);align-items:start}
   .sr-gph{display:none}
   .sr-gt{grid-column:1;padding:7cqw 4cqw 0;gap:2.2cqw}
@@ -238,17 +242,40 @@ const CSS = `
   .sr-rows{grid-template-columns:1fr 1fr;gap:2cqw 3cqw}
   .sr-rows em{width:8cqw;font-size:4cqw}.sr-rows strong{font-size:3.8cqw}.sr-rows small{font-size:2.5cqw}
   .sr-why{display:none}
-  .sr-inset{left:4%;right:4%;top:auto;bottom:19%;width:auto;height:32%;transform:none}
-  .sr-gs{padding:6% 6% 22%}.sr-bars{max-width:100%}
-  .sr-pops{gap:2%;bottom:19%}.sr-pop{flex-basis:31%}
-  .sr-banner{bottom:22%}
-  .sr-lower p{font-size:3.4cqw}
+  .sr-inset{left:4%;right:4%;top:auto;bottom:calc(var(--sr-low) + 8px);width:auto;height:22%;transform:none}
+  .sr-gs{padding:48px 5% 12px;align-content:safe center;overflow-y:auto;gap:10px}.sr-bars{max-width:100%}
+  .sr-path{gap:10px 14px;margin:2px 0}
+  .sr-path li{padding-top:20px;gap:3px}
+  .sr-path li::before{width:13px;height:13px;box-shadow:none}
+  .sr-path img{width:30px;height:30px;margin:0}
+  .sr-path em{font-size:24px}.sr-path strong{font-size:13px}.sr-path small{font-size:13px;line-height:1.25}
+  /* no logo on the stop: the year and the place share a line */
+  .sr-path li:not(:has(img)){grid-template-columns:auto minmax(0,1fr);align-items:center;column-gap:7px;padding-top:17px}
+  .sr-path li:not(:has(img)) small{grid-column:1/-1}
+  /* five or six stops: the rows close up */
+  .sr-gs:has(.sr-path li:nth-child(5)){padding-top:42px;padding-bottom:6px;gap:4px}
+  .sr-gs:has(.sr-path li:nth-child(5)) .sr-path{column-gap:12px;row-gap:3px}
+  .sr-gs:has(.sr-path li:nth-child(5)) .sr-path li{padding-top:14px;row-gap:1px}
+  .sr-gs:has(.sr-path li:nth-child(5)) .sr-path li::before{width:10px;height:10px}
+  .sr-gs:has(.sr-path li:nth-child(5)) .sr-path em{font-size:21px}
+  .sr-gs:has(.sr-path li:nth-child(5)) .sr-path small{line-height:1.12}
+  .sr-pops{gap:2%;bottom:calc(var(--sr-low) + 10px)}.sr-pop{flex-basis:31%}
+  .sr-banner{bottom:calc(var(--sr-low) + 8px)}
+  /* (2026-11-22) the caption is a full width block under its label and buttons, and every screen ends where it starts */
+  .sr-lower{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 10px;padding:6px 12px 10px}
+  .sr-lower .sr-flag{justify-self:start;align-self:center}
+  .sr-lower p{grid-column:1/-1;grid-row:2;font-size:16px;line-height:1.28}
+  .sr-lower .sr-nav{grid-column:2;grid-row:1;gap:8px}
+  .sr-b2{width:44px;height:44px}
+  .sr > .sr-layer{bottom:var(--sr-low)}
+  .sr:has(.sr-inset[hidden]) .sr-rows{grid-template-columns:minmax(0,1fr);gap:12px}
+  .sr:has(.sr-inset[hidden]) .sr-rows strong{font-size:17px}
+  .sr:has(.sr-inset[hidden]) .sr-rows small{font-size:13px}
   .sr-man.sr-m0{right:38%}
   .sr-stamp{right:6%;top:8%}
   .sr-bug{grid-template-columns:minmax(0,1fr) minmax(0,1fr) minmax(0,1fr)}.sr-bug .sr-nt{display:none}
   .sr-side{display:none}
   .sr-ghost{right:-8%;height:70%;max-width:70%;opacity:.13}
-  .sr-big .sr-split{bottom:18cqh}
 }
 @media (prefers-reduced-motion:reduce){ .sr *{animation:none!important;transition:none!important} }
 `.replace(/\{([\d.]+)\}/g, (m, n) => 'min(' + n + 'cqw,' + (n * 1.778).toFixed(2) + 'cqh)');
@@ -260,7 +287,7 @@ function unmount() { if (!S) return; if (S.film && window.skOffFilm) skOffFilm.u
 function mount(host, cfg) {
   unmount(); styles();
   const ST = cfg.story, SCENES = ST.scenes, IMG = cfg.img || {}, CALLS = cfg.calls || {}, TILE = cfg.tile || [], OFF = cfg.off || [];
-  const DARK = cfg.dark || '#002244', BRIGHT = cfg.bright || '#69BE28', NIGHTC = shade(DARK, .82), PAPERMK = shade(BRIGHT, .78);
+  const DARK = cfg.dark || '#002244', BRIGHT = cfg.bright || '#69BE28', NIGHTC = ST.night || shade(DARK, .82), PAPERMK = shade(BRIGHT, .78);
   const STILL = !!cfg.still, REDUCED = STILL || matchMedia('(prefers-reduced-motion: reduce)').matches;
   const NIGHT = { night: 1, sheet: NIGHTC, line: 'rgba(255,255,255,.15)', strong: 'rgba(255,255,255,.85)', hash: 'rgba(255,255,255,.2)', side: 'rgba(255,255,255,.42)', ghost: 'rgba(255,255,255,.42)', text: '#fff', mk: BRIGHT, red: '#ff7a66', alt: '#fff' };
   const PAPER = { sheet: '#f8f1de', line: 'rgba(23,19,14,.2)', strong: 'rgba(23,19,14,.85)', hash: 'rgba(23,19,14,.26)', side: 'rgba(23,19,14,.5)', ghost: 'rgba(23,19,14,.34)', text: INK, mk: PAPERMK, red: '#7d1d10', alt: DARK };
@@ -307,7 +334,7 @@ function mount(host, cfg) {
       g.textAlign = 'center'; if (pos2) { g.fillStyle = 'rgba(23,19,14,.8)'; g.font = '700 ' + clamp(z[2] * .95, 9.5, 16) + 'px ' + FC; g.textBaseline = 'top'; g.fillText(pos2, z[0], z[1] + rr + 2); }
       if (tag) { g.font = '400 ' + clamp(z[2] * 1.4, 13, 26) + 'px ' + FM; g.textBaseline = 'alphabetic'; g.lineJoin = 'round'; g.strokeStyle = th.sheet; g.lineWidth = 5; g.strokeText(tag, z[0], z[1] - rr - 8); g.fillStyle = th.mk; g.fillText(tag, z[0], z[1] - rr - 8); } g.restore(); }
     /* their men: a cream disc ringed in the bright colour with his number, and his name when asked */
-    function disc(x, y, num, o) { o = o || {}; const z = P([x, y]); if (!z) return; const rr = o.big ? clamp(z[2] * 1.2, 12, 28) : clamp(z[2] * .9, 8.5, 26); g.save(); g.globalAlpha = o.dim ? .22 : 1; g.beginPath(); g.arc(z[0], z[1], rr, 0, 7); g.fillStyle = CREAM; g.fill(); g.strokeStyle = BRIGHT; g.lineWidth = Math.max(2, rr * .2); g.stroke(); g.textAlign = 'center';
+    function disc(x, y, num, o) { o = o || {}; const z = P([x, y]); if (!z) return; const rr = o.ol ? clamp(z[2] * .68, 8, 17) : o.big ? clamp(z[2] * 1.2, 12, 28) : clamp(z[2] * .9, 8.5, 26);   /* a lineman's disc fits the gap to the next one (2026-11-22) */ g.save(); g.globalAlpha = o.dim ? .22 : 1; g.beginPath(); g.arc(z[0], z[1], rr, 0, 7); g.fillStyle = CREAM; g.fill(); g.strokeStyle = BRIGHT; g.lineWidth = Math.max(2, rr * .2); g.stroke(); g.textAlign = 'center';
       if (num != null) { g.fillStyle = DARK; g.font = '400 ' + (rr * (String(num).length > 1 ? 1.05 : 1.2)) + 'px ' + FD; g.textBaseline = 'middle'; g.fillText(String(num), z[0], z[1] + rr * .06); }
       if (o.tag) { g.font = '400 ' + clamp(z[2] * 1.4, 13, 26) + 'px ' + FM; g.textBaseline = 'alphabetic'; g.lineJoin = 'round'; g.strokeStyle = th.sheet; g.lineWidth = 5; g.strokeText(o.tag, z[0], z[1] - rr - 8); g.fillStyle = th.mk; g.fillText(o.tag, z[0], z[1] - rr - 8); }
       if (o.name && !o.dim) { g.font = '800 ' + clamp(z[2] * .8, 10, 16) + 'px ' + FC; g.lineJoin = 'round'; g.strokeStyle = th.sheet; g.lineWidth = 4; g.fillStyle = th.text; const up = o.up && !o.tag, Y = up ? z[1] - rr - 6 : z[1] + rr + 3; g.textBaseline = up ? 'alphabetic' : 'top'; g.strokeText(o.name, z[0], Y); g.fillText(o.name, z[0], Y); }
@@ -410,7 +437,7 @@ function mount(host, cfg) {
   const LEAD = 1.15, HOLDF = 1.1;
   function osim(s) { if (st.osim && st.osim.id === s.id) return st.osim.v; const F = cfg.film; let v = null;
     if (F && window.skOffFilm && skOffFilm.simFor) { try { v = skOffFilm.simFor(F.scheme, s.call, s.read, (F.plays || {})[s.call], F.blocking); } catch (e) { console.error('story: the side by side failed', e); } }
-    if (v) { const men = v.p.men, ol = men.filter((m) => m.role === 'ol').map((m) => m.x).sort((a, c) => a - c), cx = ol.length ? ol[2] : 0, CAST = ST.cast || {}, back = (m) => m.role === 'rb' || (m.role !== 'qb' && m.role !== 'ol' && m.y < -3);
+    if (v) { const men = v.p.men, ol = men.filter((m) => m.role === 'ol').map((m) => m.x).sort((a, c) => a - c), cx = ol.length ? ol[2] : 0, CAST = s.cast || ST.cast || {}, back = (m) => m.role === 'rb' || (m.role !== 'qb' && m.role !== 'ol' && m.y < -3);
       const rec = men.map((m, i) => ({ m, i })).filter(({ m }) => m.role !== 'ol' && m.role !== 'qb' && !back(m)), right = rec.filter((r) => r.m.x > cx), left = rec.filter((r) => r.m.x <= cx), trips = right.length >= left.length ? right : left, solo = trips === right ? left : right;
       v.cast = men.map((m) => (m.role === 'qb' ? CAST.qb : back(m) ? CAST.rb : null)); v.olN = men.map((m) => (m.role === 'ol' ? ['LT', 'LG', 'C', 'RG', 'RT'][ol.indexOf(m.x)] || '' : ''));
       trips.sort((a, c) => Math.abs(c.m.x - cx) - Math.abs(a.m.x - cx)).forEach((r, j) => { v.cast[r.i] = (CAST.trips || [])[j] || null; });
@@ -432,7 +459,7 @@ function mount(host, cfg) {
     v.p.men.forEach((m, i) => { if (m.role === 'ol' || k < 2) return; const pts = v.trail[i].slice(0, k + 1).filter((q, j) => j % 2 === 0 || j === k); if (pts.length > 1) { const L = B.line(pts, v.hot[i] ? c.mk : 'rgba(255,255,255,.45)', v.hot[i] ? lw : 2, null, .95, 1); if (v.hot[i]) B.tip(L, c.mk, 10, 1); } });
     if (t < LEAD + .4) v.ringI.forEach((on, j) => { if (on) B.scribble(f.d[j][0], f.d[j][1], u01(t, .5, 1), c.alt, j + .3, .9); });
     f.d.forEach((d, j) => B.ghost(d[0], d[1], v.pos[j]));
-    v.p.men.slice().map((m, i) => i).sort((a, b2) => f.o[b2][1] - f.o[a][1]).forEach((i) => { const m = v.p.men[i], o = f.o[i], who = v.cast[i]; B.disc(o[0], o[1], who ? who[0] : (v.olN[i] || ''), { name: v.hot[i] && who && m.role !== 'ol' ? who[1] : '', dim: false, big: 1 }); });
+    v.p.men.slice().map((m, i) => i).sort((a, b2) => f.o[b2][1] - f.o[a][1]).forEach((i) => { const m = v.p.men[i], o = f.o[i], who = v.cast[i]; B.disc(o[0], o[1], who ? who[0] : (v.olN[i] || ''), { name: v.hot[i] && who && m.role !== 'ol' ? who[1] : '', dim: false, big: 1, ol: m.role === 'ol' }); });
     oball(B, v, f, k); }
   function osidePaper(B, s) { const v = osim(s); if (!v) return; const t = B.T(), T = simT(v, t), k = fidx(v, T), f = v.frames[k], c = B.th, lw = lwOf(B), pr = ease(u01(t, .15, LEAD)), fade = k > 0 ? .55 : 1, INKA = 'rgba(23,19,14,.82)';
     v.p.men.forEach((m, i) => { const hot = v.hot[i], st0 = m.mot ? m.mot[m.mot.length - 1] : [m.x, m.y];
@@ -466,7 +493,7 @@ function mount(host, cfg) {
   function takeHTML(t) { return (t.man && IMG[t.man] ? `<img class="sr-man" src="${esc(IMG[t.man])}" alt="">` : '')
     + (t.men || []).map((k, j) => (IMG[k] ? `<img class="sr-man sr-m${j}${(t.color || []).includes(k) ? ' sr-col' : ''}" src="${esc(IMG[k])}" alt="">` : '')).join('')
     + (t.stamp ? `<div class="sr-stamp" style="--d:${t.stamp.at || 1.2}s">${t.stamp.img && IMG[t.stamp.img] ? `<img src="${esc(IMG[t.stamp.img])}" alt="">` : ''}<span>${esc(t.stamp.text || '')}</span></div>` : '') + t.lines.map(([w, c], j) => `<span class="sr-ln${c ? ' sr-g' : ''}" style="--d:${j * 170}ms">${esc(w)}</span>`).join('') + (t.sub ? `<span class="sr-sub" style="--d:${t.lines.length * 170 + 120}ms">${esc(t.sub)}</span>` : '') + (t.slips ? `<div class="sr-slips">${t.slips.map((x, j) => `<span style="--d:${700 + j * 160}ms"><b>${j + 1}</b>${esc(x)}</span>`).join('')}</div>` : ''); }
-  function setTake(t) { const lt = q('.sr-take'); lt.className = 'sr-layer sr-take' + (t.paper ? ' sr-paper' : '') + (t.flood ? ' sr-flood' : '') + (t.hot ? ' sr-hot' : '') + (t.small ? ' sr-small' : '') + (t.center ? ' sr-center' : ''); lt.style.backgroundImage = t.photo && IMG[t.photo] ? `linear-gradient(100deg,${shade(DARK, .8)} 0 30%,rgba(0,0,0,.35)),url("${IMG[t.photo]}")` : ''; lt.innerHTML = takeHTML(t); lt.hidden = false; }
+  function setTake(t) { const lt = q('.sr-take'); lt.className = 'sr-layer sr-take' + (t.paper ? ' sr-paper' : '') + (t.flood ? ' sr-flood' : '') + (t.hot ? ' sr-hot' : '') + (t.small ? ' sr-small' : '') + (t.center ? ' sr-center' : ''); lt.style.backgroundImage = t.photo && IMG[t.photo] ? `linear-gradient(100deg,${ST.night || shade(DARK, .8)} 0 30%,rgba(0,0,0,.35)),url("${IMG[t.photo]}")` : ''; lt.innerHTML = takeHTML(t); lt.hidden = false; }
   function chartHTML(c) { const u = c.unit || '';
     if (c.type === 'bars') return `<div class="sr-gs"><span class="sr-k">${esc(c.k)}</span><h3>${esc(c.h)}</h3><div class="sr-bars">${c.bars.map(([tm, v, me], j) => `<div class="sr-bar${me ? ' sr-me' : ''}"><span>${esc(tm)}</span><u><i style="--w:${(v / c.max * 100).toFixed(1)}%;--d:${250 + j * 170}ms"></i></u><b data-n="${v.toFixed(1)}${u}">${v.toFixed(1)}${u}</b></div>`).join('')}</div><p class="sr-gn">${esc(c.note || '')}</p></div>`;
     if (c.type === 'path') return `<div class="sr-gs"><span class="sr-k">${esc(c.k)}</span><h3 class="sr-sm">${esc(c.h)}</h3><ol class="sr-path" style="--n:${c.stops.length}">${c.stops.map(([y, t, x, lg], j) => `<li style="--d:${350 + j * 280}ms">${lg && IMG[lg] ? `<img src="${esc(IMG[lg])}" alt="" style="--d:${450 + j * 280}ms">` : ''}<em>${esc(y)}</em><strong>${esc(t)}</strong><small>${esc(x)}</small></li>`).join('')}</ol><p class="sr-gn" style="animation-delay:${(.6 + c.stops.length * .28).toFixed(2)}s">${esc(c.note || '')}</p></div>`;
@@ -510,6 +537,7 @@ function mount(host, cfg) {
     /* the lower third: our side quotes his own words */
     const mine = s.side === 'ours', quote = mine && !s.plain, lo = q('.sr-lower'); lo.className = 'sr-lower' + (quote ? ' sr-q' : '');
     const fl = lo.querySelector('.sr-flag'); fl.className = 'sr-flag' + (mine ? '' : ' sr-fthem'); fl.textContent = mine ? 'Our install' : (ST.label || 'The real thing'); lo.querySelector('p').textContent = quote ? String.fromCharCode(8220) + s.cap + String.fromCharCode(8221) : (s.cap || '');
+    root.style.setProperty('--sr-low', lo.offsetHeight + 'px');   /* how tall the caption is: on a phone the screen ends above it */
     q('.sr-strip').innerHTML = SCENES.map((x, j) => `<button type="button" class="sr-seg${j === st.cur ? ' sr-on' : j < st.cur ? ' sr-done' : ''}" data-sr="${j}" aria-label="Scene ${j + 1}: ${esc(x.slate || '')}"></button>`).join('');
     q('.sr-back').disabled = st.cur === 0 && !cfg.onStart; }
   function show(i, first) { const n = clamp(i, 0, SCENES.length - 1); if (!first && n === st.cur) return; st.timers.forEach(clearTimeout); st.timers = []; clearTimeout(st.pend); st.cur = n;
@@ -517,6 +545,7 @@ function mount(host, cfg) {
     const w = q('.sr-wipe'); w.classList.remove('sr-go'); void w.offsetWidth; w.classList.add('sr-go'); st.pend = setTimeout(() => { if (!st.dead) paintScene(); }, 290); }
   const next = () => { if (st.cur < SCENES.length - 1) show(st.cur + 1); else if (cfg.onEnd) cfg.onEnd(); };
   const back = () => { if (st.cur > 0) show(st.cur - 1); else if (cfg.onStart) cfg.onStart(); };
+  { const lo = q('.sr-lower'), ro = new ResizeObserver(() => root.style.setProperty('--sr-low', lo.offsetHeight + 'px')); ro.observe(lo); st.ros.push(ro); }
   root.addEventListener('click', (e) => { const sg = e.target.closest('[data-sr]'); if (sg) { show(+sg.dataset.sr); return; } if (e.target.closest('.sr-back')) { back(); return; } if (e.target.closest('.sr-next')) { next(); return; } if (e.target.closest('.sr-lower')) return; next(); });
   st.onKey = (e) => { if (st.dead || !root.isConnected) return; if (e.target && e.target.matches && e.target.matches('input,textarea,select,[contenteditable]')) return;
     if (e.key === ' ' || e.code === 'Space' || e.key === 'ArrowRight') { e.preventDefault(); e.stopImmediatePropagation(); next(); } else if (e.key === 'ArrowLeft') { e.preventDefault(); e.stopImmediatePropagation(); back(); } };
